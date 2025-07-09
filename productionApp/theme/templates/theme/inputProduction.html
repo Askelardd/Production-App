@@ -1,0 +1,51 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-6">Lista de products</h1>
+
+<div class="overflow-x-auto bg-white rounded-lg shadow-lg p-6 w-full max-w-6xl">
+    <table class="min-w-full table-auto text-sm text-left">
+        <thead class="bg-custom-blue text-white">
+            <tr>
+                <th class="px-4 py-3">Ordem</th>
+                <th class="px-4 py-3">Caixa</th>
+                <th class="px-4 py-3">Tarefa</th>
+                <th class="px-4 py-3">Quantidade</th>
+                <th class="px-4 py-3">Editado por</th>
+                <th class="px-4 py-3">Criado em</th>
+                <th class="px-4 py-3">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for product in products %}
+            <tr class="border-b hover:bg-gray-100 transition-colors">
+                <td class="px-4 py-2">{{ product.order_Nmber }}</td>
+                <td class="px-4 py-2">{{ product.box_Nmber }}</td>
+                <td class="px-4 py-2">{{ product.task }}</td>
+                <td class="px-4 py-2">{{ product.qnt }}</td>
+                <td class="px-4 py-2">
+                    {% if product.edit_by %}
+                        {{ product.edit_by.username }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2">{{ product.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="flex gap-2">
+                    <a href="{% url 'editar_produto' product.id %}" class="inline-flex items-center px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition-colors duration-200 shadow-sm text-xs font-semibold">
+                        Editar
+                    </a>
+                    <a href="{% url 'deletar_produto' product.id %}" class="inline-flex items-center px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-200 shadow-sm text-xs font-semibold">
+                        Deletar
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+    </table>
+</div>
+{% endblock %}

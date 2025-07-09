@@ -1,0 +1,37 @@
+{% extends 'theme/base.html' %}
+{% block title %}Editar Produto{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-6">Editar Produto</h1>
+
+<form method="POST" class="bg-white/95 backdrop-blur-lg rounded-2xl shadow-xl p-8 w-full max-w-xl border border-white/30">
+    {% csrf_token %}
+    
+    <div class="mb-4">
+        <label for="order_Nmber" class="block text-sm font-semibold text-black mb-1">Número da Ordem</label>
+        <input type="number" id="order_Nmber" name="order_Nmber" value="{{ product.order_Nmber }}" required class="w-full rounded-lg px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-custom-blue">
+    </div>
+
+    <div class="mb-4">
+        <label for="box_Nmber" class="block text-sm font-semibold text-black mb-1">Número da Caixa</label>
+        <input type="number" id="box_Nmber" name="box_Nmber" value="{{ product.box_Nmber }}" required class="w-full rounded-lg px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-custom-blue">
+    </div>
+
+    <div class="mb-4">
+        <label for="task" class="block text-sm font-semibold text-black mb-1">Tarefa</label>
+        <input type="text" id="task" name="task" value="{{ product.task }}" required class="w-full rounded-lg px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-custom-blue">
+    </div>
+
+    <div class="mb-6">
+        <label for="qnt" class="block text-sm font-semibold text-black mb-1">Quantidade</label>
+        <input type="number" id="qnt" name="qnt" value="{{ product.qnt }}" required class="w-full rounded-lg px-4 py-2 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-custom-blue">
+    </div>
+
+    <div class="flex justify-between items-center">
+        <a href="{% url 'input_production' %}" class="text-custom-blue font-medium hover:underline">Cancelar</a>
+        <button type="submit" class="bg-custom-blue hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg shadow-md transition">
+            Guardar Alterações
+        </button>
+    </div>
+</form>
+{% endblock %}
