@@ -22,3 +22,17 @@ class ProductDeleteLog(models.Model):
 
     def __str__(self):
         return f"Produto {self.order_Nmber} deletado por {self.deleted_by} em {self.deleted_at.strftime('%d/%m/%Y %H:%M')}"
+
+class QRData(models.Model):
+    customer = models.CharField(max_length=100)
+    customer_order_nr = models.CharField(max_length=50)
+    toma_order_nr = models.CharField(max_length=50)
+    toma_order_year = models.CharField(max_length=10)
+    box_nr = models.IntegerField()
+    qt = models.IntegerField()
+    diameters = models.CharField(max_length=50)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.customer} - {self.toma_order_nr}"
+    

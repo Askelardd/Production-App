@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-d=9u^&=xe%bsmerta5ngq!f^z&zq2hh8c93i8f4ev8gtyz$a#i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
-
+ALLOWED_HOSTS = ['3500e4a98456.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000']
 
 # Application definition
 
@@ -93,7 +92,7 @@ DATABASES = {
 }
 
 # CSRF trusted origins (add your trusted domains here, e.g., 'http://localhost:8000')
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000/']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000/', 'https://3500e4a98456.ngrok-free.app']
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

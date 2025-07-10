@@ -16,15 +16,16 @@
 
     {% block content %}
     <div class="flex gap-4">
-        <a href="{% url 'input_production' %}">
+        <a href="{% url 'inputProduction' %}">
             <button class="bg-blue-500 hover:bg-custom-blue text-white font-bold py-2 px-4 rounded">
             Input Production
             </button>
         </a>
-
-        <button class="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
-            scan Box
-        </button>
+        <a href="{% url 'scanBox' %}">
+            <button class="bg-green-900 hover:bg-green-800 text-white font-bold py-2 px-4 rounded">
+                scan Box
+            </button>
+        </a>
 
         <button class="bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 rounded">
             send Back
