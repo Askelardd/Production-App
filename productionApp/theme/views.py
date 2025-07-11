@@ -112,7 +112,7 @@ def deleteProduct(request, produto_id):
             deleted_by=request.user
         )
         product.delete()
-        return redirect('input_production')
+        return redirect('inputProduction')
 
     return render(request, 'theme/confirmDelete.html', {'product': product})
 
