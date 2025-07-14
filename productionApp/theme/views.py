@@ -207,3 +207,63 @@ def scanBox(request):
                 'status': 'error', 
                 'message': f'Erro interno: {str(e)}'
             }, status=500)
+
+
+def partidosMenu(request, qrCode_id):
+    try:
+        qr_code = QRData.objects.get(toma_order_nr=qrCode_id)
+    except QRData.DoesNotExist:
+        messages.error(request, 'QR Code não encontrado.')
+        return redirect('listQrcodes')
+    
+    if request.method == 'POST':
+        numero = request.POST.get('numeroPartidos')
+
+        try:
+            partido = int(numero)
+            if partido <= 0:
+                messages.error(request, 'O número do partido deve ser um número positivo.')
+            else:
+                NumeroPartidos.objects.create(qr_code=qr_code, partido=partido)
+                messages.success(request, f'Partido {partido} adicionado com sucesso!')
+        except ValueError:
+            messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
+        except Exception as e:
+            messages.error(request, f'Erro ao adicionar partido: {str(e)}')
+
+    return render(request, 'theme/partidosMenu.html', {'qr_code': qr_code})
+
+def diametroMenu(request, qrCode_id):
+    try:
+        qr_code = QRData.objects.get(toma_order_nr=qrCode_id)
+    except QRData.DoesNotExist:
+        messages.error(request, 'QR Code não encontrado.')
+        return redirect('listQrcodes')
+    
+    if request.method == 'POST':
+        numero = request.POST.get('numeroAlterar')
+        diametro = request.POST.get('diametroNovo')
+
+        try:
+            numero = int(numero)
+            if numero <= 0:
+                messages.error(request, 'O número de fieiras deve ser positivo.')
+            elif not diametro:
+                messages.error(request, 'Por favor, insira o valor do diâmetro.')
+            else:
+                PedidosDiametro.objects.create(
+                    qr_code=qr_code,
+                    diametro=diametro,
+                    numero_fieiras=numero
+                )
+                messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
+        except ValueError:
+            messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
+        except Exception as e:
+            messages.error(request, f'Erro ao adicionar pedido: {str(e)}')
+
+    return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
+
+
+
+    

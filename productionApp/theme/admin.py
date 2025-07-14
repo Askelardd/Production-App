@@ -13,7 +13,10 @@ from .models import (
     Polimento,
     PolimentoWorker,
     Fio,
-    FioWorker
+    FioWorker,
+    NumeroPartidos,
+    PedidosDiametro
+    
 
 )
 
@@ -27,6 +30,9 @@ admin.site.register(FioWorker)
 admin.site.register(Diameters)
 admin.site.register(Die)
 admin.site.register(Tolerance)
+admin.site.register(NumeroPartidos)
+admin.site.register(PedidosDiametro)
+
 
 class DesbasteWorkerInline(admin.TabularInline):
     model = DesbasteWorker

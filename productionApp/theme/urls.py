@@ -11,6 +11,7 @@ urlpatterns = [
     path('delectProduct/<int:produto_id>/', views.deleteProduct, name='delectProduct'),
     path('scanBox/', views.scanBox, name='scanBox'),
     path('listQrcodes/', views.listQrcodes, name='listQrcodes'),
-
+    path('partidosMenu/<int:qrCode_id>/', views.partidosMenu, name='partidosMenu'),
+    path('diametroMenu/<int:qrCode_id>/', views.diametroMenu, name='diametroMenu'),
 
 ]

@@ -31,6 +31,13 @@
 
     <!-- Conteúdo dinâmico -->
     <div class="relative z-10 min-h-screen flex flex-col justify-center items-center px-4 py-8">
+        {% if messages %}
+          <ul class="mb-4">
+            {% for message in messages %}
+              <li class="text-sm text-{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
         {% block content %}
         <!-- Conteúdo da página aqui -->
         {% endblock %}

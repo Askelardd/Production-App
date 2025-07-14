@@ -78,7 +78,6 @@ class Desbaste(models.Model):
         ('saida', 'Saída'),
         ('cone', 'Cone'),
     ]
-
     tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
     workers = models.ManyToManyField(User, through='DesbasteWorker')
 
@@ -162,6 +161,21 @@ class QRData(models.Model):
     def __str__(self):
         return f"{self.customer} - {self.toma_order_nr}"
     
+class NumeroPartidos(models.Model):
+    qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
+    partido = models.IntegerField(null=False, blank=False)
+    created_at = models.DateTimeField(default=timezone.now)
 
-
+    def __str__(self):
+        return f"QR Code: {self.qr_code.toma_order_nr} - Partido: {self.partido} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
     
+
+class PedidosDiametro(models.Model):
+    qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
+    diametro = models.CharField(max_length=50)
+    numero_fieiras = models.IntegerField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"QR Code: {self.qr_code.toma_order_nr} - {self.numero_fieiras} fieiras para diametro {self.diametro} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+

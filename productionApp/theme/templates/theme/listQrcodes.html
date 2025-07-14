@@ -17,6 +17,7 @@
                 <th class="px-4 py-3">Quantidade</th>
                 <th class="px-4 py-3">Diâmetros</th>
                 <th class="px-4 py-3">Criado em</th>
+                <th class="px-4 py-3">Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,10 @@
                 <td class="px-4 py-2">{{ qr.qt }}</td>
                 <td class="px-4 py-2">{{ qr.diameters }}</td>
                 <td class="px-4 py-2">{{ qr.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-2">
+                    <a href="{% url 'diametroMenu' qr.toma_order_nr %}" class="text-blue-600 hover:underline">Novo Diametro</a>
+                    <a href="{% url 'partidosMenu' qr.toma_order_nr %}" class="text-red-600 hover:underline ml-4">Adicionar Partidos</a>
+                </td>
             </tr>
             {% empty %}
             <tr>

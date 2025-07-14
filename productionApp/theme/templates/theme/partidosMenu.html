@@ -1,0 +1,28 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Partidos Menu{% endblock %}
+
+{% block content %}
+
+<h1 class="text-3xl font-bold text-black mb-8">Fieiras Partidas</h1>
+<p class="text-neural-900 mb-6">Quantas fieiras estão partidas?</p>
+
+<form method="POST" action="{% url 'partidosMenu' qr_code.toma_order_nr %}">
+  {% csrf_token %}
+
+  <input
+    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2  mb-4"
+    placeholder="Número de fieiras partidas"
+    type="text"
+    name="numeroPartidos"
+  />
+
+  <button
+    type="submit"
+    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+  >
+    Submeter
+  </button>
+</form>
+
+{% endblock %}
