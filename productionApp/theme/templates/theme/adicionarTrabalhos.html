@@ -1,11 +1,48 @@
 {% extends 'theme/base.html' %}
-
-{% block title %}Adicionar Trabalhos{% endblock %}
-
+{% block title %}Criar Trabalho{% endblock %}
 {% block content %}
 
-<h1 class="text-3xl font-bold text-black mb-8">Adicionar Trabalhos</h1>
-<p class="text-neural-900 mb-6">Selecione o tipo de trabalho que deseja adicionar:</p>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    
+<h1 class="text-2xl font-bold mb-4">Criar Trabalho para QR ID {{ qr_code.id }}</h1>
+
+<form method="POST">
+  {% csrf_token %}
+
+  <label class="block mb-2 font-medium">Tipo de Trabalho:</label>
+  <select name="tipo_trabalho" id="tipo_trabalho" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher --</option>
+    <option value="fio">Fio</option>
+    <option value="desbaste">Desbaste</option>
+    <option value="polimento">Polimento</option>
+  </select>
+
+  <label class="block mb-2 font-medium">Subtipo:</label>
+  <select name="subtipo" id="subtipo" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher o tipo primeiro --</option>
+  </select>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+    Criar Trabalho
+  </button>
+</form>
+
+<script>
+  const subtipoMap = JSON.parse('{{ subtipo_json|escapejs }}');
+  const tipoSelect = document.getElementById('tipo_trabalho');
+  const subtipoSelect = document.getElementById('subtipo');
+
+  tipoSelect.addEventListener('change', () => {
+    const tipo = tipoSelect.value;
+    const opcoes = subtipoMap[tipo] || [];
+
+    subtipoSelect.innerHTML = '<option value="">-- Escolher --</option>';
+    opcoes.forEach(([valor, label]) => {
+      const opt = document.createElement('option');
+      opt.value = valor;
+      opt.textContent = label;
+      subtipoSelect.appendChild(opt);
+    });
+  });
+</script>
+
 {% endblock %}
+  

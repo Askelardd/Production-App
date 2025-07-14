@@ -1,0 +1,26 @@
+{% extends 'theme/base.html' %}
+{% block title %}Adicionar Trabalhadores - desbaste{% endblock %}
+{% block content %}
+
+<h2 class="text-xl font-bold mb-4">Adicionar Trabalhador ao desbaste (ID {{ desbaste.id }})</h2>
+
+<form method="POST">
+  {% csrf_token %}
+  
+  <label for="worker" class="block mb-2">Trabalhador:</label>
+  <select name="worker" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher Utilizador --</option>
+    {% for user in users %}
+      <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+    Adicionar
+  </button>
+  <a href="{% url 'listQrcodes' %}" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+    Sair
+  </a>
+</form>
+
+{% endblock %}

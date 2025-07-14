@@ -13,5 +13,13 @@ urlpatterns = [
     path('listQrcodes/', views.listQrcodes, name='listQrcodes'),
     path('partidosMenu/<int:qrCode_id>/', views.partidosMenu, name='partidosMenu'),
     path('diametroMenu/<int:qrCode_id>/', views.diametroMenu, name='diametroMenu'),
+    path('trabalhos/criar/<int:qr_id>/', views.adicionar_trabalho, name='adicionarTrabalhos'),
+
+    path('trabalhos/fio/<int:fio_id>/workers/', views.adicionarFioWorker, name='adicionarFioWorker'),
+    path('trabalhos/desbaste/<int:desbaste_id>/workers/', views.adicionarDesbasteWorker, name='adicionarDesbasteWorker'),
+    path('trabalhos/polimento/<int:polimento_id>/workers/', views.adicionarPolimentoWorker, name='adicionarPolimentoWorker'),
+    path('qrcode/<int:qr_id>/detalhes/', views.detalhesQrcode, name='detalhesQrcode'),
+
+
 
 ]

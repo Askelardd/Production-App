@@ -80,6 +80,8 @@ class Desbaste(models.Model):
     ]
     tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
     workers = models.ManyToManyField(User, through='DesbasteWorker')
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='desbastes',null=True, blank=True)
+
 
     def __str__(self):
         return f"{self.tipo.capitalize()} - ID {self.id}"
@@ -101,6 +103,7 @@ class Polimento(models.Model):
     ]
 
     tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='polimentos',null=True, blank=True)
     workers = models.ManyToManyField(User, through='PolimentoWorker')
 
     def __str__(self):
@@ -117,12 +120,13 @@ class PolimentoWorker(models.Model):
 
 class Fio(models.Model):
     TIPO_TRABALHO = [
-        ('entrada', 'Entrada'),
-        ('saida', 'Saída'),
-        ('cone', 'Cone'),
+        ('calibre', 'Calibre'),
+        ('desbaste De Calibre', 'Desbaste de Calibre'),
+        ('afinacao', 'Afinação'),
     ]
 
-    tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
+    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='fios', null=True, blank=True)
     workers = models.ManyToManyField(User, through='FioWorker')
 
     def __str__(self):
@@ -145,16 +149,15 @@ class QRData(models.Model):
     toma_order_nr = models.CharField(max_length=50) 
     job = models.ForeignKey(Jobs, on_delete=models.SET_NULL, null=True, blank=True)
     die = models.ForeignKey(Die, on_delete=models.SET_NULL, null=True, blank=True)
-    tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True)
-    diameter = models.ForeignKey(Diameters, on_delete=models.SET_NULL, null=True, blank=True)
+    tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True) # type of tolerance
+    diameter = models.ForeignKey(Diameters, on_delete=models.SET_NULL, null=True, blank=True) #max and min diameters
     desbaste = models.ForeignKey(Desbaste, on_delete=models.SET_NULL, null=True, blank=True)
     polimento = models.ForeignKey(Polimento, on_delete=models.SET_NULL, null=True, blank=True)
-    fio = models.ForeignKey(Fio, on_delete=models.SET_NULL, null=True, blank=True)
-
+    fio = models.ForeignKey(Fio, on_delete=models.SET_NULL, null=True, blank=True)    
     toma_order_year = models.CharField(max_length=10)
     box_nr = models.IntegerField()
     qt = models.IntegerField()
-    diameters = models.CharField(max_length=50)
+    diameters = models.CharField(max_length=50)  # requerido
     created_at = models.DateTimeField(default=timezone.now)
     observations = models.TextField(blank=True, null=True)
 

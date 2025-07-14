@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from .models import *
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
-
+from django.shortcuts import render, redirect
 
 def home(request):
     users = User.objects.all()
@@ -36,10 +36,8 @@ def create_user(request):
         # Cria o utilizador na base de dados
         User.objects.create_user(username=first_name, password=password)
 
-        context = {
-            'success_message': f'Utilizador {first_name} criado com sucesso!'
-        }
-        return render(request, 'theme/home.html', context)
+        # Redireciona para a página inicial após criar o utilizador
+        return redirect('home')
     
     return render(request, 'theme/createUser.html')
 
@@ -265,5 +263,107 @@ def diametroMenu(request, qrCode_id):
     return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
 
 
+
+def adicionar_trabalho(request, qr_id):
+    qr_code = get_object_or_404(QRData, id=qr_id)
+
+    subtipo_options = {
+        'fio': Fio.TIPO_TRABALHO,
+        'desbaste': Desbaste.TIPO_TRABALHO,
+        'polimento': Polimento.TIPO_TRABALHO,
+    }
+
+    subtipo_json = json.dumps(subtipo_options)
+
+    if request.method == 'POST':
+        tipo = request.POST.get('tipo_trabalho')
+        subtipo = request.POST.get('subtipo')
+
+        if tipo == 'fio':
+            trabalho = Fio.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarFioWorker', fio_id=trabalho.id)
+
+        elif tipo == 'desbaste':
+            trabalho = Desbaste.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarDesbasteWorker', desbaste_id=trabalho.id)
+
+        elif tipo == 'polimento':
+            trabalho = Polimento.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarPolimentoWorker', polimento_id=trabalho.id)
+
+        messages.error(request, "Tipo de trabalho inválido.")
+        return redirect('adicionarTrabalhos', qr_id=qr_id)
+
+    return render(request, 'theme/adicionarTrabalhos.html', {
+        'qr_code': qr_code,
+        'subtipo_json': subtipo_json
+    })
+
+
+def adicionarFioWorker(request, fio_id):
+    fio = get_object_or_404(Fio, id=fio_id)
+    users = User.objects.all()
+
+    if request.method == 'POST':
+        user_id = request.POST.get('worker')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            FioWorker.objects.create(Fio=fio, worker=user)
+            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Fio.')
+            return redirect('adicionarFioWorker', fio_id=fio.id)
+        else:
+            messages.error(request, 'Seleciona um trabalhador.')
+
+    return render(request, 'theme/adicionarFioWorker.html', {'fio': fio, 'users': users})
+
+def adicionarDesbasteWorker(request, desbaste_id):
+    desbaste = get_object_or_404(Desbaste, id=desbaste_id)
+    users = User.objects.all()
+
+    if request.method == 'POST':
+        user_id = request.POST.get('worker')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            DesbasteWorker.objects.create(desbaste=desbaste, worker=user)
+            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Desbaste.')
+            return redirect('adicionarDesbasteWorker', desbaste_id=desbaste.id)
+
+    return render(request, 'theme/adicionarDesbasteWorker.html', {'desbaste': desbaste, 'users': users})
+
+def adicionarPolimentoWorker(request, polimento_id):
+    polimento = get_object_or_404(Polimento, id=polimento_id)
+    users = User.objects.all()
+
+    if request.method == 'POST':
+        user_id = request.POST.get('worker')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            PolimentoWorker.objects.create(polimento=polimento, worker=user)
+            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Polimento.')
+            return redirect('adicionarPolimentoWorker', polimento_id=polimento.id)
+
+    return render(request, 'theme/adicionarPolimentoWorker.html', {'polimento': polimento, 'users': users})
+
+
+def detalhesQrcode(request, qr_id):
+    qr = get_object_or_404(QRData, id=qr_id)
+
+    fios = Fio.objects.filter(qr_code=qr)
+    desbastes = Desbaste.objects.filter(qr_code=qr)
+    polimentos = Polimento.objects.filter(qr_code=qr)
+
+    diametros = PedidosDiametro.objects.filter(qr_code=qr)
+    partidos = NumeroPartidos.objects.filter(qr_code=qr)
+
+    context = {
+        'qr': qr,
+        'fios': fios,
+        'desbastes': desbastes,
+        'polimentos': polimentos,
+        'diametros': diametros,
+        'partidos': partidos,
+    }
+
+    return render(request, 'theme/detalhesQrcode.html', context)
 
     
