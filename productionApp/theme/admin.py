@@ -1,6 +1,52 @@
 from django.contrib import admin
-from .models import *  # importa os modelos
+from .models import (
+    Products,
+    ProductDeleteLog,
+    QRData,
+    Jobs,
+
+    Diameters,
+    Die,
+    Tolerance,
+    Desbaste,
+    DesbasteWorker,
+    Polimento,
+    PolimentoWorker,
+    Fio,
+    FioWorker
+
+)
 
 admin.site.register(Products)
 admin.site.register(ProductDeleteLog)
 admin.site.register(QRData)
+admin.site.register(Jobs)
+admin.site.register(DesbasteWorker)
+admin.site.register(PolimentoWorker)
+admin.site.register(FioWorker)
+admin.site.register(Diameters)
+admin.site.register(Die)
+admin.site.register(Tolerance)
+
+class DesbasteWorkerInline(admin.TabularInline):
+    model = DesbasteWorker
+    extra =3
+
+@admin.register(Desbaste)
+class DesbasteAdmin(admin.ModelAdmin):
+    inlines = [DesbasteWorkerInline]
+
+class PolimentoWorkerInline(admin.TabularInline):
+    model = PolimentoWorker
+    extra =3
+@admin.register(Polimento)
+class PolimentoAdmin(admin.ModelAdmin):
+    inlines = [PolimentoWorkerInline]
+
+class FioWorkerInline(admin.TabularInline):
+    model = FioWorker
+    extra =3
+
+@admin.register(Fio)
+class FioAdmin(admin.ModelAdmin):
+    inlines = [FioWorkerInline]
