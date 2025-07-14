@@ -2,78 +2,116 @@
 {% block title %}Detalhes QR Code{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold mb-6">Informações do QR Code {{ qr.toma_order_nr }}</h1>
+<style>
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #00AEEF;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+</style>
 
-<p><strong>Cliente:</strong> {{ qr.customer }}</p>
-<p><strong>Ordem:</strong> {{ qr.customer_order_nr }}</p>
-<p><strong>Caixa:</strong> {{ qr.box_nr }}</p>
+<div class="max-h-[600px] overflow-y-auto pr-3" style="scrollbar-width: thin; scrollbar-color: #00AEEF transparent;">
 
-<hr class="my-6">
+  <h1 class="text-2xl font-bold mb-6">Informações do QR Code {{ qr.toma_order_nr }}</h1>
 
-<h2 class="text-xl font-semibold mb-2">Trabalhos - Fio</h2>
-{% for fio in fios %}
-  <p class="mb-1"><strong>{{ fio.tipo|capfirst }} (ID {{ fio.id }})</strong></p>
-  <ul class="ml-6 list-disc text-sm">
-    {% for fw in fio.fioworker_set.all %}
-      <li>{{ fw.worker.get_full_name|default:fw.worker.username }} — {{ fw.data|date:"d/m/Y H:i" }}</li>
-    {% empty %}
-      <li>Nenhum trabalhador associado</li>
-    {% endfor %}
-  </ul>
-{% empty %}
-  <p class="text-sm text-gray-500">Sem trabalhos de fio.</p>
-{% endfor %}
+  <p><strong>Cliente:</strong> {{ qr.customer }}</p>
+  <p><strong>Ordem:</strong> {{ qr.customer_order_nr }}</p>
+  <p><strong>Caixa:</strong> {{ qr.box_nr }}</p>
 
-<h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Desbaste</h2>
-{% for d in desbastes %}
-  <p class="mb-1"><strong>{{ d.tipo|capfirst }} (ID {{ d.id }})</strong></p>
-  <ul class="ml-6 list-disc text-sm">
-    {% for dw in d.desbasteworker_set.all %}
-      <li>{{ dw.worker.get_full_name|default:dw.worker.username }} — {{ dw.data|date:"d/m/Y H:i" }}</li>
-    {% empty %}
-      <li>Nenhum trabalhador associado</li>
-    {% endfor %}
-  </ul>
-{% empty %}
-  <p class="text-sm text-gray-500">Sem trabalhos de desbaste.</p>
-{% endfor %}
+  <hr class="my-6">
 
-<h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Polimento</h2>
-{% for p in polimentos %}
-  <p class="mb-1"><strong>{{ p.tipo|capfirst }} (ID {{ p.id }})</strong></p>
-  <ul class="ml-6 list-disc text-sm">
-    {% for pw in p.polimentoworker_set.all %}
-      <li>{{ pw.worker.get_full_name|default:pw.worker.username }} — {{ pw.data|date:"d/m/Y H:i" }}</li>
-    {% empty %}
-      <li>Nenhum trabalhador associado</li>
-    {% endfor %}
-  </ul>
-{% empty %}
-  <p class="text-sm text-gray-500">Sem trabalhos de polimento.</p>
-{% endfor %}
+  <!-- Trabalhos Fio -->
+  <h2 class="text-xl font-semibold mb-2">Trabalhos - Fio</h2>
+  {% for fio in fios %}
+    <p class="mb-1"><strong>{{ fio.tipo|capfirst }} (ID {{ fio.id }})</strong></p>
+    <ul class="ml-6 list-disc text-sm">
+      {% for fw in fio.fioworker_set.all %}
+        <li>{{ fw.worker.get_full_name|default:fw.worker.username }} — {{ fw.data|date:"d/m/Y H:i" }}</li>
+      {% empty %}
+        <li>Nenhum trabalhador associado</li>
+      {% endfor %}
+    </ul>
+  {% empty %}
+    <p class="text-sm text-gray-500">Sem trabalhos de fio.</p>
+  {% endfor %}
 
-<hr class="my-6">
+  <!-- Trabalhos Desbaste -->
+  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Desbaste</h2>
+  {% for d in desbastes %}
+    <p class="mb-1"><strong>{{ d.tipo|capfirst }} (ID {{ d.id }})</strong></p>
+    <ul class="ml-6 list-disc text-sm">
+      {% for dw in d.desbasteworker_set.all %}
+        <li>{{ dw.worker.get_full_name|default:dw.worker.username }} — {{ dw.data|date:"d/m/Y H:i" }}</li>
+      {% empty %}
+        <li>Nenhum trabalhador associado</li>
+      {% endfor %}
+    </ul>
+  {% empty %}
+    <p class="text-sm text-gray-500">Sem trabalhos de desbaste.</p>
+  {% endfor %}
 
-<h2 class="text-xl font-semibold mb-2">Diametro Novo</h2>
-{% if diametros %}
-  <ul class="list-disc ml-6 text-sm">
-    {% for d in diametros %}
-      <li>{{ d.diametro }} ({{ d.created_at|date:"d/m/Y H:i" }})</li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="text-sm text-gray-500">Sem diametro registado.</p>
-{% endif %}
+  <!-- Trabalhos Polimento -->
+  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Polimento</h2>
+  {% for p in polimentos %}
+    <p class="mb-1"><strong>{{ p.tipo|capfirst }} (ID {{ p.id }})</strong></p>
+    <ul class="ml-6 list-disc text-sm">
+      {% for pw in p.polimentoworker_set.all %}
+        <li>{{ pw.worker.get_full_name|default:pw.worker.username }} — {{ pw.data|date:"d/m/Y H:i" }}</li>
+      {% empty %}
+        <li>Nenhum trabalhador associado</li>
+      {% endfor %}
+    </ul>
+  {% empty %}
+    <p class="text-sm text-gray-500">Sem trabalhos de polimento.</p>
+  {% endfor %}
 
-<h2 class="text-xl font-semibold mt-6 mb-2">Partidos</h2>
-{% if partidos %}
-  <ul class="list-disc ml-6 text-sm">
-    {% for p in partidos %}
-      <li>{{ p.partido }} fieiras ({{ p.created_at|date:"d/m/Y H:i" }})</li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p class="text-sm text-gray-500">Sem partidos registados.</p>
-{% endif %}
+  <hr class="my-6">
 
+  <!-- Diâmetro novo -->
+  <h2 class="text-xl font-semibold mb-2">Diametro Novo</h2>
+  {% if diametros %}
+    <ul class="list-disc ml-6 text-sm">
+      {% for d in diametros %}
+        <li>{{ d.diametro }} ({{ d.created_at|date:"d/m/Y H:i" }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-sm text-gray-500">Sem diametro registado.</p>
+  {% endif %}
+
+  <!-- Partidos -->
+  <h2 class="text-xl font-semibold mt-6 mb-2">Partidos</h2>
+  {% if partidos %}
+    <ul class="list-disc ml-6 text-sm">
+      {% for p in partidos %}
+        <li>{{ p.partido }} fieiras ({{ p.created_at|date:"d/m/Y H:i" }})</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-sm text-gray-500">Nenhum partido registado.</p>
+  {% endif %}
+
+  <!-- Diâmetro máx e mín -->
+  <h2 class="text-xl font-semibold mt-6 mb-2">Diâmetro Máx e Mín</h2>
+  {% if qr.diameter %}
+    <p><strong>Diâmetro Mínimo:</strong> {{ qr.diameter.min|default_if_none:"Não definido" }}</p>
+    <p><strong>Diâmetro Máximo:</strong> {{ qr.diameter.max|default_if_none:"Não definido" }}</p>
+  {% else %}
+    <p class="text-sm text-gray-500">Nenhum diâmetro mínimo ou máximo definido.</p>
+  {% endif %}
+
+  <!-- Observações -->
+  <h2 class="text-xl font-semibold mt-6 mb-2">Observações</h2>
+  {% if qr.observations %}
+    <p>{{ qr.observations }}</p>
+  {% else %}
+    <p class="text-sm text-gray-500">Nenhuma observação registrada.</p>
+  {% endif %}
+
+</div>
 {% endblock %}

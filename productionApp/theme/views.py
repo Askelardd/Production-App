@@ -366,4 +366,35 @@ def detalhesQrcode(request, qr_id):
 
     return render(request, 'theme/detalhesQrcode.html', context)
 
-    
+from .models import QRData, Diameters
+
+def addDetails(request, qr_id):
+    qr = get_object_or_404(QRData, id=qr_id)
+
+    if request.method == 'POST':
+        # Observações
+        qr.observations = request.POST.get('observacoes', '')
+
+        # Diâmetros
+        diametro_min = request.POST.get('diametro_min')
+        diametro_max = request.POST.get('diametro_max')
+
+        if diametro_min and diametro_max:
+            if qr.diameter:
+                # Atualiza os valores existentes
+                qr.diameter.min = diametro_min
+                qr.diameter.max = diametro_max
+                qr.diameter.save()
+            else:
+                # Cria novo e liga ao QRData
+                novo_diametro = Diameters.objects.create(
+                    min=diametro_min,
+                    max=diametro_max
+                )
+                qr.diameter = novo_diametro
+
+        qr.save()
+        messages.success(request, "Informações atualizadas com sucesso!")
+        return redirect('listQrcodes')
+
+    return render(request, 'theme/addDetails.html', {'qr': qr})

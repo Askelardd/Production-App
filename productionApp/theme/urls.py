@@ -19,6 +19,7 @@ urlpatterns = [
     path('trabalhos/desbaste/<int:desbaste_id>/workers/', views.adicionarDesbasteWorker, name='adicionarDesbasteWorker'),
     path('trabalhos/polimento/<int:polimento_id>/workers/', views.adicionarPolimentoWorker, name='adicionarPolimentoWorker'),
     path('qrcode/<int:qr_id>/detalhes/', views.detalhesQrcode, name='detalhesQrcode'),
+    path('qrdata/editar/<int:qr_id>/', views.addDetails, name='addDetails'),
 
 
 
