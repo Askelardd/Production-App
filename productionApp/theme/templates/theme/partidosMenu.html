@@ -5,24 +5,49 @@
 {% block content %}
 
 <h1 class="text-3xl font-bold text-black mb-8">Fieiras Partidas</h1>
-<p class="text-neural-900 mb-6">Quantas fieiras estão partidas?</p>
+<p class="text-gray-900 mb-6">Quantas fieiras estão partidas?</p>
 
-<form method="POST" action="{% url 'partidosMenu' qr_code.toma_order_nr %}">
+<form id="partidosForm" method="POST" action="{% url 'partidosMenu' qr_code.toma_order_nr %}">
   {% csrf_token %}
 
   <input
-    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2  mb-4"
+    id="numeroPartidos"
+    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2 mb-4 w-full"
     placeholder="Número de fieiras partidas"
     type="text"
     name="numeroPartidos"
   />
 
-  <button
-    type="submit"
-    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-  >
-    Submeter
-  </button>
+  <p id="error-msg" class="text-red-500 text-sm mb-4 hidden"></p>
+
+  <div>
+    <button
+      type="submit"
+      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+    >
+      Submeter
+    </button>
+    <a href="{% url 'listQrcodes' %}" class="inline-block bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 ml-2">
+      Sair
+    </a>
+  </div>
 </form>
+
+<script>
+  document.getElementById('partidosForm').addEventListener('submit', function (e) {
+    const numero = document.getElementById('numeroPartidos').value.trim();
+    const errorMsg = document.getElementById('error-msg');
+
+    errorMsg.classList.add('hidden');
+    errorMsg.textContent = '';
+
+    if (!numero || isNaN(numero) || parseInt(numero) <= 0) {
+      e.preventDefault();
+      errorMsg.textContent = 'Insira um número válido de fieiras partidas (maior que zero).';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+  });
+</script>
 
 {% endblock %}

@@ -4,31 +4,66 @@
 
 {% block content %}
 
-<h1 class="text-3xl font-bold text-black mb-8">Novo Diametro</h1>
-<p class="text-neural-900 mb-6">Quantas Fieiras são para levar um novo pedido ?</p>
+<h1 class="text-3xl font-bold text-black mb-8">Novo Diâmetro</h1>
+<p class="text-gray-900 mb-6">Quantas fieiras são para levar um novo pedido?</p>
 
-<form method="POST" action="{% url 'diametroMenu' qr_code.toma_order_nr %}">
+<form id="diametroForm" method="POST" action="{% url 'diametroMenu' qr_code.toma_order_nr %}">
   {% csrf_token %}
 
-    <input
-    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2  mb-4"
+  <input
+    id="numeroAlterar"
+    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2 mb-4 w-full"
     placeholder="Número de fieiras a alterar"
     type="text"
     name="numeroAlterar"
-    />
-    <input
-    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2  mb-4"
-    placeholder="Diametro das fieiras"
+  />
+  
+  <input
+    id="diametroNovo"
+    class="placeholder:text-gray-500 placeholder:italic border border-gray-300 rounded-lg p-2 mb-4 w-full"
+    placeholder="Diâmetro das fieiras"
     type="text"
     name="diametroNovo"
-    />
+  />
 
-  <button
-    type="submit"
-    class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-  >
-    Submeter
-  </button>
+  <p id="error-msg" class="text-red-500 text-sm mb-4 hidden"></p>
+
+  <div>
+    <button
+      type="submit"
+      class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+    >
+      Submeter
+    </button>
+    <a href="{% url 'listQrcodes' %}" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+      Sair
+    </a>
+  </div>
 </form>
+
+<script>
+  document.getElementById('diametroForm').addEventListener('submit', function (e) {
+    const numero = document.getElementById('numeroAlterar').value.trim();
+    const diametro = document.getElementById('diametroNovo').value.trim();
+    const errorMsg = document.getElementById('error-msg');
+
+    errorMsg.classList.add('hidden');
+    errorMsg.textContent = '';
+
+    if (!numero || isNaN(numero) || parseInt(numero) <= 0) {
+      e.preventDefault();
+      errorMsg.textContent = 'Insira um número válido de fieiras (maior que zero).';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    if (!diametro || isNaN(diametro)) {
+      e.preventDefault();
+      errorMsg.textContent = 'Insira um diâmetro válido (número ou decimal).';
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+  });
+</script>
 
 {% endblock %}
