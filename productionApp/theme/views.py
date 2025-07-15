@@ -423,27 +423,4 @@ def addDetails(request, qr_id):
         messages.success(request, "Informações atualizadas com sucesso!")
         return redirect('listQrcodes')
 
-    afinacoes = qr.afinacao_set.all()
-    desbastes_calibre = qr.desbastecalibre_set.all()
-    desbastes_agulha = qr.desbasteagulha_set.all()
-    polimentos = qr.polimento_set.all()
-    diametros = qr.diametro_set.all() if hasattr(qr, 'diametro_set') else []
-    partidos = qr.partido_set.all() if hasattr(qr, 'partido_set') else []
-
-    afinacoes_validas = [a for a in afinacoes if a.afinacaoworker_set.exists()]
-    desbastes_calibre_validos = [dc for dc in desbastes_calibre if dc.desbastecalibreworker_set.exists()]
-    desbastes_agulha_validos = [da for da in desbastes_agulha if da.desbasteagulhaworker_set.exists()]
-    polimentos_validos = [p for p in polimentos if p.polimentoworker_set.exists()]
-
-    context = {
-        'qr': qr,
-        'afinacoes': afinacoes_validas,
-        'desbastes_calibre': desbastes_calibre_validos,
-        'desbastes_agulha': desbastes_agulha_validos,
-        'polimentos': polimentos_validos,
-        'diametros': diametros,
-        'partidos': partidos,
-    }
-
-    return render(request, 'theme/addDetails.html', context)
-
+    return render(request, 'theme/addDetails.html', {'qr': qr})
