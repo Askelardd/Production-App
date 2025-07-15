@@ -14,13 +14,10 @@ urlpatterns = [
     path('partidosMenu/<int:qrCode_id>/', views.partidosMenu, name='partidosMenu'),
     path('diametroMenu/<int:qrCode_id>/', views.diametroMenu, name='diametroMenu'),
     path('trabalhos/criar/<int:qr_id>/', views.adicionar_trabalho, name='adicionarTrabalhos'),
-
-    path('trabalhos/fio/<int:fio_id>/workers/', views.adicionarFioWorker, name='adicionarFioWorker'),
-    path('trabalhos/desbaste/<int:desbaste_id>/workers/', views.adicionarDesbasteWorker, name='adicionarDesbasteWorker'),
-    path('trabalhos/polimento/<int:polimento_id>/workers/', views.adicionarPolimentoWorker, name='adicionarPolimentoWorker'),
+    path('desbaste-calibre/<int:desbasteCalibre_id>/workers/', views.adicionarDesbasteCalibreWorker, name='adicionarDesbasteCalibreWorker'),
+    path('afinacao/<int:afinacao_id>/workers/', views.adicionarAfinacaoWorker, name='adicionarAfinacaoWorker'),
+    path('desbaste-agulha/<int:desbaste_agulha_id>/workers/', views.adicionarDesbasteAgulhaWorker, name='adicionarDesbasteAgulhaWorker'),
+    path('polimento/<int:polimento_id>/workers/', views.adicionarPolimentoWorker, name='adicionarPolimentoWorker'),
     path('qrcode/<int:qr_id>/detalhes/', views.detalhesQrcode, name='detalhesQrcode'),
     path('qrdata/editar/<int:qr_id>/', views.addDetails, name='addDetails'),
-
-
-
 ]

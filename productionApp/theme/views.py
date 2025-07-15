@@ -268,9 +268,10 @@ def adicionar_trabalho(request, qr_id):
     qr_code = get_object_or_404(QRData, id=qr_id)
 
     subtipo_options = {
-        'fio': Fio.TIPO_TRABALHO,
-        'desbaste': Desbaste.TIPO_TRABALHO,
+        'desbasteAgulha': DesbasteAgulha.TIPO_TRABALHO,
+        'desbasteCalibre': DesbasteCalibre.TIPO_TRABALHO,
         'polimento': Polimento.TIPO_TRABALHO,
+        'afinacao': Afinacao.TIPO_TRABALHO,
     }
 
     subtipo_json = json.dumps(subtipo_options)
@@ -279,17 +280,21 @@ def adicionar_trabalho(request, qr_id):
         tipo = request.POST.get('tipo_trabalho')
         subtipo = request.POST.get('subtipo')
 
-        if tipo == 'fio':
-            trabalho = Fio.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarFioWorker', fio_id=trabalho.id)
+        if tipo == 'desbasteAgulha':
+            trabalho = DesbasteAgulha.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarDesbasteAgulhaWorker', desbaste_agulha_id=trabalho.id)
 
-        elif tipo == 'desbaste':
-            trabalho = Desbaste.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarDesbasteWorker', desbaste_id=trabalho.id)
+        elif tipo == 'desbasteCalibre':
+            trabalho = DesbasteCalibre.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarDesbasteCalibreWorker', desbasteCalibre_id=trabalho.id)
 
         elif tipo == 'polimento':
             trabalho = Polimento.objects.create(tipo=subtipo, qr_code=qr_code)
             return redirect('adicionarPolimentoWorker', polimento_id=trabalho.id)
+
+        elif tipo == 'afinacao':
+            trabalho = Afinacao.objects.create(tipo=subtipo, qr_code=qr_code)
+            return redirect('adicionarAfinacaoWorker', afinacao_id=trabalho.id)
 
         messages.error(request, "Tipo de trabalho inválido.")
         return redirect('adicionarTrabalhos', qr_id=qr_id)
@@ -300,35 +305,38 @@ def adicionar_trabalho(request, qr_id):
     })
 
 
-def adicionarFioWorker(request, fio_id):
-    fio = get_object_or_404(Fio, id=fio_id)
+def adicionarDesbasteAgulhaWorker(request, desbaste_agulha_id):
+    desbaste_agulha = get_object_or_404(DesbasteAgulha, id=desbaste_agulha_id)
     users = User.objects.all()
 
     if request.method == 'POST':
         user_id = request.POST.get('worker')
         if user_id:
             user = get_object_or_404(User, id=user_id)
-            FioWorker.objects.create(Fio=fio, worker=user)
-            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Fio.')
-            return redirect('adicionarFioWorker', fio_id=fio.id)
+            DesbasteAgulhaWorker.objects.create(desbaste_agulha=desbaste_agulha, worker=user)
+            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Desbaste Agulha.')
+            return redirect('adicionarDesbasteAgulhaWorker', desbaste_agulha_id=desbaste_agulha.id)
         else:
             messages.error(request, 'Seleciona um trabalhador.')
 
-    return render(request, 'theme/adicionarFioWorker.html', {'fio': fio, 'users': users})
+    return render(request, 'theme/adicionarDesbasteAgulhaWorker.html', {'desbaste_agulha': desbaste_agulha, 'users': users})
 
-def adicionarDesbasteWorker(request, desbaste_id):
-    desbaste = get_object_or_404(Desbaste, id=desbaste_id)
+
+def adicionarDesbasteCalibreWorker(request, desbasteCalibre_id):
+    desbaste_calibre = get_object_or_404(DesbasteCalibre, id=desbasteCalibre_id)
     users = User.objects.all()
 
     if request.method == 'POST':
         user_id = request.POST.get('worker')
         if user_id:
             user = get_object_or_404(User, id=user_id)
-            DesbasteWorker.objects.create(desbaste=desbaste, worker=user)
-            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Desbaste.')
-            return redirect('adicionarDesbasteWorker', desbaste_id=desbaste.id)
+            DesbasteCalibreWorker.objects.create(desbaste_calibre=desbaste_calibre, worker=user)
+            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Desbaste Calibre.')
+            return redirect('adicionarDesbasteCalibreWorker', desbasteCalibre_id=desbaste_calibre.id)
+        else:
+            messages.error(request, 'Seleciona um trabalhador.')
+    return render(request, 'theme/adicionarDesbasteCalibreWorker.html', {'desbaste_calibre': desbaste_calibre, 'users': users})
 
-    return render(request, 'theme/adicionarDesbasteWorker.html', {'desbaste': desbaste, 'users': users})
 
 def adicionarPolimentoWorker(request, polimento_id):
     polimento = get_object_or_404(Polimento, id=polimento_id)
@@ -344,21 +352,40 @@ def adicionarPolimentoWorker(request, polimento_id):
 
     return render(request, 'theme/adicionarPolimentoWorker.html', {'polimento': polimento, 'users': users})
 
+def adicionarAfinacaoWorker(request, afinacao_id):
+    afinacao = get_object_or_404(Afinacao, id=afinacao_id)
+    users = User.objects.all()
+    if request.method == 'POST':
+        user_id = request.POST.get('worker')
+        if user_id:
+            user = get_object_or_404(User, id=user_id)
+            AfinacaoWorker.objects.create(afinacao=afinacao, worker=user)
+            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Afinação.')
+            return redirect('adicionarAfinacaoWorker', afinacao_id=afinacao.id)
+        else:
+            messages.error(request, 'Seleciona um trabalhador.')
+    return render(request, 'theme/adicionarAfinacaoWorker.html', {'afinacao': afinacao, 'users': users})
+
+
 
 def detalhesQrcode(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
 
-    fios = Fio.objects.filter(qr_code=qr)
-    desbastes = Desbaste.objects.filter(qr_code=qr)
+    # Buscar os trabalhos relacionados
+    afinacoes = Afinacao.objects.filter(qr_code=qr)
+    desbastes_calibre = DesbasteCalibre.objects.filter(qr_code=qr)
+    desbastes_agulha = DesbasteAgulha.objects.filter(qr_code=qr)
     polimentos = Polimento.objects.filter(qr_code=qr)
 
+    # Buscar dados adicionais
     diametros = PedidosDiametro.objects.filter(qr_code=qr)
     partidos = NumeroPartidos.objects.filter(qr_code=qr)
 
     context = {
         'qr': qr,
-        'fios': fios,
-        'desbastes': desbastes,
+        'afinacoes': afinacoes,
+        'desbastes_calibre': desbastes_calibre,
+        'desbastes_agulha': desbastes_agulha,
         'polimentos': polimentos,
         'diametros': diametros,
         'partidos': partidos,
@@ -366,7 +393,6 @@ def detalhesQrcode(request, qr_id):
 
     return render(request, 'theme/detalhesQrcode.html', context)
 
-from .models import QRData, Diameters
 
 def addDetails(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
@@ -397,4 +423,27 @@ def addDetails(request, qr_id):
         messages.success(request, "Informações atualizadas com sucesso!")
         return redirect('listQrcodes')
 
-    return render(request, 'theme/addDetails.html', {'qr': qr})
+    afinacoes = qr.afinacao_set.all()
+    desbastes_calibre = qr.desbastecalibre_set.all()
+    desbastes_agulha = qr.desbasteagulha_set.all()
+    polimentos = qr.polimento_set.all()
+    diametros = qr.diametro_set.all() if hasattr(qr, 'diametro_set') else []
+    partidos = qr.partido_set.all() if hasattr(qr, 'partido_set') else []
+
+    afinacoes_validas = [a for a in afinacoes if a.afinacaoworker_set.exists()]
+    desbastes_calibre_validos = [dc for dc in desbastes_calibre if dc.desbastecalibreworker_set.exists()]
+    desbastes_agulha_validos = [da for da in desbastes_agulha if da.desbasteagulhaworker_set.exists()]
+    polimentos_validos = [p for p in polimentos if p.polimentoworker_set.exists()]
+
+    context = {
+        'qr': qr,
+        'afinacoes': afinacoes_validas,
+        'desbastes_calibre': desbastes_calibre_validos,
+        'desbastes_agulha': desbastes_agulha_validos,
+        'polimentos': polimentos_validos,
+        'diametros': diametros,
+        'partidos': partidos,
+    }
+
+    return render(request, 'theme/addDetails.html', context)
+

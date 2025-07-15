@@ -72,28 +72,6 @@ class Worker(models.Model):
     def __str__(self):
         return self.name
 
-class Desbaste(models.Model):
-    TIPO_TRABALHO = [
-        ('entrada', 'Entrada'),
-        ('saida', 'Saída'),
-        ('cone', 'Cone'),
-    ]
-    tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
-    workers = models.ManyToManyField(User, through='DesbasteWorker')
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='desbastes',null=True, blank=True)
-
-
-    def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id}"
-
-
-class DesbasteWorker(models.Model):
-    desbaste = models.ForeignKey('Desbaste', on_delete=models.CASCADE)
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
-    data = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.desbaste.tipo}(ID {self.desbaste.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
 
 class Polimento(models.Model):
     TIPO_TRABALHO = [
@@ -114,32 +92,89 @@ class PolimentoWorker(models.Model):
     polimento = models.ForeignKey('Polimento', on_delete=models.CASCADE)
     worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
     data = models.DateTimeField(auto_now_add=True)
+    
 
     def __str__(self):
         return f"{self.worker.get_full_name() or self.worker.username} em {self.polimento.tipo} (ID {self.polimento.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
 
-class Fio(models.Model):
+
+
+class DesbasteAgulha(models.Model):
     TIPO_TRABALHO = [
-        ('calibre', 'Calibre'),
-        ('desbaste De Calibre', 'Desbaste de Calibre'),
-        ('afinacao', 'Afinação'),
+        ('entrada', 'Entrada'),
+        ('saida', 'Saída'),
+        ('cone', 'Cone'),
     ]
 
     tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='fios', null=True, blank=True)
-    workers = models.ManyToManyField(User, through='FioWorker')
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='DesbasteAgulhas', null=True, blank=True)
+    workers = models.ManyToManyField(User, through='DesbasteAgulhaWorker')
 
     def __str__(self):
         return f"{self.tipo.capitalize()} - ID {self.id}"
 
 
-class FioWorker(models.Model):
-    Fio = models.ForeignKey('Fio', on_delete=models.CASCADE)
+class DesbasteAgulhaWorker(models.Model):
+    desbaste_agulha = models.ForeignKey('DesbasteAgulha', on_delete=models.CASCADE)
     worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
     data = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.Fio.tipo} (ID {self.Fio.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
+        return f"{self.worker.get_full_name() or self.worker.username} em {self.desbaste_agulha.tipo} (ID {self.desbaste_agulha.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
+
+
+
+
+class DesbasteCalibre(models.Model):
+    TIPO_TRABALHO = [
+        ('polimento De Calibre', 'Polimento de Calibre'),
+        ('desbaste De Calibre', 'Desbaste de Calibre'),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='DesbasteCalibres', null=True, blank=True)
+    workers = models.ManyToManyField(User, through='DesbasteCalibreWorker')
+
+    def __str__(self):
+        return f"{self.tipo.capitalize()} - ID {self.id}"
+
+
+class DesbasteCalibreWorker(models.Model):
+    desbaste_calibre = models.ForeignKey('DesbasteCalibre', on_delete=models.CASCADE)
+    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
+    data = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.worker.get_full_name() or self.worker.username} em {self.desbaste_calibre.tipo} (ID {self.desbaste_calibre.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
+
+
+
+
+class Afinacao(models.Model):
+    TIPO_TRABALHO = [
+        ('calibre', 'Calibre'),
+        ('afinacao', 'Afinação'),
+    ]
+
+    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
+    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='Afinacoes', null=True, blank=True)
+    workers = models.ManyToManyField(User, through='AfinacaoWorker')
+
+    def __str__(self):
+        return f"{self.tipo.capitalize()} - ID {self.id}"
+
+
+class AfinacaoWorker(models.Model):
+    afinacao = models.ForeignKey('Afinacao', on_delete=models.CASCADE)
+    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
+    data = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.worker.get_full_name() or self.worker.username} em {self.afinacao.tipo} (ID {self.afinacao.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
+
+
+
+
 
 
 
@@ -151,9 +186,10 @@ class QRData(models.Model):
     die = models.ForeignKey(Die, on_delete=models.SET_NULL, null=True, blank=True)
     tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True) # type of tolerance
     diameter = models.ForeignKey(Diameters, on_delete=models.SET_NULL, null=True, blank=True) #max and min diameters
-    desbaste = models.ForeignKey(Desbaste, on_delete=models.SET_NULL, null=True, blank=True)
     polimento = models.ForeignKey(Polimento, on_delete=models.SET_NULL, null=True, blank=True)
-    fio = models.ForeignKey(Fio, on_delete=models.SET_NULL, null=True, blank=True)    
+    desbaste_agulha = models.ForeignKey(DesbasteAgulha, on_delete=models.SET_NULL, null=True, blank=True) 
+    desbaste_calibre  = models.ForeignKey(DesbasteCalibre, on_delete=models.SET_NULL, null=True, blank=True)
+    afinacao = models.ForeignKey(Afinacao, on_delete=models.SET_NULL, null=True, blank=True)
     toma_order_year = models.CharField(max_length=10)
     box_nr = models.IntegerField()
     qt = models.IntegerField()
