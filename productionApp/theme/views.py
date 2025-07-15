@@ -420,3 +420,56 @@ def addDetails(request, qr_id):
         return redirect('listQrcodes')
 
     return render(request, 'theme/addDetails.html', {'qr': qr})
+
+import re
+
+def adicionar_dies(request, qr_id):
+    qr_code = get_object_or_404(QRData, id=qr_id)
+    dies = Die.objects.all()
+    jobs = Jobs.objects.all()
+    tolerances = Tolerance.objects.all()
+
+    # Extrair os decimais e preencher até qt
+    raw_diameters = re.findall(r"\d+[,\.]\d+", qr_code.diameters)
+    diameters_list = [d.replace(",", ".") for d in raw_diameters]
+
+    # Se houver menos valores do que qt, preencher com último ou vazio
+    while len(diameters_list) < qr_code.qt:
+        diameters_list.append(diameters_list[-1] if diameters_list else "")
+
+    if request.method == 'POST':
+        total = int(request.POST.get('total', 0))
+        for i in range(1, total + 1):
+            serial = request.POST.get(f'serial_{i}')
+            diameter_value = request.POST.get(f'diameter_{i}')
+            diam_desbastado = request.POST.get(f'diam_desbastado_{i}')
+            diam_requerido = request.POST.get(f'diam_requerido_{i}')
+            die_id = request.POST.get(f'die_{i}')
+            job_id = request.POST.get(f'job_{i}')
+            tolerance_id = request.POST.get(f'tolerance_{i}')
+            observations = request.POST.get(f'observations_{i}')
+            tolerances = request.POST.get(f'tolerance_{i}')
+
+            if serial and diameter_value:
+                dieInstance.objects.create(
+                    customer=qr_code,
+                    serial_number=serial,
+                    diameter_text=diameter_value,
+                    diam_desbastado=diam_desbastado or None,
+                    diam_requerido=diam_requerido or None,
+                    die_id=die_id if die_id else None,
+                    job_id=job_id if job_id else None,
+                    tolerance_id=tolerance_id if tolerance_id else None,
+                    observations=observations
+                )
+
+        messages.success(request, f"Dies adicionados para {qr_code.customer} com sucesso!")
+        return redirect('listQrcodes')
+
+    return render(request, 'theme/adicionarDies.html', {
+        'qr_code': qr_code,
+        'dies': dies,
+        'jobs': jobs,
+        'tolerances': tolerances,
+        'diameters_list': diameters_list
+    })

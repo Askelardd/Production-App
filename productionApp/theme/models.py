@@ -85,7 +85,7 @@ class Polimento(models.Model):
     workers = models.ManyToManyField(User, through='PolimentoWorker')
 
     def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id}"
+        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
 
 
 class PolimentoWorker(models.Model):
@@ -111,7 +111,7 @@ class DesbasteAgulha(models.Model):
     workers = models.ManyToManyField(User, through='DesbasteAgulhaWorker')
 
     def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id}"
+        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
 
 
 class DesbasteAgulhaWorker(models.Model):
@@ -136,7 +136,7 @@ class DesbasteCalibre(models.Model):
     workers = models.ManyToManyField(User, through='DesbasteCalibreWorker')
 
     def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id}"
+        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
 
 
 class DesbasteCalibreWorker(models.Model):
@@ -180,25 +180,45 @@ class AfinacaoWorker(models.Model):
 
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
+    diameters = models.CharField(max_length=50)  #original diameter
     customer_order_nr = models.CharField(max_length=50)
     toma_order_nr = models.CharField(max_length=50) 
-    job = models.ForeignKey(Jobs, on_delete=models.SET_NULL, null=True, blank=True)
-    die = models.ForeignKey(Die, on_delete=models.SET_NULL, null=True, blank=True)
     tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True) # type of tolerance
-    diameter = models.ForeignKey(Diameters, on_delete=models.SET_NULL, null=True, blank=True) #max and min diameters
-    polimento = models.ForeignKey(Polimento, on_delete=models.SET_NULL, null=True, blank=True)
-    desbaste_agulha = models.ForeignKey(DesbasteAgulha, on_delete=models.SET_NULL, null=True, blank=True) 
-    desbaste_calibre  = models.ForeignKey(DesbasteCalibre, on_delete=models.SET_NULL, null=True, blank=True)
-    afinacao = models.ForeignKey(Afinacao, on_delete=models.SET_NULL, null=True, blank=True)
     toma_order_year = models.CharField(max_length=10)
     box_nr = models.IntegerField()
     qt = models.IntegerField()
-    diameters = models.CharField(max_length=50)  # requerido
     created_at = models.DateTimeField(default=timezone.now)
     observations = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.customer} - {self.toma_order_nr}"
+        return f"{self.customer} - {self.toma_order_nr} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+    
+
+
+class dieInstance(models.Model):
+    customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
+    serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
+    diameter_text = models.CharField(max_length=50, blank=True, null=True)  # <-- Novo campo
+    diam_desbastado = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diam_requerido = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)  # requerido
+    die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
+    job = models.ForeignKey(Jobs, on_delete=models.CASCADE, related_name='die_instances')
+    tolerance = models.ForeignKey(Tolerance, on_delete=models.CASCADE, related_name='die_instances', null=True, blank=True)
+    diam_max_min = models.ForeignKey(Diameters, on_delete=models.CASCADE, related_name='die_instances_max_min', null=True, blank=True) 
+    observations = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    polimento = models.ForeignKey(Polimento, on_delete=models.SET_NULL, null=True, blank=True)
+    desbaste_agulha = models.ForeignKey(DesbasteAgulha, on_delete=models.SET_NULL, null=True, blank=True) 
+    desbaste_calibre  = models.ForeignKey(DesbasteCalibre, on_delete=models.SET_NULL, null=True, blank=True)
+    afinacao = models.ForeignKey(Afinacao, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Die {self.serial_number} - {self.die.get_die_type_display()} - Job: {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+
+
     
 class NumeroPartidos(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
