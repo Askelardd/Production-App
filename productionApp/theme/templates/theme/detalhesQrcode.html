@@ -1,127 +1,53 @@
 {% extends 'theme/base.html' %}
-{% block title %}Detalhes QR Code{% endblock %}
+{% block title %}Detalhes por Die{% endblock %}
 
 {% block content %}
-<style>
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-thumb { background-color: #00AEEF; border-radius: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-</style>
+<div class="max-h-[600px] overflow-y-auto pr-3">
+  <h1 class="text-2xl font-bold mb-6">Detalhes dos Dies - QRCode {{ qr.toma_order_nr }}</h1>
 
-<div class="max-h-[600px] overflow-y-auto pr-3" style="scrollbar-width: thin; scrollbar-color: #00AEEF transparent;">
-  <h1 class="text-2xl font-bold mb-6">Informações do QR Code {{ qr.toma_order_nr }}</h1>
+  {% for die in dies %}
+    <div class="bg-white shadow-md rounded-lg p-4 mb-6 border">
+      <h2 class="text-lg font-semibold mb-2">Die: {{ die.serial_number }}</h2>
+      <p><strong>Tipo:</strong> {{ die.die.get_die_type_display }}</p>
+      <p><strong>Job:</strong> {{ die.job.get_job_display }}</p>
+      <p><strong>Diâmetro:</strong> {{ die.diameter_text|default:"-" }}</p>
+      <p><strong>Diam. Desbastado:</strong> {{ die.diam_desbastado|default:"-" }}</p>
+      <p><strong>Diam. Requerido:</strong> {{ die.diam_requerido|default:"-" }}</p>
+      <p><strong>Tolerância:</strong>
+        {% if die.tolerance %}{{ die.tolerance.min }} - {{ die.tolerance.max }}{% else %}-{% endif %}
+      </p>
+      <p><strong>Observações:</strong> {{ die.observations|default:"-" }}</p>
 
-  <!-- Dados principais -->
-  <p><strong>Cliente:</strong> {{ qr.customer }}</p>
-  <p><strong>Ordem:</strong> {{ qr.customer_order_nr }}</p>
-  <p><strong>Caixa:</strong> {{ qr.box_nr }}</p>
+      <hr class="my-3">
 
-  <hr class="my-6">
-
-  <!-- Afinação -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Afinação</h2>
-  {% if afinacoes %}
-      {% for a in afinacoes %}
-          <p class="mb-1"><strong>{{ a.tipo|capfirst }} (ID {{ a.id }})</strong></p>
-          <ul class="ml-6 list-disc text-sm">
-              {% for aw in a.afinacaoworker_set.all %}
-                  <li>{{ aw.worker.get_full_name|default:aw.worker.username }} — {{ aw.data|date:"d/m/Y H:i" }}</li>
-              {% endfor %}
-          </ul>
-      {% endfor %}
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Afinação</p>
-  {% endif %}
-
-  <!-- Desbaste Calibre -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Desbaste Calibre</h2>
-  {% if desbastes_calibre %}
-      {% for dc in desbastes_calibre %}
-          <p class="mb-1"><strong>{{ dc.tipo|capfirst }} (ID {{ dc.id }})</strong></p>
-          <ul class="ml-6 list-disc text-sm">
-              {% for dcw in dc.desbastecalibreworker_set.all %}
-                  <li>{{ dcw.worker.get_full_name|default:dcw.worker.username }} — {{ dcw.data|date:"d/m/Y H:i" }}</li>
-              {% endfor %}
-          </ul>
-      {% endfor %}
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Desbaste Calibre</p>
-  {% endif %}
-
-  <!-- Desbaste Agulha -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Desbaste Agulha</h2>
-  {% if desbastes_agulha %}
-      {% for da in desbastes_agulha %}
-          <p class="mb-1"><strong>{{ da.tipo|capfirst }} (ID {{ da.id }})</strong></p>
-          <ul class="ml-6 list-disc text-sm">
-              {% for daw in da.desbasteagulhaworker_set.all %}
-                  <li>{{ daw.worker.get_full_name|default:daw.worker.username }} — {{ daw.data|date:"d/m/Y H:i" }}</li>
-              {% endfor %}
-          </ul>
-      {% endfor %}
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Desbaste Agulha</p>
-  {% endif %}
-
-  <!-- Polimento -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Trabalhos - Polimento</h2>
-  {% if polimentos %}
-      {% for p in polimentos %}
-          <p class="mb-1"><strong>{{ p.tipo|capfirst }} (ID {{ p.id }})</strong></p>
-          <ul class="ml-6 list-disc text-sm">
-              {% for pw in p.polimentoworker_set.all %}
-                  <li>{{ pw.worker.get_full_name|default:pw.worker.username }} — {{ pw.data|date:"d/m/Y H:i" }}</li>
-              {% endfor %}
-          </ul>
-      {% endfor %}
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Polimento</p>
-  {% endif %}
-
-  <!-- Diâmetro Novo -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Diâmetro Novo</h2>
-  {% if diametros %}
-      <ul class="list-disc ml-6 text-sm">
-          {% for d in diametros %}
-              <li>{{ d.diametro }} ({{ d.created_at|date:"d/m/Y H:i" }})</li>
-          {% endfor %}
+      <!-- Trabalhos desse Die -->
+      <h3 class="text-md font-semibold mb-2">Trabalhos</h3>
+      <ul class="list-disc ml-5 text-sm">
+        {% if die.polimento %}
+          <li>Polimento: {{ die.polimento.tipo }} — ({{ die.polimento.id }})</li>
+        {% endif %}
+        {% if die.desbaste_agulha %}
+          <li>Desbaste Agulha: {{ die.desbaste_agulha.tipo }} — ({{ die.desbaste_agulha.id }})</li>
+        {% endif %}
+        {% if die.desbaste_calibre %}
+          <li>Desbaste Calibre: {{ die.desbaste_calibre.tipo }} — ({{ die.desbaste_calibre.id }})</li>
+        {% endif %}
+        {% if die.afinacao %}
+          <li>Afinação: {{ die.afinacao.tipo }} — ({{ die.afinacao.id }})</li>
+        {% endif %}
+        {% if not die.polimento and not die.desbaste_agulha and not die.desbaste_calibre and not die.afinacao %}
+          <li class="text-gray-500 italic">Nenhum trabalho associado</li>
+        {% endif %}
       </ul>
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Diâmetro</p>
-  {% endif %}
-
-  <!-- Partidos -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Partidos</h2>
-  {% if partidos %}
-      <ul class="list-disc ml-6 text-sm">
-          {% for p in partidos %}
-              <li>{{ p.partido }} fieiras ({{ p.created_at|date:"d/m/Y H:i" }})</li>
-          {% endfor %}
-      </ul>
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Partidos</p>
-  {% endif %}
-
-  <!-- Diâmetro Máx e Mín -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Diâmetro Máx e Mín</h2>
-  {% if qr.diameter %}
-      <p><strong>Diâmetro Mínimo:</strong> {{ qr.diameter.min|default_if_none:"Não definido" }}</p>
-      <p><strong>Diâmetro Máximo:</strong> {{ qr.diameter.max|default_if_none:"Não definido" }}</p>
-  {% else %}
-      <p class="text-gray-500 italic">Sem registos de Diâmetro Máx e Mín</p>
-  {% endif %}
-
-  <!-- Observações -->
-  <h2 class="text-xl font-semibold mt-6 mb-2">Observações</h2>
-  {% if qr.observations %}
-      <p>{{ qr.observations|linebreaksbr }}</p>
-  {% else %}
-      <p class="text-gray-500 italic">Sem observações</p>
-  {% endif %}
+    </div>
+  {% empty %}
+    <p class="text-gray-500 italic">Nenhum Die associado a este QRCode.</p>
+  {% endfor %}
 </div>
-  <div class="flex justify-center">
-    <a href="{% url 'listQrcodes' %}" class="mt-6 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
-      Sair
-    </a>
-  </div>
+
+<div class="flex justify-center">
+  <a href="{% url 'listQrcodes' %}" class="mt-6 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+    Voltar
+  </a>
+</div>
 {% endblock %}

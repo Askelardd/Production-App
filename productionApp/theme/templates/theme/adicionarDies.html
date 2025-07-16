@@ -4,37 +4,38 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">Adicionar Dies para {{ qr_code.customer }}</h1>
 
-<form method="POST">
+<form method="POST" id="diesForm">
     {% csrf_token %}
     <input type="hidden" name="total" value="{{ qr_code.qt }}">
 
     <div class="space-y-4">
-        {% for diameter in diameters_list %}
+        {% for die in prefilled_data %}
         <h2 class="text-lg font-semibold mb-2">Die {{ forloop.counter }}</h2>
         <div class="bg-white shadow p-4 rounded grid grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm">Serial</label>
-                <input type="text" name="serial_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="serial_{{ forloop.counter }}" value="{{ die.serial }}" class="border p-2 w-full">
             </div>
             <div>
                 <label class="block text-sm">Diâmetro</label>
-                <input type="text" name="diameter_{{ forloop.counter }}" value="{{ diameter }}" class="border p-2 w-full">
+                <input type="text" name="diameter_{{ forloop.counter }}" value="{{ die.diameter }}" class="border p-2 w-full">
             </div>
-
             <div>
                 <label class="block text-sm">Diam. Desbastado</label>
-                <input type="text" name="diam_desbastado_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="diam_desbastado_{{ forloop.counter }}" value="{{ die.diam_desbastado }}" class="border p-2 w-full">
             </div>
             <div>
                 <label class="block text-sm">Diam. Requerido</label>
-                <input type="text" name="diam_requerido_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="diam_requerido_{{ forloop.counter }}" value="{{ die.diam_requerido }}" class="border p-2 w-full">
             </div>
             <div>
                 <label class="block text-sm">Tipo de Die</label>
                 <select name="die_{{ forloop.counter }}" class="border p-2 w-full">
                     <option value="">Selecione</option>
-                    {% for die in dies %}
-                        <option value="{{ die.id }}">{{ die.get_die_type_display }}</option>
+                    {% for d in dies %}
+                        <option value="{{ d.id }}" {% if d.id == die.die %}selected{% endif %}>
+                            {{ d.get_die_type_display }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
@@ -42,22 +43,24 @@
                 <label class="block text-sm">Job</label>
                 <select name="job_{{ forloop.counter }}" class="border p-2 w-full">
                     <option value="">Selecione</option>
-                    {% for job in jobs %}
-                        <option value="{{ job.id }}">{{ job.get_job_display }}</option>
+                    {% for j in jobs %}
+                        <option value="{{ j.id }}" {% if j.id == die.job %}selected{% endif %}>
+                            {{ j.get_job_display }}
+                        </option>
                     {% endfor %}
                 </select>
             </div>
             <div>
                 <label class="block text-sm">Tolerância Máxima</label>
-                <input type="text" name="tol_max_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="tol_max_{{ forloop.counter }}" value="{{ die.tol_max }}" class="border p-2 w-full">
             </div>
             <div>
                 <label class="block text-sm">Tolerância Mínima</label>
-                <input type="text" name="tol_min_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="tol_min_{{ forloop.counter }}" value="{{ die.tol_min }}" class="border p-2 w-full">
             </div>
             <div class="col-span-2">
                 <label class="block text-sm">Observações</label>
-                <input type="text" name="observations_{{ forloop.counter }}" class="border p-2 w-full">
+                <input type="text" name="observations_{{ forloop.counter }}" value="{{ die.observations }}" class="border p-2 w-full">
             </div>
         </div>
         {% endfor %}
@@ -66,10 +69,32 @@
     <button type="submit" class="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         Salvar Todos
     </button>
+
     <a href="{% url 'listQrcodes' %}" 
        class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
        onclick="return confirm('Tem certeza que deseja sair sem gravar?');">
         Sair
     </a>
 </form>
+<script>
+document.getElementById('diesForm').addEventListener('submit', function(e) {
+    let total = parseInt(document.querySelector('input[name="total"]').value);
+    let errorMessages = [];
+    for (let i = 1; i <= total; i++) {
+        let dieSelect = document.querySelector(`select[name="die_${i}"]`);
+        if (dieSelect && dieSelect.value === "") {
+            errorMessages.push(`Selecione o "Tipo de Die" para o item ${i}.`);
+        }
+        let jobSelect = document.querySelector(`select[name="job_${i}"]`);
+        if (jobSelect && jobSelect.value === "") {
+            errorMessages.push(`Selecione o "Job" para o item ${i}.`);
+        }
+        // Add more required field checks here if needed
+    }
+    if (errorMessages.length > 0) {
+        alert(errorMessages.join('\n'));
+        e.preventDefault();
+    }
+});
+</script>
 {% endblock %}

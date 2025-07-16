@@ -10,6 +10,7 @@ from django.views.decorators.http import require_http_methods  # type: ignore
 from django.views.decorators.csrf import csrf_exempt  # type: ignore
 from django.utils import timezone  # type: ignore
 from .models import *  # type: ignore
+import re  # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -421,24 +422,33 @@ def addDetails(request, qr_id):
 
     return render(request, 'theme/addDetails.html', {'qr': qr})
 
-import re
 
 def adicionar_dies(request, qr_id):
     qr_code = get_object_or_404(QRData, id=qr_id)
     dies = Die.objects.all()
     jobs = Jobs.objects.all()
-    tolerances = Tolerance.objects.all()
 
-    # Extrair os decimais e preencher até qt
-    raw_diameters = re.findall(r"\d+[,\.]\d+", qr_code.diameters)
-    diameters_list = [d.replace(",", ".") for d in raw_diameters]
+    # 🔍 Extrair os diâmetros do texto
+    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", qr_code.diameters)
 
-    # Se houver menos valores do que qt, preencher com último ou vazio
+    diameters_list = []
+    for qty, value in matches:
+        qty = int(qty)
+        value = value.replace(",", ".")
+        diameters_list.extend([value] * qty)
+
+    # Garantir que não ultrapasse qt
+    diameters_list = diameters_list[:qr_code.qt]
+
     while len(diameters_list) < qr_code.qt:
-        diameters_list.append(diameters_list[-1] if diameters_list else "")
+        diameters_list.append("")
+
+    # 🔁 Dies existentes já salvos no banco
+    existing_dies = list(dieInstance.objects.filter(customer=qr_code).order_by('id'))
 
     if request.method == 'POST':
         total = int(request.POST.get('total', 0))
+
         for i in range(1, total + 1):
             serial = request.POST.get(f'serial_{i}')
             diameter_value = request.POST.get(f'diameter_{i}')
@@ -446,11 +456,37 @@ def adicionar_dies(request, qr_id):
             diam_requerido = request.POST.get(f'diam_requerido_{i}')
             die_id = request.POST.get(f'die_{i}')
             job_id = request.POST.get(f'job_{i}')
-            tolerance_id = request.POST.get(f'tolerance_{i}')
+            tol_max = request.POST.get(f'tol_max_{i}')
+            tol_min = request.POST.get(f'tol_min_{i}')
             observations = request.POST.get(f'observations_{i}')
-            tolerances = request.POST.get(f'tolerance_{i}')
 
-            if serial and diameter_value:
+            if i <= len(existing_dies):
+                # Atualizar existente
+                die_obj = existing_dies[i-1]
+                die_obj.serial_number = serial
+                die_obj.diameter_text = diameter_value
+                die_obj.diam_desbastado = diam_desbastado or None
+                die_obj.diam_requerido = diam_requerido or None
+                die_obj.die_id = die_id if die_id else None
+                die_obj.job_id = job_id if job_id else None
+                die_obj.observations = observations
+
+                if tol_max and tol_min:
+                    if die_obj.tolerance:
+                        die_obj.tolerance.max = tol_max
+                        die_obj.tolerance.min = tol_min
+                        die_obj.tolerance.save()
+                    else:
+                        tolerance_obj = Tolerance.objects.create(min=tol_min, max=tol_max)
+                        die_obj.tolerance = tolerance_obj
+
+                die_obj.save()
+            else:
+                # Criar novo
+                tolerance = None
+                if tol_max and tol_min:
+                    tolerance = Tolerance.objects.create(min=tol_min, max=tol_max)
+
                 dieInstance.objects.create(
                     customer=qr_code,
                     serial_number=serial,
@@ -459,17 +495,49 @@ def adicionar_dies(request, qr_id):
                     diam_requerido=diam_requerido or None,
                     die_id=die_id if die_id else None,
                     job_id=job_id if job_id else None,
-                    tolerance_id=tolerance_id if tolerance_id else None,
+                    tolerance=tolerance,
                     observations=observations
                 )
 
-        messages.success(request, f"Dies adicionados para {qr_code.customer} com sucesso!")
+        messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
         return redirect('listQrcodes')
+
+    # Prepara os dados para exibição (pré-preenchimento)
+    prefilled_data = []
+    for i in range(qr_code.qt):
+        if i < len(existing_dies):
+            die = existing_dies[i]
+            prefilled_data.append({
+                'serial': die.serial_number,
+                'diameter': die.diameter_text,
+                'diam_desbastado': die.diam_desbastado,
+                'diam_requerido': die.diam_requerido,
+                'die': die.die_id,
+                'job': die.job_id,
+                'tol_max': getattr(die.tolerance, 'max', ''),
+                'tol_min': getattr(die.tolerance, 'min', ''),
+                'observations': die.observations,
+            })
+        else:
+            prefilled_data.append({
+                'serial': '',
+                'diameter': diameters_list[i] if i < len(diameters_list) else '',
+                'diam_desbastado': '',
+                'diam_requerido': '',
+                'die': '',
+                'job': '',
+                'tol_max': '',
+                'tol_min': '',
+                'observations': '',
+            })
 
     return render(request, 'theme/adicionarDies.html', {
         'qr_code': qr_code,
         'dies': dies,
         'jobs': jobs,
-        'tolerances': tolerances,
-        'diameters_list': diameters_list
+        'prefilled_data': prefilled_data
     })
+
+def listar_qrcodes_com_dies(request):
+    qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
+    return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})

@@ -21,6 +21,8 @@ urlpatterns = [
     path('qrcode/<int:qr_id>/detalhes/', views.detalhesQrcode, name='detalhesQrcode'),
     path('qrdata/editar/<int:qr_id>/', views.addDetails, name='addDetails'),
     path('qrcode/<int:qr_id>/dies/', views.adicionar_dies, name='adicionar_dies'),
+    path('dies/', views.listar_qrcodes_com_dies, name='listarDies'),
+    
 
 
 ]

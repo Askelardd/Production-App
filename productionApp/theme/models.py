@@ -1,8 +1,18 @@
 from django.utils import timezone # type: ignore
 from django.db import models # type: ignore
 from django.contrib.auth.models import User # type: ignore
+from decimal import Decimal, InvalidOperation
 
     
+class FlexibleDecimalField(models.DecimalField):
+    def to_python(self, value):
+        if isinstance(value, str):
+            value = value.replace(',', '.')
+        try:
+            return super().to_python(value)
+        except (InvalidOperation, ValueError):
+            return None
+        
 class Products(models.Model):
     order_Nmber = models.IntegerField(unique=True, null=False, blank=False)
     box_Nmber = models.IntegerField(null=False, blank=False)
@@ -53,15 +63,12 @@ class Die(models.Model):
         return f"{self.get_die_type_display()}"
     
 class Tolerance(models.Model):
-    min = models.DecimalField(max_digits=6, decimal_places=4) 
-    max = models.DecimalField(max_digits=6, decimal_places=4)
+    min = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    max = FlexibleDecimalField(max_digits=6, decimal_places=4)
 
-    def __str__(self):
-        return f"Tolerância: {self.min} - {self.max}"
-    
 class Diameters(models.Model):
-    min = models.DecimalField(max_digits=6, decimal_places=4) 
-    max = models.DecimalField(max_digits=6, decimal_places=4)
+    min = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    max = FlexibleDecimalField(max_digits=6, decimal_places=4)
 
     def __str__(self):
         return f"Diametro: {self.min} - {self.max}"
@@ -116,6 +123,7 @@ class DesbasteAgulha(models.Model):
 
 class DesbasteAgulhaWorker(models.Model):
     desbaste_agulha = models.ForeignKey('DesbasteAgulha', on_delete=models.CASCADE)
+    die_instance = models.ForeignKey('dieInstance', on_delete=models.CASCADE, null=True, blank=True)  # Novo campo
     worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
     data = models.DateTimeField(auto_now_add=True)
 
@@ -199,8 +207,8 @@ class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
     serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
     diameter_text = models.CharField(max_length=50, blank=True, null=True)  # <-- Novo campo
-    diam_desbastado = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
-    diam_requerido = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)  # requerido
+    diam_desbastado = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diam_requerido = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
     job = models.ForeignKey(Jobs, on_delete=models.CASCADE, related_name='die_instances')
     tolerance = models.ForeignKey(Tolerance, on_delete=models.CASCADE, related_name='die_instances', null=True, blank=True)

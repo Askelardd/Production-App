@@ -32,13 +32,7 @@
                 <td class="px-4 py-2">{{ qr.diameters }}</td>
                 <td class="px-4 py-2">{{ qr.created_at|date:"d/m/Y H:i" }}</td>
                 <td class="px-4 py-2 space-y-1 md:space-y-0 md:flex md:gap-2">
-
                     <a href="{% url 'adicionar_dies' qr.id %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-yellow-600 hover:underline text-xs md:text-sm"> Adicionar Dies</a>
-                    <a href="{% url 'diametroMenu' qr.toma_order_nr %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-blue-600 hover:underline text-xs md:text-sm">Novo Diametro</a>
-                    <a href="{% url 'partidosMenu' qr.toma_order_nr %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-red-600 hover:underline text-xs md:text-sm">Adicionar Partidos</a>
-                    <a href="{% url 'adicionarTrabalhos' qr.id %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-green-600 hover:underline text-xs md:text-sm">Adicionar Trabalho</a>
-                    <a href="{% url 'detalhesQrcode' qr.id %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-indigo-600 hover:underline text-xs md:text-sm">Ver Detalhes</a>
-                    <a href="{% url 'addDetails' qr.id %}" class="inline-block px-2 py-1 md:px-3 md:py-1.5 text-yellow-600 hover:underline text-xs md:text-sm">Adicionar Outros</a>
                 </td>
             </tr>
             {% empty %}
