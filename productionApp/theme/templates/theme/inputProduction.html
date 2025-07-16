@@ -1,14 +1,21 @@
 {% extends 'theme/base.html' %}
 {% load static %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Lista de Products{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-white mb-6">Lista de products</h1>
+<h1 class="text-3xl font-bold text-white mb-6">Lista de Products</h1>
 
+<!-- Barra de pesquisa -->
+<div class="mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
+           class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+</div>
+
+<!-- Tabela -->
 <div class="overflow-x-auto bg-white rounded-lg shadow-lg p-6 w-full max-w-6xl">
-    <table class="min-w-full table-auto text-xs md:text-sm text-left">
-        <thead class="bg-custom-blue text-white">
+    <table id="productsTable" class="w-full border-collapse text-sm text-left">
+        <thead class="bg-blue-600 text-white uppercase">
             <tr>
                 <th class="px-4 py-3">Ordem</th>
                 <th class="px-4 py-3">Caixa</th>
@@ -35,15 +42,80 @@
                 </td>
                 <td class="px-4 py-2">{{ product.created_at|date:"d/m/Y H:i" }}</td>
                 <td class="flex gap-2">
-                        <a href="{% url 'editProduct' product.id %}" class="inline-flex items-center px-4 py-2 md:px-5 md:py-2 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition-colors duration-200 shadow-sm text-xs md:text-sm font-semibold">                        Editar
-                    </a>
-                        <a href="{% url 'delectProduct' product.id %}" class="inline-flex items-center px-4 py-2 md:px-5 md:py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-200 shadow-sm text-xs md:text-sm font-semibold">                        Deletar
-                    </a>
+                    <a href="{% url 'editProduct' product.id %}" class="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 text-xs">Editar</a>
+                    <a href="{% url 'delectProduct' product.id %}" class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs">Deletar</a>
                 </td>
             </tr>
             {% endfor %}
-
         </tbody>
     </table>
 </div>
+
+<!-- Paginação -->
+<div id="pagination" class="flex justify-center items-center gap-2 mt-6"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const rowsPerPage = 10;
+    const table = document.getElementById('productsTable');
+    const tbody = table.querySelector('tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const searchInput = document.getElementById('searchInput');
+    const pagination = document.getElementById('pagination');
+
+    let currentPage = 1;
+    let filteredRows = Array.from(rows);
+
+    function renderTable() {
+        rows.forEach(row => row.style.display = 'none');
+        const start = (currentPage - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        filteredRows.slice(start, end).forEach(row => row.style.display = '');
+        renderPagination();
+    }
+
+    function renderPagination() {
+        pagination.innerHTML = '';
+        const pageCount = Math.ceil(filteredRows.length / rowsPerPage);
+
+        // Botão anterior
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Anterior';
+        prevBtn.className = `px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`;
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { currentPage--; renderTable(); };
+        pagination.appendChild(prevBtn);
+
+        // Números
+        for (let i = 1; i <= pageCount; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i;
+            btn.className = `px-3 py-1 rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-blue-500 hover:text-white'} transition`;
+            btn.onclick = () => { currentPage = i; renderTable(); };
+            pagination.appendChild(btn);
+        }
+
+        // Botão próximo
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Próximo';
+        nextBtn.className = `px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 ${currentPage === pageCount ? 'opacity-50 cursor-not-allowed' : ''}`;
+        nextBtn.disabled = currentPage === pageCount;
+        nextBtn.onclick = () => { currentPage++; renderTable(); };
+        pagination.appendChild(nextBtn);
+    }
+
+    // Pesquisa
+    searchInput.addEventListener('input', () => {
+        const term = searchInput.value.toLowerCase();
+        filteredRows = Array.from(rows).filter(row => row.textContent.toLowerCase().includes(term));
+        currentPage = 1;
+        renderTable();
+    });
+
+    renderTable();
+});
+</script>
 {% endblock %}

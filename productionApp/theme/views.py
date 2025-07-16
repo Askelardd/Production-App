@@ -11,6 +11,8 @@ from django.views.decorators.csrf import csrf_exempt  # type: ignore
 from django.utils import timezone  # type: ignore
 from .models import *  # type: ignore
 import re  # type: ignore
+import pandas as pd  # type: ignore
+from django.http import HttpResponse  # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -257,139 +259,6 @@ def diametroMenu(request, qrCode_id):
 
     return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
 
-
-@csrf_exempt
-def adicionar_trabalho(request, qr_id):
-    qr_code = get_object_or_404(QRData, id=qr_id)
-
-    subtipo_options = {
-        'desbasteAgulha': DesbasteAgulha.TIPO_TRABALHO,
-        'desbasteCalibre': DesbasteCalibre.TIPO_TRABALHO,
-        'polimento': Polimento.TIPO_TRABALHO,
-        'afinacao': Afinacao.TIPO_TRABALHO,
-    }
-
-    subtipo_json = json.dumps(subtipo_options)
-
-    if request.method == 'POST':
-        tipo = request.POST.get('tipo_trabalho')
-        subtipo = request.POST.get('subtipo')
-
-        if tipo == 'desbasteAgulha':
-            trabalho = DesbasteAgulha.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarDesbasteAgulhaWorker', desbaste_agulha_id=trabalho.id)
-
-        elif tipo == 'desbasteCalibre':
-            trabalho = DesbasteCalibre.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarDesbasteCalibreWorker', desbasteCalibre_id=trabalho.id)
-
-        elif tipo == 'polimento':
-            trabalho = Polimento.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarPolimentoWorker', polimento_id=trabalho.id)
-
-        elif tipo == 'afinacao':
-            trabalho = Afinacao.objects.create(tipo=subtipo, qr_code=qr_code)
-            return redirect('adicionarAfinacaoWorker', afinacao_id=trabalho.id)
-
-        messages.error(request, "Tipo de trabalho inválido.")
-        return redirect('adicionarTrabalhos', qr_id=qr_id)
-
-    return render(request, 'theme/adicionarTrabalhos.html', {
-        'qr_code': qr_code,
-        'subtipo_json': subtipo_json
-    })
-
-@csrf_exempt
-def adicionarDesbasteAgulhaWorker(request, desbaste_agulha_id):
-    desbaste_agulha = get_object_or_404(DesbasteAgulha, id=desbaste_agulha_id)
-    users = User.objects.all()
-
-    if request.method == 'POST':
-        user_id = request.POST.get('worker')
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-            DesbasteAgulhaWorker.objects.create(desbaste_agulha=desbaste_agulha, worker=user)
-            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Desbaste Agulha.')
-            return redirect('adicionarDesbasteAgulhaWorker', desbaste_agulha_id=desbaste_agulha.id)
-        else:
-            messages.error(request, 'Seleciona um trabalhador.')
-
-    return render(request, 'theme/adicionarDesbasteAgulhaWorker.html', {'desbaste_agulha': desbaste_agulha, 'users': users})
-
-@csrf_exempt
-def adicionarDesbasteCalibreWorker(request, desbasteCalibre_id):
-    desbaste_calibre = get_object_or_404(DesbasteCalibre, id=desbasteCalibre_id)
-    users = User.objects.all()
-
-    if request.method == 'POST':
-        user_id = request.POST.get('worker')
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-            DesbasteCalibreWorker.objects.create(desbaste_calibre=desbaste_calibre, worker=user)
-            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Desbaste Calibre.')
-            return redirect('adicionarDesbasteCalibreWorker', desbasteCalibre_id=desbaste_calibre.id)
-        else:
-            messages.error(request, 'Seleciona um trabalhador.')
-    return render(request, 'theme/adicionarDesbasteCalibreWorker.html', {'desbaste_calibre': desbaste_calibre, 'users': users})
-
-@csrf_exempt
-def adicionarPolimentoWorker(request, polimento_id):
-    polimento = get_object_or_404(Polimento, id=polimento_id)
-    users = User.objects.all()
-
-    if request.method == 'POST':
-        user_id = request.POST.get('worker')
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-            PolimentoWorker.objects.create(polimento=polimento, worker=user)
-            messages.success(request, f'{user.get_full_name()} adicionado ao trabalho de Polimento.')
-            return redirect('adicionarPolimentoWorker', polimento_id=polimento.id)
-
-    return render(request, 'theme/adicionarPolimentoWorker.html', {'polimento': polimento, 'users': users})
-
-
-@csrf_exempt
-def adicionarAfinacaoWorker(request, afinacao_id):
-    afinacao = get_object_or_404(Afinacao, id=afinacao_id)
-    users = User.objects.all()
-    if request.method == 'POST':
-        user_id = request.POST.get('worker')
-        if user_id:
-            user = get_object_or_404(User, id=user_id)
-            AfinacaoWorker.objects.create(afinacao=afinacao, worker=user)
-            messages.success(request, f'{user.get_full_name() or user.username} adicionado ao trabalho de Afinação.')
-            return redirect('adicionarAfinacaoWorker', afinacao_id=afinacao.id)
-        else:
-            messages.error(request, 'Seleciona um trabalhador.')
-    return render(request, 'theme/adicionarAfinacaoWorker.html', {'afinacao': afinacao, 'users': users})
-
-
-
-def detalhesQrcode(request, qr_id):
-    qr = get_object_or_404(QRData, id=qr_id)
-
-    # Buscar os trabalhos relacionados
-    afinacoes = Afinacao.objects.filter(qr_code=qr)
-    desbastes_calibre = DesbasteCalibre.objects.filter(qr_code=qr)
-    desbastes_agulha = DesbasteAgulha.objects.filter(qr_code=qr)
-    polimentos = Polimento.objects.filter(qr_code=qr)
-
-    # Buscar dados adicionais
-    diametros = PedidosDiametro.objects.filter(qr_code=qr)
-    partidos = NumeroPartidos.objects.filter(qr_code=qr)
-
-    context = {
-        'qr': qr,
-        'afinacoes': afinacoes,
-        'desbastes_calibre': desbastes_calibre,
-        'desbastes_agulha': desbastes_agulha,
-        'polimentos': polimentos,
-        'diametros': diametros,
-        'partidos': partidos,
-    }
-
-    return render(request, 'theme/detalhesQrcode.html', context)
-
 @csrf_exempt
 def showDetails(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
@@ -603,3 +472,46 @@ def add_worker_to_die_work(request, work_id):
         'work': work,
         'users': users
     })
+
+def export_qrcode_excel(request, qr_id):
+    qr = get_object_or_404(QRData, id=qr_id)
+    dies = qr.die_instances.all()
+
+    # Criar lista com dados
+    data = []
+    for die in dies:
+        data.append({
+            "Year": qr.toma_order_year,
+            "Toma Order NR": qr.toma_order_nr,
+            "Customer": qr.customer,
+            "Customer Order NR": qr.customer_order_nr,
+            "Reception Date": qr.created_at.strftime("%d/%m/%Y"),
+            "Shipping Date": "",  # Se existir no modelo, coloca aqui
+            "Diameter": qr.diameters,
+            "Tech Spec": die.diameter_text,
+            "SerialNr": die.serial_number,
+            "Original Ø": die.diam_desbastado or "",
+            "Required Ø": die.diam_requerido or "",
+            "Suggested Ø": "",
+            "Type of Die": die.die.get_die_type_display(),
+            "Type of Job": die.job.get_job_display(),
+            "Min Tol": die.tolerance.min if die.tolerance else "",
+            "Max Tol": die.tolerance.max if die.tolerance else "",
+            "Min Ø": die.diam_max_min.min if die.diam_max_min else "",
+            "Max Ø": die.diam_max_min.max if die.diam_max_min else "",
+            "Observations": die.observations or "",
+            "BoxNR": qr.box_nr,
+        })
+
+    # Converter para DataFrame
+    df = pd.DataFrame(data)
+
+    # Criar resposta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="QRCode_{qr.toma_order_nr}.xlsx"'
+
+    # Gravar no Excel
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Dados', index=False)
+
+    return response

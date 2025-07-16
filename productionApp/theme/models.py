@@ -36,11 +36,11 @@ class ProductDeleteLog(models.Model):
 
 class Jobs(models.Model):
     JOB_CHOICES = [
-        ('F', 'Final'),
-        ('R', 'Recondicionado'),
-        ('P', 'Polimento'),
-        ('W', 'Com o mesmo diametro(W)'),
-        ('N', 'Novo'),    
+        ('F', 'F'),
+        ('R', 'R'),
+        ('P', 'P'),
+        ('W', 'W'),
+        ('N', 'N'),    
     ]
     
     job = models.CharField(max_length=1, choices=JOB_CHOICES, unique=True)
@@ -51,9 +51,9 @@ class Jobs(models.Model):
 
 class Die(models.Model):
     DIE_CHOICES = [
-        ('ND', 'Diamante Natural'),
-        ('PCD', 'Policristalino'),
-        ('MCD', 'Monocristalino'),
+        ('ND', 'ND'),
+        ('PCD', 'PCD'),
+        ('MCD', 'MCD'),
     ]
 
     die_type = models.CharField(max_length=3, choices=DIE_CHOICES, unique=True)
@@ -75,114 +75,6 @@ class Diameters(models.Model):
 
     def __str__(self):
         return f"Diametro: {self.min} - {self.max}"
-
-class Worker(models.Model):
-    name = models.CharField(max_length=100)
-
-    def __str__(self):
-        return self.name
-
-
-class Polimento(models.Model):
-    TIPO_TRABALHO = [
-        ('entrada', 'Entrada'),
-        ('saida', 'Saída'),
-        ('cone', 'Cone'),
-    ]
-
-    tipo = models.CharField(max_length=10, choices=TIPO_TRABALHO)
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='polimentos',null=True, blank=True)
-    workers = models.ManyToManyField(User, through='PolimentoWorker')
-
-    def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
-
-
-class PolimentoWorker(models.Model):
-    polimento = models.ForeignKey('Polimento', on_delete=models.CASCADE)
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
-    data = models.DateTimeField(auto_now_add=True)
-    
-
-    def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.polimento.tipo} (ID {self.polimento.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
-
-
-
-class DesbasteAgulha(models.Model):
-    TIPO_TRABALHO = [
-        ('entrada', 'Entrada'),
-        ('saida', 'Saída'),
-        ('cone', 'Cone'),
-    ]
-
-    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='DesbasteAgulhas', null=True, blank=True)
-    workers = models.ManyToManyField(User, through='DesbasteAgulhaWorker')
-
-    def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
-
-
-class DesbasteAgulhaWorker(models.Model):
-    desbaste_agulha = models.ForeignKey('DesbasteAgulha', on_delete=models.CASCADE)
-    die_instance = models.ForeignKey('dieInstance', on_delete=models.CASCADE, null=True, blank=True)  # Novo campo
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
-    data = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.desbaste_agulha.tipo} (ID {self.desbaste_agulha.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
-
-
-
-
-class DesbasteCalibre(models.Model):
-    TIPO_TRABALHO = [
-        ('polimento De Calibre', 'Polimento de Calibre'),
-        ('desbaste De Calibre', 'Desbaste de Calibre'),
-    ]
-
-    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='DesbasteCalibres', null=True, blank=True)
-    workers = models.ManyToManyField(User, through='DesbasteCalibreWorker')
-
-    def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id} - QR Code: {self.qr_code.toma_order_nr if self.qr_code else 'N/A'} - {self.qr_code.customer if self.qr_code else 'N/A'}"
-
-
-class DesbasteCalibreWorker(models.Model):
-    desbaste_calibre = models.ForeignKey('DesbasteCalibre', on_delete=models.CASCADE)
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
-    data = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.desbaste_calibre.tipo} (ID {self.desbaste_calibre.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
-
-
-
-
-class Afinacao(models.Model):
-    TIPO_TRABALHO = [
-        ('calibre', 'Calibre'),
-        ('afinacao', 'Afinação'),
-    ]
-
-    tipo = models.CharField(max_length=20, choices=TIPO_TRABALHO)
-    qr_code = models.ForeignKey('theme.QRData', on_delete=models.CASCADE, related_name='Afinacoes', null=True, blank=True)
-    workers = models.ManyToManyField(User, through='AfinacaoWorker')
-
-    def __str__(self):
-        return f"{self.tipo.capitalize()} - ID {self.id}"
-
-
-class AfinacaoWorker(models.Model):
-    afinacao = models.ForeignKey('Afinacao', on_delete=models.CASCADE)
-    worker = models.ForeignKey(User, on_delete=models.CASCADE)  # Aqui usas User
-    data = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.worker.get_full_name() or self.worker.username} em {self.afinacao.tipo} (ID {self.afinacao.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
-
 
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
@@ -218,9 +110,6 @@ class dieInstance(models.Model):
         return f" Custumer {self.customer.customer} -  Die {self.serial_number} - {self.die.get_die_type_display()} - Trabalho - {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
 
-
-
-    
 class NumeroPartidos(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
     partido = models.IntegerField(null=False, blank=False)
