@@ -58,6 +58,14 @@
                 <label class="block text-sm">Tolerância Mínima</label>
                 <input type="text" name="tol_min_{{ forloop.counter }}" value="{{ die.tol_min }}" class="border p-2 w-full">
             </div>
+            <div>
+                <label class="block text-sm">Cone</label>
+                <input type="text" name="cone_{{ forloop.counter }}" value="{{ die.cone }}" class="border p-2 w-full">
+            </div>
+            <div>
+                <label class="block text-sm">Bearing</label>
+                <input type="text" name="bearing_{{ forloop.counter }}" value="{{ die.bearing }}" class="border p-2 w-full">
+            </div>
             <div class="col-span-2">
                 <label class="block text-sm">Observações</label>
                 <input type="text" name="observations_{{ forloop.counter }}" value="{{ die.observations }}" class="border p-2 w-full">

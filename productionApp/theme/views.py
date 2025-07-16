@@ -278,7 +278,6 @@ def adicionar_dies(request, qr_id):
     dies = Die.objects.all()
     jobs = Jobs.objects.all()
 
-    # 🔍 Extrair os diâmetros do texto
     matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", qr_code.diameters)
 
     diameters_list = []
@@ -293,7 +292,6 @@ def adicionar_dies(request, qr_id):
     while len(diameters_list) < qr_code.qt:
         diameters_list.append("")
 
-    # 🔁 Dies existentes já salvos no banco
     existing_dies = list(dieInstance.objects.filter(customer=qr_code).order_by('id'))
 
     if request.method == 'POST':
@@ -309,6 +307,8 @@ def adicionar_dies(request, qr_id):
             tol_max = request.POST.get(f'tol_max_{i}')
             tol_min = request.POST.get(f'tol_min_{i}')
             observations = request.POST.get(f'observations_{i}')
+            cone = request.POST.get(f'cone_{i}')
+            bearing = request.POST.get(f'bearing_{i}')
 
             if i <= len(existing_dies):
                 # Atualizar existente
@@ -320,6 +320,9 @@ def adicionar_dies(request, qr_id):
                 die_obj.die_id = die_id if die_id else None
                 die_obj.job_id = job_id if job_id else None
                 die_obj.observations = observations
+                die_obj.cone = cone
+                die_obj.bearing = bearing
+
 
                 if tol_max and tol_min:
                     if die_obj.tolerance:
@@ -346,7 +349,10 @@ def adicionar_dies(request, qr_id):
                     die_id=die_id if die_id else None,
                     job_id=job_id if job_id else None,
                     tolerance=tolerance,
-                    observations=observations
+                    observations=observations,
+                    cone=cone,
+                    bearing=bearing
+                    
                 )
 
         messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
@@ -367,6 +373,8 @@ def adicionar_dies(request, qr_id):
                 'tol_max': getattr(die.tolerance, 'max', ''),
                 'tol_min': getattr(die.tolerance, 'min', ''),
                 'observations': die.observations,
+                'cone': die.cone,
+                'bearing': die.bearing
             })
         else:
             prefilled_data.append({
@@ -379,13 +387,15 @@ def adicionar_dies(request, qr_id):
                 'tol_max': '',
                 'tol_min': '',
                 'observations': '',
+                'cone': '',
+                'bearing': ''
             })
 
     return render(request, 'theme/adicionarDies.html', {
         'qr_code': qr_code,
         'dies': dies,
         'jobs': jobs,
-        'prefilled_data': prefilled_data
+        'prefilled_data': prefilled_data,
     })
 
 def listar_qrcodes_com_dies(request):

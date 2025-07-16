@@ -13,6 +13,7 @@ class FlexibleDecimalField(models.DecimalField):
         except (InvalidOperation, ValueError):
             return None
         
+        
 class Products(models.Model):
     order_Nmber = models.IntegerField(unique=True, null=False, blank=False)
     box_Nmber = models.IntegerField(null=False, blank=False)
@@ -97,6 +98,8 @@ class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
     serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
     diameter_text = models.CharField(max_length=50, blank=True, null=True)  # <-- Novo campo
+    cone = models.CharField(max_length=10, blank=True, null=True)  # <-- Novo campo
+    bearing = models.CharField(max_length=10, blank=True, null=True)  # <-- Novo campo
     diam_desbastado = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     diam_requerido = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
