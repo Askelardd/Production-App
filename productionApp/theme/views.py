@@ -391,36 +391,17 @@ def detalhesQrcode(request, qr_id):
     return render(request, 'theme/detalhesQrcode.html', context)
 
 @csrf_exempt
-def addDetails(request, qr_id):
+def showDetails(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
 
-    if request.method == 'POST':
-        # Observações
-        qr.observations = request.POST.get('observacoes', '')
+    context = {
+        'qr': qr,
+        'pedidos': qr.pedidosdiametro_set.all(),
+        'partidos': qr.numeropartidos_set.all(),
+    }
 
-        # Diâmetros
-        diametro_min = request.POST.get('diametro_min')
-        diametro_max = request.POST.get('diametro_max')
+    return render(request, 'theme/showDetails.html', context)
 
-        if diametro_min and diametro_max:
-            if qr.diameter:
-                # Atualiza os valores existentes
-                qr.diameter.min = diametro_min
-                qr.diameter.max = diametro_max
-                qr.diameter.save()
-            else:
-                # Cria novo e liga ao QRData
-                novo_diametro = Diameters.objects.create(
-                    min=diametro_min,
-                    max=diametro_max
-                )
-                qr.diameter = novo_diametro
-
-        qr.save()
-        messages.success(request, "Informações atualizadas com sucesso!")
-        return redirect('listQrcodes')
-
-    return render(request, 'theme/addDetails.html', {'qr': qr})
 
 
 def adicionar_dies(request, qr_id):
@@ -541,3 +522,84 @@ def adicionar_dies(request, qr_id):
 def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
+
+
+
+def die_details(request, die_id):
+    die = get_object_or_404(dieInstance, id=die_id)
+    works = die.works.prefetch_related('workers__worker')
+
+    if request.method == "POST" and request.POST.get("action") == "update_diametros":
+        diametro_min = request.POST.get('diametro_min')
+        diametro_max = request.POST.get('diametro_max')
+
+        try:
+            diametro_min = Decimal(diametro_min)
+            diametro_max = Decimal(diametro_max)
+        except (InvalidOperation, TypeError):
+            messages.error(request, "Valores inválidos para diâmetros.")
+            return redirect('die_details', die_id=die.id)
+
+        if diametro_min > diametro_max:
+            messages.error(request, "O diâmetro mínimo não pode ser maior que o máximo.")
+            return redirect('die_details', die_id=die.id)
+
+        if die.diam_max_min:
+            die.diam_max_min.min = diametro_min
+            die.diam_max_min.max = diametro_max
+            die.diam_max_min.save()
+        else:
+            new_diam = Diameters.objects.create(min=diametro_min, max=diametro_max)
+            die.diam_max_min = new_diam
+            die.save()
+
+        messages.success(request, "Diâmetros atualizados com sucesso!")
+        return redirect('die_details', die_id=die.id)
+
+    return render(request, 'theme/die_details.html', {'die': die, 'works': works})
+
+def create_die_work(request, die_id):
+    die = get_object_or_404(dieInstance, id=die_id)
+
+    if request.method == 'POST':
+        tipo_trabalho = request.POST.get('tipo_trabalho')
+        subtipo = request.POST.get('subtipo')
+
+        # Validações
+        if not tipo_trabalho:
+            messages.error(request, "Escolha um tipo de trabalho.")
+            return redirect(request.path)
+        if not subtipo:
+            messages.error(request, "Escolha um subtipo.")
+            return redirect(request.path)
+
+        # Criação do trabalho
+        DieWork.objects.create(
+            die=die,
+            work_type=tipo_trabalho,
+            subtype=subtipo
+        )
+
+        messages.success(request, f"Trabalho '{tipo_trabalho}' adicionado com sucesso ao Die {die.serial_number}.")
+        return redirect('die_details', die_id=die.id)
+
+    return render(request, 'theme/create_die_work.html', {'die': die})
+
+def add_worker_to_die_work(request, work_id):
+    work = get_object_or_404(DieWork, id=work_id)
+    users = User.objects.all()
+
+    if request.method == 'POST':
+        worker_id = request.POST.get('worker')
+        if worker_id:
+            worker = get_object_or_404(User, id=worker_id)
+            DieWorkWorker.objects.create(work=work, worker=worker)
+            messages.success(request, f"{worker.get_full_name() or worker.username} adicionado ao trabalho {work.get_work_type_display()}.")
+            return redirect('die_details', die_id=work.die.id)
+        else:
+            messages.error(request, "Selecione um trabalhador.")
+
+    return render(request, 'theme/add_worker_to_die_work.html', {
+        'work': work,
+        'users': users
+    })

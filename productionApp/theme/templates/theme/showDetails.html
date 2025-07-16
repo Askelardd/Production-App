@@ -1,0 +1,68 @@
+{% extends 'theme/base.html' %}
+{% block title %}Detalhes do QR Code{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Detalhes do QR Code (ID {{ qr.id }})</h2>
+
+<!-- Informações principais -->
+<div class="bg-white p-6 rounded-lg shadow mb-6">
+    <p><strong>Cliente:</strong> {{ qr.customer }}</p>
+    <p><strong>Ordem Cliente:</strong> {{ qr.customer_order_nr }}</p>
+    <p><strong>Toma Ordem:</strong> {{ qr.toma_order_nr }}</p>
+    <p><strong>Quantidade:</strong> {{ qr.qt }}</p>
+    <p><strong>Criado em:</strong> {{ qr.created_at|date:"d/m/Y H:i" }}</p>
+</div>
+
+<!-- Diâmetro Máx/Mín
+<div class="bg-gray-50 p-4 rounded-lg shadow mb-6">
+    <h3 class="text-lg font-semibold mb-2">Diâmetro Máx/Mín (para todos os Dies)</h3>
+    {% if qr.die_instances.exists %}
+        {% with first_die=qr.die_instances.first %}
+            <p><strong>Mínimo:</strong> {{ first_die.diam_max_min.min|default:"-" }}</p>
+            <p><strong>Máximo:</strong> {{ first_die.diam_max_min.max|default:"-" }}</p>
+        {% endwith %}
+    {% else %}
+        <p class="text-gray-500 italic">Nenhum Die associado.</p>
+    {% endif %}
+</div>
+}-->
+
+<!-- Pedidos de Diâmetro -->
+<div class="bg-gray-50 p-4 rounded-lg shadow mb-6">
+    <h3 class="text-lg font-semibold mb-2">Pedidos de Diâmetro</h3>
+    {% if qr.pedidosdiametro_set.all %}
+        <ul class="list-disc ml-6">
+            {% for pedido in qr.pedidosdiametro_set.all %}
+                <li>
+                    {{ pedido.numero_fieiras }} fieiras para {{ pedido.diametro }}
+                    <small class="text-gray-500">({{ pedido.created_at|date:"d/m/Y H:i" }})</small>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-gray-500 italic">Nenhum pedido de diâmetro registrado.</p>
+    {% endif %}
+</div>
+
+<!-- Partidos -->
+<div class="bg-gray-50 p-4 rounded-lg shadow mb-6">
+    <h3 class="text-lg font-semibold mb-2">Partidos</h3>
+    {% if qr.numeropartidos_set.all %}
+        <ul class="list-disc ml-6">
+            {% for partido in qr.numeropartidos_set.all %}
+                <li>
+                    {{ partido.partido }} fieiras
+                    <small class="text-gray-500">({{ partido.created_at|date:"d/m/Y H:i" }})</small>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-gray-500 italic">Nenhum partido registrado.</p>
+    {% endif %}
+</div>
+
+<!-- Botão Voltar -->
+<a href="{% url 'listarDies' %}" class="inline-block bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+    Voltar à lista
+</a>
+{% endblock %}

@@ -7,7 +7,8 @@ from .models import (
     DesbasteCalibre, DesbasteCalibreWorker,
     Afinacao, AfinacaoWorker,
     NumeroPartidos, PedidosDiametro,
-    dieInstance
+    dieInstance,
+    DieWork, DieWorkWorker
 )
 
 # Registro simples
@@ -19,6 +20,7 @@ admin.site.register(Die)
 admin.site.register(Tolerance)
 admin.site.register(NumeroPartidos)
 admin.site.register(PedidosDiametro)
+
 
 # Polimento
 class PolimentoWorkerInline(admin.TabularInline):
@@ -72,3 +74,15 @@ class DieInstanceAdmin(admin.ModelAdmin):
     list_display = ['serial_number', 'customer', 'die', 'job', 'created_at']
     search_fields = ['serial_number', 'customer__customer', 'die__die_type']
     list_filter = ['job', 'die']
+
+
+class DieWorkWorkerInline(admin.TabularInline):
+    model = DieWorkWorker
+    extra = 3
+
+@admin.register(DieWork)
+class DieWorkAdmin(admin.ModelAdmin):
+    list_display = ['die', 'work_type', 'subtype', 'created_at']
+    list_filter = ['work_type']
+    inlines = [DieWorkWorkerInline]
+

@@ -19,9 +19,13 @@ urlpatterns = [
     path('desbaste-agulha/<int:desbaste_agulha_id>/workers/', views.adicionarDesbasteAgulhaWorker, name='adicionarDesbasteAgulhaWorker'),
     path('polimento/<int:polimento_id>/workers/', views.adicionarPolimentoWorker, name='adicionarPolimentoWorker'),
     path('qrcode/<int:qr_id>/detalhes/', views.detalhesQrcode, name='detalhesQrcode'),
-    path('qrdata/editar/<int:qr_id>/', views.addDetails, name='addDetails'),
+    path('qrdata/editar/<int:qr_id>/', views.showDetails, name='showDetails'),
     path('qrcode/<int:qr_id>/dies/', views.adicionar_dies, name='adicionar_dies'),
     path('dies/', views.listar_qrcodes_com_dies, name='listarDies'),
+    path('die/<int:die_id>/', views.die_details, name='die_details'),
+    path('die/<int:die_id>/novo-trabalho/', views.create_die_work, name='create_die_work'),
+    path('die-work/<int:work_id>/add-worker/', views.add_worker_to_die_work, name='add_worker_to_die_work'),
+
     
 
 

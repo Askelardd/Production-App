@@ -66,6 +66,9 @@ class Tolerance(models.Model):
     min = FlexibleDecimalField(max_digits=6, decimal_places=4)
     max = FlexibleDecimalField(max_digits=6, decimal_places=4)
 
+    def __str__(self):
+        return f"Tolerância: {self.min} - {self.max}"
+
 class Diameters(models.Model):
     min = FlexibleDecimalField(max_digits=6, decimal_places=4)
     max = FlexibleDecimalField(max_digits=6, decimal_places=4)
@@ -181,11 +184,6 @@ class AfinacaoWorker(models.Model):
         return f"{self.worker.get_full_name() or self.worker.username} em {self.afinacao.tipo} (ID {self.afinacao.id}) ({self.data.strftime('%Y-%m-%d %H:%M')})"
 
 
-
-
-
-
-
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
     diameters = models.CharField(max_length=50)  #original diameter
@@ -216,13 +214,8 @@ class dieInstance(models.Model):
     observations = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
-    polimento = models.ForeignKey(Polimento, on_delete=models.SET_NULL, null=True, blank=True)
-    desbaste_agulha = models.ForeignKey(DesbasteAgulha, on_delete=models.SET_NULL, null=True, blank=True) 
-    desbaste_calibre  = models.ForeignKey(DesbasteCalibre, on_delete=models.SET_NULL, null=True, blank=True)
-    afinacao = models.ForeignKey(Afinacao, on_delete=models.SET_NULL, null=True, blank=True)
-
     def __str__(self):
-        return f"Die {self.serial_number} - {self.die.get_die_type_display()} - Job: {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
+        return f" Custumer {self.customer.customer} -  Die {self.serial_number} - {self.die.get_die_type_display()} - Trabalho - {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
 
 
@@ -246,3 +239,24 @@ class PedidosDiametro(models.Model):
     def __str__(self):
         return f"QR Code: {self.qr_code.toma_order_nr} - {self.numero_fieiras} fieiras para diametro {self.diametro} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
+class DieWork(models.Model):
+    die = models.ForeignKey('dieInstance', on_delete=models.CASCADE, related_name='works')
+    work_type = models.CharField(max_length=20, choices=[
+        ('polimento', 'Polimento'),
+        ('desbaste_agulha', 'Desbaste Agulha'),
+        ('desbaste_calibre', 'Desbaste Calibre'),
+        ('afinacao', 'Afinação')
+    ])
+    subtype = models.CharField(max_length=20, null=True, blank=True)  # ex.: entrada, saída, cone
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.get_work_type_display()} - {self.die.serial_number}"
+
+class DieWorkWorker(models.Model):
+    work = models.ForeignKey('DieWork', on_delete=models.CASCADE, related_name='workers')
+    worker = models.ForeignKey(User, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.worker.get_full_name()} - {self.work}"

@@ -1,53 +1,31 @@
-{% extends 'theme/base.html' %}
-{% block title %}Detalhes por Die{% endblock %}
-
-{% block content %}
-<div class="max-h-[600px] overflow-y-auto pr-3">
-  <h1 class="text-2xl font-bold mb-6">Detalhes dos Dies - QRCode {{ qr.toma_order_nr }}</h1>
-
-  {% for die in dies %}
-    <div class="bg-white shadow-md rounded-lg p-4 mb-6 border">
-      <h2 class="text-lg font-semibold mb-2">Die: {{ die.serial_number }}</h2>
-      <p><strong>Tipo:</strong> {{ die.die.get_die_type_display }}</p>
-      <p><strong>Job:</strong> {{ die.job.get_job_display }}</p>
-      <p><strong>Diâmetro:</strong> {{ die.diameter_text|default:"-" }}</p>
-      <p><strong>Diam. Desbastado:</strong> {{ die.diam_desbastado|default:"-" }}</p>
-      <p><strong>Diam. Requerido:</strong> {{ die.diam_requerido|default:"-" }}</p>
-      <p><strong>Tolerância:</strong>
-        {% if die.tolerance %}{{ die.tolerance.min }} - {{ die.tolerance.max }}{% else %}-{% endif %}
-      </p>
-      <p><strong>Observações:</strong> {{ die.observations|default:"-" }}</p>
-
-      <hr class="my-3">
-
-      <!-- Trabalhos desse Die -->
-      <h3 class="text-md font-semibold mb-2">Trabalhos</h3>
-      <ul class="list-disc ml-5 text-sm">
-        {% if die.polimento %}
-          <li>Polimento: {{ die.polimento.tipo }} — ({{ die.polimento.id }})</li>
-        {% endif %}
-        {% if die.desbaste_agulha %}
-          <li>Desbaste Agulha: {{ die.desbaste_agulha.tipo }} — ({{ die.desbaste_agulha.id }})</li>
-        {% endif %}
-        {% if die.desbaste_calibre %}
-          <li>Desbaste Calibre: {{ die.desbaste_calibre.tipo }} — ({{ die.desbaste_calibre.id }})</li>
-        {% endif %}
-        {% if die.afinacao %}
-          <li>Afinação: {{ die.afinacao.tipo }} — ({{ die.afinacao.id }})</li>
-        {% endif %}
-        {% if not die.polimento and not die.desbaste_agulha and not die.desbaste_calibre and not die.afinacao %}
-          <li class="text-gray-500 italic">Nenhum trabalho associado</li>
-        {% endif %}
-      </ul>
-    </div>
-  {% empty %}
-    <p class="text-gray-500 italic">Nenhum Die associado a este QRCode.</p>
-  {% endfor %}
-</div>
-
-<div class="flex justify-center">
-  <a href="{% url 'listQrcodes' %}" class="mt-6 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
-    Voltar
-  </a>
-</div>
-{% endblock %}
+<h3 class="text-md font-semibold mb-2">Trabalhos</h3>
+{% if die.polimentos.exists or die.desbasteagulhas.exists or die.desbastecalibres.exists or die.afinacoes.exists %}
+    <ul class="list-disc ml-5 text-sm">
+        {% for polimento in die.polimentos.all %}
+            <li>
+                Polimento: {{ polimento.tipo }} (ID {{ polimento.id }})
+                <ul class="ml-6 text-gray-600">
+                    {% for worker in polimento.workers.all %}
+                        <li>{{ worker.get_full_name|default:worker.username }}</li>
+                    {% empty %}
+                        <li>Nenhum trabalhador atribuído</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+        {% for desbaste in die.desbasteagulhas.all %}
+            <li>Desbaste Agulha: {{ desbaste.tipo }} (ID {{ desbaste.id }})
+                <ul class="ml-6 text-gray-600">
+                    {% for worker in desbaste.workers.all %}
+                        <li>{{ worker.get_full_name|default:worker.username }}</li>
+                    {% empty %}
+                        <li>Nenhum trabalhador atribuído</li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+        <!-- Repete para os outros -->
+    </ul>
+{% else %}
+    <p class="text-gray-500 italic">Nenhum trabalho associado</p>
+{% endif %}
