@@ -6,7 +6,8 @@
 
 <form method="POST">
   {% csrf_token %}
-  <label for="worker" class="block mb-2">Trabalhador:</label>
+  
+  <label for="worker" class="block mb-2 font-semibold">Trabalhador:</label>
   <select name="worker" required class="border rounded p-2 mb-4 w-full">
     <option value="">-- Escolher Utilizador --</option>
     {% for user in users %}
@@ -14,7 +15,12 @@
     {% endfor %}
   </select>
 
-  <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Adicionar</button>
-  <a href="{% url 'die_details' work.die.id %}" class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancelar</a>
+  <label for="password" class="block mb-2 font-semibold">Senha do Utilizador:</label>
+  <input type="password" name="password" required class="border rounded p-2 mb-4 w-full" placeholder="Digite a senha do utilizador" />
+
+  <div class="flex gap-2">
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Adicionar</button>
+    <a href="{% url 'die_details' work.die.id %}" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancelar</a>
+  </div>  
 </form>
 {% endblock %}

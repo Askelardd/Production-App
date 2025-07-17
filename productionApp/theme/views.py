@@ -536,20 +536,25 @@ def add_worker_to_die_work(request, work_id):
     users = User.objects.all()
 
     if request.method == 'POST':
-        worker_id = request.POST.get('worker')
-        if worker_id:
-            worker = get_object_or_404(User, id=worker_id)
-            DieWorkWorker.objects.create(work=work, worker=worker)
-            messages.success(request, f"{worker.get_full_name() or worker.username} adicionado ao trabalho {work.get_work_type_display()}.")
-                        # Adiciona log na tabela globalLogs
-            globalLogs.objects.create(
-                user=request.user,
-                action=f"{request.user.first_name or request.user.username} adicionou {worker.get_full_name() or worker.username} ao trabalho {work.get_work_type_display()} do Die {work.die.serial_number}.",
-            )
+        user_id = request.POST.get('worker')
+        password = request.POST.get('password')
 
-            return redirect('die_details', die_id=work.die.id)
-        else:
-            messages.error(request, "Selecione um trabalhador.")
+        if not user_id or not password:
+            messages.error(request, "Selecione um utilizador e insira a senha.")
+            return redirect(request.path)
+
+        user = get_object_or_404(User, id=user_id)
+
+        # Verificar senha do utilizador selecionado
+        auth_user = authenticate(username=user.username, password=password)
+        if auth_user is None:
+            messages.error(request, "Senha incorreta para o utilizador selecionado!")
+            return redirect(request.path)
+
+        # Adicionar trabalhador ao trabalho
+        DieWorkWorker.objects.create(work=work, worker=user)
+        messages.success(request, f"Trabalhador {user.username} adicionado com sucesso!")
+        return redirect('die_details', die_id=work.die.id)
 
     return render(request, 'theme/add_worker_to_die_work.html', {
         'work': work,
