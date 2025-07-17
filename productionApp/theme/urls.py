@@ -20,6 +20,7 @@ urlpatterns = [
     path('die/<int:die_id>/novo-trabalho/', views.create_die_work, name='create_die_work'),
     path('die-work/<int:work_id>/add-worker/', views.add_worker_to_die_work, name='add_worker_to_die_work'),
     path('qrcode/<int:qr_id>/export-excel/', views.export_qrcode_excel, name='export_qrcode_excel'),
+    path('enviar-caixa/<int:qr_id>/', views.enviar_caixa, name='enviar_caixa'),
 
 
     

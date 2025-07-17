@@ -13,6 +13,7 @@ from .models import *  # type: ignore
 import re  # type: ignore
 import pandas as pd  # type: ignore
 from django.http import HttpResponse  # type: ignore
+from django.db.models import Count  # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -75,6 +76,10 @@ def login_view(request, user_id):
         user = authenticate(request, username=user.username, password=password)
         if user is not None:
             login(request, user)  # faz o login
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.first_name or request.user.username} fez login no sistema."
+            )
             return redirect('productionMenu', user_id=user.id)
         else:
             messages.error(request, 'Palavra-passe incorreta.')
@@ -220,6 +225,10 @@ def partidosMenu(request, qrCode_id):
             else:
                 NumeroPartidos.objects.create(qr_code=qr_code, partido=partido)
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
+                globalLogs.objects.create(
+                    user=request.user,
+                    action=f"{request.user.first_name or request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_nr}.",
+                )
         except ValueError:
             messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
         except Exception as e:
@@ -252,6 +261,10 @@ def diametroMenu(request, qrCode_id):
                     numero_fieiras=numero
                 )
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
+                globalLogs.objects.create(
+                    user=request.user,
+                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_nr}.",
+                )
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
         except Exception as e:
@@ -259,17 +272,55 @@ def diametroMenu(request, qrCode_id):
 
     return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
 
+
+
 @csrf_exempt
 def showDetails(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
 
-    context = {
-        'qr': qr,
-        'pedidos': qr.pedidosdiametro_set.all(),
-        'partidos': qr.numeropartidos_set.all(),
-    }
+    # Todos os Dies deste QR Code
+    dies = qr.die_instances.all()
+    die_ids = dies.values_list('id', flat=True)
 
-    return render(request, 'theme/showDetails.html', context)
+    # Para cada die, pega todos os workers que fizeram pelo menos 1 trabalho nesse die
+    die_workers = {}
+    for die in dies:
+        workers = (
+            DieWorkWorker.objects
+            .filter(work__die=die)
+            .values_list('worker_id', 'worker__first_name', 'worker__last_name', 'worker__username')
+            .distinct()
+        )
+        for worker_id, first_name, last_name, username in workers:
+            if worker_id not in die_workers:
+                die_workers[worker_id] = {
+                    'name': f"{first_name} {last_name}",
+                    'username': username,
+                    'dies_worked': set()
+                }
+            die_workers[worker_id]['dies_worked'].add(die.id)
+
+    # Agora, para cada worker, conta em quantos dies ele trabalhou (pelo menos 1 trabalho em cada die)
+    workers_stats_list = []
+    for worker in die_workers.values():
+        total_dies = len(worker['dies_worked'])
+        if total_dies > 0:
+            workers_stats_list.append({
+                'name': worker['name'],
+                'username': worker['username'],
+                'total_dies': total_dies
+            })
+
+    # Ordena por total_dies decrescente
+    workers_stats_list = sorted(workers_stats_list, key=lambda x: x['total_dies'], reverse=True)
+
+    return render(request, 'theme/showDetails.html', {
+        'qr': qr,
+        'dies': dies,
+        'workers_stats': workers_stats_list
+    })
+
+
 
 
 
@@ -355,6 +406,12 @@ def adicionar_dies(request, qr_id):
                     
                 )
 
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.first_name or request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
+        )
+
+
         messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
         return redirect('listQrcodes')
 
@@ -391,6 +448,7 @@ def adicionar_dies(request, qr_id):
                 'bearing': ''
             })
 
+                # Adiciona log na tabela globalLogs
     return render(request, 'theme/adicionarDies.html', {
         'qr_code': qr_code,
         'dies': dies,
@@ -433,6 +491,11 @@ def die_details(request, die_id):
             die.save()
 
         messages.success(request, "Diâmetros atualizados com sucesso!")
+                    # Adiciona log na tabela globalLogs
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.first_name or request.user.username} atualizou/adicionou os diâmetros do Die {die.serial_number} para {diametro_min} - {diametro_max}.",
+        )
         return redirect('die_details', die_id=die.id)
 
     return render(request, 'theme/die_details.html', {'die': die, 'works': works})
@@ -456,10 +519,14 @@ def create_die_work(request, die_id):
         DieWork.objects.create(
             die=die,
             work_type=tipo_trabalho,
-            subtype=subtipo
-        )
+            subtype=subtipo)
 
         messages.success(request, f"Trabalho '{tipo_trabalho}' adicionado com sucesso ao Die {die.serial_number}.")
+                    # Adiciona log na tabela globalLogs
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.first_name or request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
+        )
         return redirect('die_details', die_id=die.id)
 
     return render(request, 'theme/create_die_work.html', {'die': die})
@@ -474,6 +541,12 @@ def add_worker_to_die_work(request, work_id):
             worker = get_object_or_404(User, id=worker_id)
             DieWorkWorker.objects.create(work=work, worker=worker)
             messages.success(request, f"{worker.get_full_name() or worker.username} adicionado ao trabalho {work.get_work_type_display()}.")
+                        # Adiciona log na tabela globalLogs
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.first_name or request.user.username} adicionou {worker.get_full_name() or worker.username} ao trabalho {work.get_work_type_display()} do Die {work.die.serial_number}.",
+            )
+
             return redirect('die_details', die_id=work.die.id)
         else:
             messages.error(request, "Selecione um trabalhador.")
@@ -524,4 +597,50 @@ def export_qrcode_excel(request, qr_id):
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Dados', index=False)
 
+                # Adiciona log na tabela globalLogs
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.first_name or request.user.username} criou um exel da ordem {qr.toma_order_nr}",
+    )
+
     return response
+
+
+def enviar_caixa(request, qr_id):
+    qr = get_object_or_404(QRData, id=qr_id)
+
+    if request.method == 'POST':
+        destino = request.POST.get('where')
+        if destino in dict(whereBox.ONDESTA):
+            # Atualiza ou cria a localização da caixa
+            box_location, created = whereBox.objects.get_or_create(order_number=qr)
+            box_location.where = destino
+            box_location.save()
+
+            # Mensagem de sucesso
+            messages.success(request, f"Caixa enviada para {box_location.get_where_display()}.")
+
+            # Adiciona log na tabela globalLogs
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.first_name or request.user.username} enviou a caixa {qr.toma_order_nr} para {box_location.get_where_display()}",
+            )
+
+            return redirect('listarDies')
+        else:
+            messages.error(request, "Opção inválida.")
+
+    return render(request, 'theme/enviar_caixa.html', {'qr': qr, 'choices': whereBox.ONDESTA})
+
+
+
+
+def contar_dies_por_usuario(qr_id, user_id):
+    from theme.models import DieWorkWorker
+
+    count = DieWorkWorker.objects.filter(
+        die_work__die__customer_id=qr_id, 
+        worker_id=user_id
+    ).aggregate(total=Count('id'))['total']
+
+    return count

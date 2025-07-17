@@ -13,7 +13,8 @@ class FlexibleDecimalField(models.DecimalField):
         except (InvalidOperation, ValueError):
             return None
         
-        
+
+
 class Products(models.Model):
     order_Nmber = models.IntegerField(unique=True, null=False, blank=False)
     box_Nmber = models.IntegerField(null=False, blank=False)
@@ -80,8 +81,8 @@ class Diameters(models.Model):
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
     diameters = models.CharField(max_length=50)  #original diameter
-    customer_order_nr = models.CharField(max_length=50)
-    toma_order_nr = models.CharField(max_length=50) 
+    customer_order_nr = models.CharField(max_length=50)  # customer order number
+    toma_order_nr = models.CharField(max_length=50, unique=True) 
     tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True) # type of tolerance
     toma_order_year = models.CharField(max_length=10)
     box_nr = models.IntegerField()
@@ -92,6 +93,28 @@ class QRData(models.Model):
     def __str__(self):
         return f"{self.customer} - {self.toma_order_nr} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
     
+class whereBox(models.Model):
+    ONDESTA = [
+        ('AFINACAO', 'Afinação'),
+        ('POLIMENTO', 'Polimento'),
+        ('DESBASTE_AGULHA', 'Desbaste Agulha'),
+        ('DESBASTE_CALIBRE', 'Desbaste Calibre'),
+
+    ]
+    order_number = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='where_boxes')
+    where = models.CharField(max_length=20, choices=ONDESTA, default='FIO')
+
+    def __str__(self):
+        return f"A Caixa {self.order_number.toma_order_nr} esta em no {self.get_where_display()}"
+    
+class globalLogs(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    action = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.action} - {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+
 
 
 class dieInstance(models.Model):
