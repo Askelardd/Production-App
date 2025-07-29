@@ -1,8 +1,10 @@
 Folder PATH listing
 Volume serial number is 6E75-8668
 C:.
+¦   db.sqlite3
 ¦   estrutura.txt
 ¦   manage.py
+¦   requirements.txt
 ¦   
 +---.venv
 ¦   ¦   .gitignore
@@ -1102,22 +1104,116 @@ C:.
 ¦   +---__pycache__
 ¦           settings.cpython-313.pyc
 ¦           urls.cpython-313.pyc
+¦           wsgi.cpython-313.pyc
 ¦           __init__.cpython-313.pyc
 ¦           
 +---theme
     ¦   admin.py
-    ¦   apps.py
     ¦   models.py
-    ¦   tests.py
+    ¦   urls.py
     ¦   views.py
-    ¦   __init__.py
     ¦   
     +---migrations
-    ¦       __init__.py
-    ¦       
+    ¦   ¦   0001_initial.py
+    ¦   ¦   0002_alter_products_edit_by_delete_user.py
+    ¦   ¦   0003_productdeletelog.py
+    ¦   ¦   0004_qrdata.py
+    ¦   ¦   0005_jobs_qrdata_job.py
+    ¦   ¦   0006_alter_jobs_job.py
+    ¦   ¦   0007_desbaste_diameters_die_tolerance_worker_and_more.py
+    ¦   ¦   0008_alter_diameters_max_alter_diameters_min_and_more.py
+    ¦   ¦   0009_fio_polimento_fioworker_fio_workers_polimentoworker_and_more.py
+    ¦   ¦   0010_qrdata_fio_qrdata_polimento.py
+    ¦   ¦   0011_alter_qrdata_desbaste.py
+    ¦   ¦   0012_alter_qrdata_fio_alter_qrdata_polimento.py
+    ¦   ¦   0013_numeropartidos.py
+    ¦   ¦   0014_pedidosdiametro.py
+    ¦   ¦   0015_desbaste_qr_code_fio_qr_code_polimento_qr_code.py
+    ¦   ¦   0016_alter_fio_tipo.py
+    ¦   ¦   0017_remove_desbasteworker_desbaste_and_more.py
+    ¦   ¦   0018_rename_afinacao_afinacaoworker_afinacao_and_more.py
+    ¦   ¦   0019_rename_desbastecalibre_desbastecalibreworker_desbaste_calibre.py
+    ¦   ¦   0020_remove_qrdata_afinacao_remove_qrdata_desbaste_agulha_and_more.py
+    ¦   ¦   0021_remove_dieinstance_diameter_and_more.py
+    ¦   ¦   0022_alter_dieinstance_diam_max_min.py
+    ¦   ¦   0023_alter_dieinstance_tolerance.py
+    ¦   ¦   0024_alter_diameters_max_alter_diameters_min_and_more.py
+    ¦   ¦   0025_afinacaoworker_die_instance_and_more.py
+    ¦   ¦   0026_remove_afinacaoworker_die_instance_and_more.py
+    ¦   ¦   0027_remove_afinacao_qr_code_remove_afinacao_workers_and_more.py
+    ¦   ¦   0028_wherebox.py
+    ¦   ¦   0029_wherebox_order_number_alter_qrdata_customer_order_nr.py
+    ¦   ¦   0030_alter_qrdata_customer_order_nr.py
+    ¦   ¦   0031_alter_qrdata_customer_order_nr_and_more.py
+    ¦   ¦   0032_globallogs.py
+    ¦   ¦   __init__.py
+    ¦   ¦   
+    ¦   +---__pycache__
+    ¦           0001_initial.cpython-313.pyc
+    ¦           0002_alter_products_edit_by_delete_user.cpython-313.pyc
+    ¦           0003_productdeletelog.cpython-313.pyc
+    ¦           0004_qrdata.cpython-313.pyc
+    ¦           0005_jobs_qrdata_job.cpython-313.pyc
+    ¦           0006_alter_jobs_job.cpython-313.pyc
+    ¦           0007_desbaste_diameters_die_tolerance_worker_and_more.cpython-313.pyc
+    ¦           0008_alter_diameters_max_alter_diameters_min_and_more.cpython-313.pyc
+    ¦           0009_fio_polimento_fioworker_fio_workers_polimentoworker_and_more.cpython-313.pyc
+    ¦           0010_qrdata_fio_qrdata_polimento.cpython-313.pyc
+    ¦           0011_alter_qrdata_desbaste.cpython-313.pyc
+    ¦           0012_alter_qrdata_fio_alter_qrdata_polimento.cpython-313.pyc
+    ¦           0013_numeropartidos.cpython-313.pyc
+    ¦           0014_pedidosdiametro.cpython-313.pyc
+    ¦           0015_desbaste_qr_code_fio_qr_code_polimento_qr_code.cpython-313.pyc
+    ¦           0016_alter_fio_tipo.cpython-313.pyc
+    ¦           0017_remove_desbasteworker_desbaste_and_more.cpython-313.pyc
+    ¦           0018_rename_afinacao_afinacaoworker_afinacao_and_more.cpython-313.pyc
+    ¦           0019_rename_desbastecalibre_desbastecalibreworker_desbaste_calibre.cpython-313.pyc
+    ¦           0020_remove_qrdata_afinacao_remove_qrdata_desbaste_agulha_and_more.cpython-313.pyc
+    ¦           0021_remove_dieinstance_diameter_and_more.cpython-313.pyc
+    ¦           0022_alter_dieinstance_diam_max_min.cpython-313.pyc
+    ¦           0023_alter_dieinstance_tolerance.cpython-313.pyc
+    ¦           0024_alter_diameters_max_alter_diameters_min_and_more.cpython-313.pyc
+    ¦           0025_afinacaoworker_die_instance_and_more.cpython-313.pyc
+    ¦           0026_remove_afinacaoworker_die_instance_and_more.cpython-313.pyc
+    ¦           0027_remove_afinacao_qr_code_remove_afinacao_workers_and_more.cpython-313.pyc
+    ¦           0028_wherebox.cpython-313.pyc
+    ¦           0029_wherebox_order_number_alter_qrdata_customer_order_nr.cpython-313.pyc
+    ¦           0030_alter_qrdata_customer_order_nr.cpython-313.pyc
+    ¦           0031_alter_qrdata_customer_order_nr_and_more.cpython-313.pyc
+    ¦           0032_globallogs.cpython-313.pyc
+    ¦           __init__.cpython-313.pyc
+    ¦           
+    +---static
+    ¦   +---theme
+    ¦       +---js
+    ¦               form-validation.js
+    ¦               
+    +---templates
+    ¦   +---theme
+    ¦           add_worker_to_die_work.html
+    ¦           adicionarDies.html
+    ¦           base.html
+    ¦           confirmDelete.html
+    ¦           createUser.html
+    ¦           create_die_work.html
+    ¦           detalhesQrcode.html
+    ¦           diametroMenu.html
+    ¦           die_details.html
+    ¦           editProduct.html
+    ¦           enviar_caixa.html
+    ¦           home.html
+    ¦           inputProduction.html
+    ¦           listarDies.html
+    ¦           listQrcodes.html
+    ¦           login.html
+    ¦           partidosMenu.html
+    ¦           productionMenu.html
+    ¦           scanBox.html
+    ¦           showDetails.html
+    ¦           
     +---__pycache__
             admin.cpython-313.pyc
-            apps.cpython-313.pyc
             models.cpython-313.pyc
-            __init__.cpython-313.pyc
+            urls.cpython-313.pyc
+            views.cpython-313.pyc
             

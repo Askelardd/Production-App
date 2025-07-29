@@ -1,70 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <title>Lista dinâmica</title>
+  <meta charset="UTF-8">
+  <title>Lista de Tarefas com TypeScript</title>
 </head>
 <body>
+  <h2>Lista de Tarefas (TS)</h2>
 
-    <h2>Lista de Tarefas</h2>
+  <input type="text" id="tarefaInput" placeholder="Digite uma tarefa">
+  <button id="btnAdicionar">Adicionar</button>
+  <button id="btnLimpar">Limpar Lista</button>
 
-    <input type="text" id="tarefaInput" placeholder="Digite uma tarefa">
-    <button onclick="adicionarTarefa()">Adicionar</button>
-    <button onclick="removerTarefas()">Limpar Lista</button>
+  <ul id="listaTarefas"></ul>
 
-    <ul id="listaTarefas"></ul>
-    
-    <script>
-    function adicionarTarefa() {
-        let texto = document.getElementById("tarefaInput").value.trim();
-
-        if (texto !== "") {
-            let item = document.createElement("li");
-            item.innerText = texto + " ";
-
-            // Botão Editar
-            let btnEditar = document.createElement("button");
-            btnEditar.innerText = "Editar";
-            btnEditar.onclick = function () {
-                let atual = item.firstChild.nodeValue.trim(); // pega o texto atual da tarefa
-                let novoTexto = prompt("Editar tarefa:", atual);
-                if (novoTexto) {
-                    item.firstChild.nodeValue = novoTexto + " ";
-                }
-            };
-
-            // Botão Remover
-            let btnRemover = document.createElement("button");
-            btnRemover.innerText = "Remover";
-            btnRemover.onclick = function () {
-                item.remove();
-            };
-
-            item.appendChild(btnEditar);
-            item.appendChild(btnRemover);
-
-            document.getElementById("listaTarefas").appendChild(item);
-
-            // Limpa o campo de input
-            document.getElementById("tarefaInput").value = "";
-
-            let riscarTarefa = document.createElement("button");
-            riscarTarefa.innerText = "Riscar";
-            riscarTarefa.onclick = function () {
-                if (item.style.textDecoration === "line-through") {
-                    item.style.textDecoration = "none";
-                } else {
-                    item.style.textDecoration = "line-through";
-                }
-            };
-            item.appendChild(riscarTarefa);
-            
-        }
-    }
-
-    function removerTarefas() {
-        document.getElementById("listaTarefas").innerHTML = "";
-    }
-    </script>
+  <script src="dist/app.js"></script>
 </body>
 </html>

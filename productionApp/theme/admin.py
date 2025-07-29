@@ -5,6 +5,7 @@ from .models import (
     NumeroPartidos, PedidosDiametro,
     dieInstance,
     DieWork, DieWorkWorker,
+    WhereDie,
     whereBox,
     globalLogs
 )
@@ -78,6 +79,17 @@ class DieWorkAdmin(admin.ModelAdmin):
 
 
 # -------------------
+# WhereDie
+# -------------------
+@admin.register(WhereDie)
+class WhereDieAdmin(admin.ModelAdmin):
+    list_display = ['die', 'where', 'updated_at'] 
+    list_filter = ['where', 'updated_at']
+    search_fields = ['die__serial_number']
+
+    
+
+# -------------------
 # WhereBox
 # -------------------
 @admin.register(whereBox)
@@ -86,6 +98,7 @@ class WhereBoxAdmin(admin.ModelAdmin):
     search_fields = ['order_number__toma_order_nr']
     list_filter = ['where']
     list_per_page = 20
+
 
 
 # -------------------

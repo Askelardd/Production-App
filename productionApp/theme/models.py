@@ -93,6 +93,7 @@ class QRData(models.Model):
     def __str__(self):
         return f"{self.customer} - {self.toma_order_nr} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
     
+
 class whereBox(models.Model):
     ONDESTA = [
         ('AFINACAO', 'Afinação'),
@@ -106,6 +107,22 @@ class whereBox(models.Model):
 
     def __str__(self):
         return f"A Caixa {self.order_number.toma_order_nr} esta em no {self.get_where_display()}"
+    
+class WhereDie(models.Model):
+    ONDESTA = [
+        ('AFINACAO', 'Afinação'),
+        ('POLIMENTO', 'Polimento'),
+        ('DESBASTE_AGULHA', 'Desbaste Agulha'),
+        ('DESBASTE_CALIBRE', 'Desbaste Calibre'),
+    ]
+    die = models.OneToOneField('dieInstance', on_delete=models.CASCADE)
+    where = models.CharField(max_length=20, choices=ONDESTA, default='FIO')
+    updated_at = models.DateTimeField(auto_now=True) 
+
+    def __str__(self):
+        return f"{self.die.serial_number} - {self.get_where_display()}"
+
+
     
 class globalLogs(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

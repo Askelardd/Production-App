@@ -610,6 +610,39 @@ def export_qrcode_excel(request, qr_id):
 
     return response
 
+def enviar_fieira(request, die_id):
+    die = get_object_or_404(dieInstance, id=die_id)
+    
+    # Obter a localização atual
+    try:
+        current_location = WhereDie.objects.get(die=die)
+    except WhereDie.DoesNotExist:
+        current_location = None
+    
+    if request.method == 'POST':
+        destino = request.POST.get('where')
+        if destino in dict(WhereDie.ONDESTA):
+            # Usar get_or_create para garantir que existe um registro
+            location, created = WhereDie.objects.get_or_create(die=die)
+            location.where = destino
+            location.save()
+            
+            # Criar log da ação
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user} enviou a fieira {die.serial_number} para {location.get_where_display()}",
+            )
+            
+            messages.success(request, f"Fieira {die.serial_number} enviada para {location.get_where_display()}.")
+            return redirect('listarDies')
+        else:
+            messages.error(request, "Destino inválido.")
+    
+    return render(request, 'theme/enviar_fieira.html', {
+        'die': die,
+        'current_location': current_location,
+        'choices': WhereDie.ONDESTA
+    })
 
 def enviar_caixa(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
@@ -636,9 +669,6 @@ def enviar_caixa(request, qr_id):
             messages.error(request, "Opção inválida.")
 
     return render(request, 'theme/enviar_caixa.html', {'qr': qr, 'choices': whereBox.ONDESTA})
-
-
-
 
 def contar_dies_por_usuario(qr_id, user_id):
     from theme.models import DieWorkWorker
