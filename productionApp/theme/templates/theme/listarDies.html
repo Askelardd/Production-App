@@ -8,60 +8,6 @@
 <div class="mb-4">
     <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
            class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-    <button type="button" id="insertCaixa" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Criar Caixa</button>
-</div>
-
-<div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden" id="insertCaixaForm">
-    <div class="bg-white p-6 rounded shadow-md">
-        <form id="caixaForm" action="{% url 'create_caixa' %}" method="post" class="flex flex-col space-y-4">
-            {% csrf_token %}
-            <input type="text" name="customer" placeholder="Cliente"
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="customer_order_nr" placeholder="Ordem Cliente"
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="toma_order_nr" id="tomaOrderNrInput" placeholder="Toma Ordem"
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="toma_order_year" placeholder="Ano"
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="box_nr" placeholder="Caixa" 
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="number" name="qt" placeholder="Quantidade"
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="diameters" placeholder="Diâmetros" 
-                   class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="text" name="observations" placeholder="Observações (opcional)"
-                    class="px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-
-            <input type="hidden" name="created_at" value="{{ current_time|date:"Y-m-d H:i:s" }}" /> 
-
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Salvar Caixa</button>
-            <button type="button" onclick="document.getElementById('insertCaixaForm').classList.add('hidden')" 
-                    class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancelar</button>
-        </form>
-    </div>
-</div>
-
-<!-- Popup de erro -->
-<div id="tomaOrderError" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
-    <div class="bg-white p-6 rounded shadow-md text-center">
-        <p class="text-red-600 font-bold mb-4">Já existe um registro com este Toma Ordem!</p>
-        <button onclick="document.getElementById('tomaOrderError').classList.add('hidden')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">OK</button>
-    </div>
-</div>
-
-<!-- Popup de erro para campos obrigatórios -->
-<div id="requiredFieldsError" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
-    <div class="bg-white p-6 rounded shadow-md text-center">
-        <p class="text-red-600 font-bold mb-4">Todos os campos obrigatórios devem ser preenchidos!</p>
-        <button onclick="document.getElementById('requiredFieldsError').classList.add('hidden')" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">OK</button>
-    </div>
 </div>
 
 
@@ -73,6 +19,7 @@
                 <th class="px-4 py-3">Ordem Cliente</th>
                 <th class="px-4 py-3">Toma Ordem</th>
                 <th class="px-4 py-3">Quantidade</th>
+                <th class="px-4 py-3">Numero Caixa</th>
                 <th class="px-4 py-3">Criado em</th>
                 <th class="px-4 py-3 text-center">Ver Dies</th>
             </tr>
@@ -84,6 +31,7 @@
                 <td class="px-4 py-2">{{ qr.customer_order_nr }}</td>
                 <td class="px-4 py-2">{{ qr.toma_order_nr }}</td>
                 <td class="px-4 py-2">{{ qr.qt }}</td>
+                <td class="px-4 py-2">{{ qr.box_nr }}</td>
                 <td class="px-4 py-2">{{ qr.created_at|date:"d/m/Y H:i" }}</td>
                 <td class="px-4 py-2 text-center">
                     <button onclick="toggleDies('dies-{{ qr.id }}')" 
@@ -158,40 +106,7 @@
 
 {% block extra_js %}
 <script>
-
-    document.getElementById('caixaForm').addEventListener('submit', function(e) {
-        const form = e.target;
-        const requiredFields = form.querySelectorAll('input[type="text"]:not([name="observations"]), input[type="number"]');
-        let hasEmpty = false;
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                hasEmpty = true;
-            }
-        });
-
-        if (hasEmpty) {
-            e.preventDefault();
-            document.getElementById('requiredFieldsError').classList.remove('hidden');
-            return;
-        }
-
-        const tomaOrderInput = document.getElementById('tomaOrderNrInput');
-        const tomaOrderValue = tomaOrderInput.value.trim();
-
-        if (existingTomaOrders.includes(tomaOrderValue)) {
-            e.preventDefault();
-            document.getElementById('tomaOrderError').classList.remove('hidden');
-            tomaOrderInput.focus();
-        }
-    });
-
-    
-    document.getElementById('insertCaixa').addEventListener('click', function () {
-        const formDiv = document.getElementById('insertCaixaForm');
-        formDiv.classList.toggle('hidden');
-    });
-
+    // Função para alternar a visibilidade dos dies
     function toggleDies(id) {
         const row = document.getElementById(id);
         row.classList.toggle('hidden');
