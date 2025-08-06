@@ -7,7 +7,7 @@
 <h1 class="text-3xl font-bold text-black mb-8">Fieiras Partidas</h1>
 <p class="text-gray-900 mb-6">Quantas fieiras estão partidas?</p>
 
-<form id="partidosForm" method="POST" action="{% url 'partidosMenu' qr_code.toma_order_nr %}">
+<form id="partidosForm" method="POST" action="{% url 'partidosMenu' qr_code.toma_order_full  %}">
   {% csrf_token %}
 
   <input

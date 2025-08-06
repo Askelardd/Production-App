@@ -7,7 +7,7 @@
 <h1 class="text-3xl font-bold text-black mb-8">Novo Diâmetro</h1>
 <p class="text-gray-900 mb-6">Quantas fieiras são para levar um novo pedido?</p>
 
-<form id="diametroForm" method="POST" action="{% url 'diametroMenu' qr_code.toma_order_nr %}">
+<form id="diametroForm" method="POST" action="{% url 'diametroMenu' qr_code.toma_order_full %}">
   {% csrf_token %}
 
   <input

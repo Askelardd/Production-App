@@ -80,18 +80,24 @@ class Diameters(models.Model):
 
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
-    diameters = models.CharField(max_length=50)  #original diameter
+    diameters = models.CharField(max_length=50)  # original diameter
     customer_order_nr = models.CharField(max_length=50)  # customer order number
-    toma_order_nr = models.CharField(max_length=50, unique=True) 
-    tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True) # type of tolerance
+    toma_order_nr = models.CharField(max_length=50)
     toma_order_year = models.CharField(max_length=10)
+    toma_order_full = models.CharField(max_length=20, unique=True, blank=True, null=True)  # novo campo único
+    tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True)
     box_nr = models.IntegerField()
     qt = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     observations = models.TextField(blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        self.toma_order_full = f"{self.toma_order_year}-{self.toma_order_nr}"
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.customer} - {self.toma_order_nr} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+        return f"{self.customer} - {self.toma_order_full} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
+
     
 
 class whereBox(models.Model):

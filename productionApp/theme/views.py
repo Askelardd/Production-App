@@ -208,13 +208,13 @@ def scanBox(request):
             }, status=500)
 
 @csrf_exempt
-def partidosMenu(request, qrCode_id):
+def partidosMenu(request, toma_order_full):
     try:
-        qr_code = QRData.objects.get(toma_order_nr=qrCode_id)
+        qr_code = get_object_or_404(QRData, toma_order_full=toma_order_full)
     except QRData.DoesNotExist:
         messages.error(request, 'QR Code não encontrado.')
         return redirect('listQrcodes')
-    
+
     if request.method == 'POST':
         numero = request.POST.get('numeroPartidos')
 
@@ -227,7 +227,7 @@ def partidosMenu(request, qrCode_id):
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_nr}.",
+                    action=f"{request.user.first_name or request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
                 )
         except ValueError:
             messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
@@ -237,12 +237,12 @@ def partidosMenu(request, qrCode_id):
     return render(request, 'theme/partidosMenu.html', {'qr_code': qr_code})
 
 @csrf_exempt
-def diametroMenu(request, qrCode_id):
+def diametroMenu(request, toma_order_full ):
     try:
-        qr_code = QRData.objects.get(toma_order_nr=qrCode_id)
+        qr_code = QRData.objects.get(toma_order_full =toma_order_full )
     except QRData.DoesNotExist:
         messages.error(request, 'QR Code não encontrado.')
-        return redirect('listQrcodes')
+        return redirect('listarDies')
     
     if request.method == 'POST':
         numero = request.POST.get('numeroAlterar')
@@ -263,7 +263,7 @@ def diametroMenu(request, qrCode_id):
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_nr}.",
+                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full }.",
                 )
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
@@ -271,8 +271,6 @@ def diametroMenu(request, qrCode_id):
             messages.error(request, f'Erro ao adicionar pedido: {str(e)}')
 
     return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
-
-
 
 @csrf_exempt
 def showDetails(request, qr_id):
