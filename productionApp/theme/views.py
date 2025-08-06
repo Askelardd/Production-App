@@ -461,6 +461,47 @@ def listar_qrcodes_com_dies(request):
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
 
 
+def create_caixa(request):
+    if request.method == 'POST':
+        required_fields = ['customer', 'customer_order_nr', 'toma_order_nr', 'toma_order_year', 'box_nr', 'qt', 'diameters']
+
+        # Verifica se há campos obrigatórios vazios
+        for field in required_fields:
+            if not request.POST.get(field):
+                messages.error(request, f"Todos os campos obrigatórios devem ser preenchidos.")
+                return redirect('listarDies')
+
+        try:
+            box_nr = int(request.POST.get('box_nr'))
+            qt = int(request.POST.get('qt'))
+        except ValueError:
+            messages.error(request, "Os campos 'Caixa' e 'Quantidade' devem ser números válidos.")
+            return redirect('listarDies')
+
+        # Cria o objeto se tudo estiver válido
+        QRData.objects.create(
+            customer=request.POST.get('customer'),
+            customer_order_nr=request.POST.get('customer_order_nr'),
+            toma_order_nr=request.POST.get('toma_order_nr'),
+            toma_order_year=request.POST.get('toma_order_year', timezone.now().year),
+            box_nr=box_nr,
+            qt=qt,
+            diameters=request.POST.get('diameters'),
+            observations=request.POST.get('observations', ''),
+            created_at=timezone.now()
+        )
+
+        messages.success(request, "Caixa criada com sucesso!")
+
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.first_name or request.user.username} criou uma nova caixa com o número {box_nr}.",
+        )
+
+        return redirect('listarDies')
+
+    return redirect('listarDies')
+
 
 def die_details(request, die_id):
     die = get_object_or_404(dieInstance, id=die_id)

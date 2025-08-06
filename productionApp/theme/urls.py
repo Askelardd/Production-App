@@ -22,6 +22,8 @@ urlpatterns = [
     path('qrcode/<int:qr_id>/export-excel/', views.export_qrcode_excel, name='export_qrcode_excel'),
     path('enviar-fieira/<int:die_id>/', views.enviar_fieira, name='enviar_fieira'),
     path('enviar-caixa/<int:qr_id>/', views.enviar_caixa, name='enviar_caixa'),
+    path('create-caixa/', views.create_caixa, name='create_caixa'),
+
 
 
     
