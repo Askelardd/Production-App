@@ -637,7 +637,7 @@ def export_qrcode_excel(request, qr_id):
 
     # Criar resposta HTTP
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename="QRCode_{qr.toma_order_nr}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="QRCode_{qr.toma_order_nr}_Caixa_{qr.box_nr}.xlsx"'
 
     # Gravar no Excel
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
