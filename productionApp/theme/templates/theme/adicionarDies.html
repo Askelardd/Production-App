@@ -85,24 +85,38 @@
     </a>
 </form>
 <script>
-document.getElementById('diesForm').addEventListener('submit', function(e) {
-    let total = parseInt(document.querySelector('input[name="total"]').value);
-    let errorMessages = [];
-    for (let i = 1; i <= total; i++) {
-        let dieSelect = document.querySelector(`select[name="die_${i}"]`);
-        if (dieSelect && dieSelect.value === "") {
-            errorMessages.push(`Selecione o "Tipo de Die" para o item ${i}.`);
+document.addEventListener('DOMContentLoaded', () => {
+    const total = parseInt(document.querySelector('input[name="total"]').value);
+
+    const camposParaCopiar = [
+        'diameter',
+        'diam_desbastado',
+        'diam_requerido',
+        'die',
+        'job',
+        'tol_max',
+        'tol_min',
+        'cone',
+        'bearing',
+        'observations'
+    ];
+
+    camposParaCopiar.forEach(nomeCampo => {
+        const campoBase = document.querySelector(`[name="${nomeCampo}_1"]`);
+        if (campoBase) {
+            campoBase.addEventListener('change', () => {
+                const valor = campoBase.value;
+                for (let i = 2; i <= total; i++) {
+                    const campoAlvo = document.querySelector(`[name="${nomeCampo}_${i}"]`);
+                    if (campoAlvo && !campoAlvo.value) {
+                        campoAlvo.value = valor;
+                    }
+                }
+            });
         }
-        let jobSelect = document.querySelector(`select[name="job_${i}"]`);
-        if (jobSelect && jobSelect.value === "") {
-            errorMessages.push(`Selecione o "Job" para o item ${i}.`);
-        }
-        // Add more required field checks here if needed
-    }
-    if (errorMessages.length > 0) {
-        alert(errorMessages.join('\n'));
-        e.preventDefault();
-    }
+    });
 });
+
 </script>
+
 {% endblock %}

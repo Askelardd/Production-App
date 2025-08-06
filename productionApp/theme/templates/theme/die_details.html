@@ -25,6 +25,12 @@
                    value="{{ die.diam_max_min.max|default_if_none:'' }}"
                    class="w-full border p-2 rounded" />
         </div>
+
+        <div>
+            <label for="observations" class="block text-sm font-medium">Observações:</label>
+            <textarea name="observations" id="observations" rows="6"
+                      class="w-full border p-2 rounded">{{ die.observations|default_if_none:'' }}</textarea>
+        </div>
     </div>
     <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
         Guardar Diâmetros
@@ -62,4 +68,42 @@
 <a href="{% url 'listarDies' %}" class="mt-4 inline-block bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
     Voltar à lista de Dies
 </a>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const total = parseInt(document.querySelector('input[name="total"]').value);
+
+    const camposParaCopiar = [
+        'diam_desbastado',
+        'diam_requerido',
+        'die',
+        'job',
+        'tol_max',
+        'tol_min',
+        'cone',
+        'bearing',
+        'observations'
+    ];
+
+    camposParaCopiar.forEach(nomeCampo => {
+        const campoBase = document.querySelector(`[name="${nomeCampo}_1"]`);
+
+        if (campoBase) {
+            campoBase.addEventListener('input', () => {
+                const valor = campoBase.value;
+
+                for (let i = 2; i <= total; i++) {
+                    const campoAlvo = document.querySelector(`[name="${nomeCampo}_${i}"]`);
+                    if (campoAlvo && !campoAlvo.value) {
+                        campoAlvo.value = valor;
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
+
 {% endblock %}
+
+

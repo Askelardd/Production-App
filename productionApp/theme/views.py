@@ -321,9 +321,6 @@ def showDetails(request, qr_id):
     })
 
 
-
-
-
 def adicionar_dies(request, qr_id):
     qr_code = get_object_or_404(QRData, id=qr_id)
     dies = Die.objects.all()
@@ -436,9 +433,9 @@ def adicionar_dies(request, qr_id):
         else:
             prefilled_data.append({
                 'serial': '',
-                'diameter': diameters_list[i] if i < len(diameters_list) else '',
+                'diameter': '',
                 'diam_desbastado': '',
-                'diam_requerido': '',
+                'diam_requerido': diameters_list[i] if i < len(diameters_list) else '',
                 'die': '',
                 'job': '',
                 'tol_max': '',
@@ -530,6 +527,12 @@ def die_details(request, die_id):
             new_diam = Diameters.objects.create(min=diametro_min, max=diametro_max)
             die.diam_max_min = new_diam
             die.save()
+        
+        # Atualiza o texto do observations
+        # Pega observações preenchidas pelo cliente
+        observations = request.POST.get('observations', '').strip()
+        die.observations = observations
+        die.save()
 
         messages.success(request, "Diâmetros atualizados com sucesso!")
                     # Adiciona log na tabela globalLogs
