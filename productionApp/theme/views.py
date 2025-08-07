@@ -237,9 +237,9 @@ def partidosMenu(request, toma_order_full):
     return render(request, 'theme/partidosMenu.html', {'qr_code': qr_code})
 
 @csrf_exempt
-def diametroMenu(request, toma_order_full ):
+def diametroMenu(request, toma_order_full):
     try:
-        qr_code = QRData.objects.get(toma_order_full =toma_order_full )
+        qr_code = QRData.objects.get(toma_order_full=toma_order_full)
     except QRData.DoesNotExist:
         messages.error(request, 'QR Code não encontrado.')
         return redirect('listarDies')
@@ -247,6 +247,7 @@ def diametroMenu(request, toma_order_full ):
     if request.method == 'POST':
         numero = request.POST.get('numeroAlterar')
         diametro = request.POST.get('diametroNovo')
+        pedido_por = request.POST.get('pedidoPor')
 
         try:
             numero = int(numero)
@@ -258,12 +259,13 @@ def diametroMenu(request, toma_order_full ):
                 PedidosDiametro.objects.create(
                     qr_code=qr_code,
                     diametro=diametro,
-                    numero_fieiras=numero
+                    numero_fieiras=numero,
+                    pedido_por=pedido_por
                 )
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full }.",
+                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
                 )
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
@@ -721,3 +723,7 @@ def contar_dies_por_usuario(qr_id, user_id):
     ).aggregate(total=Count('id'))['total']
 
     return count
+
+def listarPedidosDiametro(request):
+    pedidos = PedidosDiametro.objects.all().order_by('-created_at')
+    return render(request, 'theme/listarPedidosDiametro.html', {'pedidos': pedidos})

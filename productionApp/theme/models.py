@@ -172,6 +172,7 @@ class PedidosDiametro(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
     diametro = models.CharField(max_length=50)
     numero_fieiras = models.IntegerField()
+    pedido_por = models.TextField(max_length=50, blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
