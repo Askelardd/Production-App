@@ -209,21 +209,24 @@ def scanBox(request):
 
 @csrf_exempt
 def partidosMenu(request, toma_order_full):
-    try:
-        qr_code = get_object_or_404(QRData, toma_order_full=toma_order_full)
-    except QRData.DoesNotExist:
-        messages.error(request, 'QR Code não encontrado.')
-        return redirect('listQrcodes')
+    qr_code = get_object_or_404(QRData, toma_order_full=toma_order_full)
+    dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')
 
     if request.method == 'POST':
         numero = request.POST.get('numeroPartidos')
+        serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe checkboxes
+        serie_dies_partidos = ', '.join(serie_dies_list)     # <-- transforma em string
 
         try:
             partido = int(numero)
             if partido <= 0:
                 messages.error(request, 'O número do partido deve ser um número positivo.')
             else:
-                NumeroPartidos.objects.create(qr_code=qr_code, partido=partido)
+                NumeroPartidos.objects.create(
+                    qr_code=qr_code,
+                    partido=partido,
+                    serie_dies_partidos=serie_dies_partidos
+                )
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
@@ -234,7 +237,11 @@ def partidosMenu(request, toma_order_full):
         except Exception as e:
             messages.error(request, f'Erro ao adicionar partido: {str(e)}')
 
-    return render(request, 'theme/partidosMenu.html', {'qr_code': qr_code})
+    return render(request, 'theme/partidosMenu.html', {
+        'qr_code': qr_code,
+        'dies_existentes': dies_existentes
+    })
+
 
 @csrf_exempt
 def diametroMenu(request, toma_order_full):
@@ -243,11 +250,15 @@ def diametroMenu(request, toma_order_full):
     except QRData.DoesNotExist:
         messages.error(request, 'QR Code não encontrado.')
         return redirect('listarDies')
-    
+
+    dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')  # <- os dies deste QR
+
     if request.method == 'POST':
         numero = request.POST.get('numeroAlterar')
         diametro = request.POST.get('diametroNovo')
         pedido_por = request.POST.get('pedidoPor')
+        serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe os checkboxes
+        serie_dies = ', '.join(serie_dies_list)
 
         try:
             numero = int(numero)
@@ -260,7 +271,8 @@ def diametroMenu(request, toma_order_full):
                     qr_code=qr_code,
                     diametro=diametro,
                     numero_fieiras=numero,
-                    pedido_por=pedido_por
+                    pedido_por=pedido_por,
+                    serie_dies=serie_dies
                 )
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
@@ -272,7 +284,10 @@ def diametroMenu(request, toma_order_full):
         except Exception as e:
             messages.error(request, f'Erro ao adicionar pedido: {str(e)}')
 
-    return render(request, 'theme/diametroMenu.html', {'qr_code': qr_code})
+    return render(request, 'theme/diametroMenu.html', {
+        'qr_code': qr_code,
+        'dies_existentes': dies_existentes
+    })
 
 @csrf_exempt
 def showDetails(request, qr_id):
@@ -727,3 +742,7 @@ def contar_dies_por_usuario(qr_id, user_id):
 def listarPedidosDiametro(request):
     pedidos = PedidosDiametro.objects.all().order_by('-created_at')
     return render(request, 'theme/listarPedidosDiametro.html', {'pedidos': pedidos})
+
+def listarPartidos(request):
+    numero_partidos = NumeroPartidos.objects.all().order_by('-created_at')
+    return render(request, 'theme/listarPartidos.html', {'numero_partidos': numero_partidos})

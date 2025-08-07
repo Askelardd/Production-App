@@ -18,6 +18,19 @@
     name="numeroPartidos"
   />
 
+  <label class="block mb-2 font-semibold text-gray-700">Selecione os Números de Série dos Dies:</label>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+      {% for die in dies_existentes %}
+          <label class="flex items-center space-x-2 bg-gray-50 rounded-lg p-2 hover:bg-blue-50 transition">
+              <input type="checkbox" name="serieDies" value="{{ die.serial_number }}"
+                    class="accent-blue-500 focus:ring-blue-400">
+              <span class="text-gray-800">{{ die.serial_number }}</span>
+          </label>
+      {% empty %}
+          <p class="text-gray-500 col-span-full">Nenhum die registrado para este QR code.</p>
+      {% endfor %}
+  </div>
+
   <p id="error-msg" class="text-red-500 text-sm mb-4 hidden"></p>
 
   <div>

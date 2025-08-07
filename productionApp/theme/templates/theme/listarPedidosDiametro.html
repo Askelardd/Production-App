@@ -19,9 +19,11 @@
                 <th class="px-4 py-3">ID</th>
                 <th class="px-4 py-3">QR Code</th>
                 <th class="px-4 py-3">Diâmetro</th>
+                <th class="px-4 py-3">Série dos Dies</th>
                 <th class="px-4 py-3">Nº de Fieiras</th>
                 <th class="px-4 py-3">Pedido Por</th>
                 <th class="px-4 py-3">Data de Criação</th>
+
             </tr>
         </thead>
         <tbody class="text-gray-800">
@@ -30,9 +32,12 @@
                 <td class="px-4 py-2">{{ pedido.id }}</td>
                 <td class="px-4 py-2">{{ pedido.qr_code }}</td>
                 <td class="px-4 py-2">{{ pedido.diametro }}</td>
+                <td class="px-4 py-2">{{ pedido.serie_dies }}</td>
                 <td class="px-4 py-2">{{ pedido.numero_fieiras }}</td>
                 <td class="px-4 py-2">{{ pedido.pedido_por }}</td>
+                
                 <td class="px-4 py-2">{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
+
             </tr>
             {% empty %}
             <tr>

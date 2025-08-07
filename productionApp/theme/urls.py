@@ -24,6 +24,7 @@ urlpatterns = [
     path('enviar-caixa/<int:qr_id>/', views.enviar_caixa, name='enviar_caixa'),
     path('create-caixa/', views.create_caixa, name='create_caixa'),
     path('listarPedidosDiametro/', views.listarPedidosDiametro, name='listarPedidosDiametro'),
+    path('listarPartidos/', views.listarPartidos, name='listarPartidos'),
 
 
 
