@@ -746,3 +746,26 @@ def listarPedidosDiametro(request):
 def listarPartidos(request):
     numero_partidos = NumeroPartidos.objects.all().order_by('-created_at')
     return render(request, 'theme/listarPartidos.html', {'numero_partidos': numero_partidos})
+
+def localizarFieira(request):
+    q = request.GET.get('q', '').strip()
+    results = []
+    if q:
+        results = (
+            dieInstance.objects
+            .select_related('customer')          # QRData (box_nr, toma_order_full, customer)
+            .select_related()                    # no-op; apenas para clareza
+            .filter(serial_number__icontains=q)  # troca para __iexact se quiseres busca exata
+            .order_by('serial_number')[:100]
+        )
+
+        # opcional: se quiser trazer "onde está" (WhereDie) sem consultas extras:
+        # o reverse OneToOne de WhereDie é "wheredie" (nome automático)
+        # não dá para select_related no reverse sem nomear, então usamos uma mini cache:
+        # results = results.select_related('customer')  # já está
+        # depois no template, usa die.wheredie.where (se existir)
+
+    return render(request, 'theme/localizarFieira.html', {
+        'q': q,
+        'results': results,
+    })

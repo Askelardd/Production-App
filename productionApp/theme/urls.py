@@ -25,10 +25,5 @@ urlpatterns = [
     path('create-caixa/', views.create_caixa, name='create_caixa'),
     path('listarPedidosDiametro/', views.listarPedidosDiametro, name='listarPedidosDiametro'),
     path('listarPartidos/', views.listarPartidos, name='listarPartidos'),
-
-
-
-    
-
-
+    path('localizarFieira/', views.localizarFieira, name='localizarFieira'),
 ]
