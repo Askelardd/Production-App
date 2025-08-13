@@ -163,6 +163,7 @@ class NumeroPartidos(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
     partido = models.IntegerField(null=False, blank=False)
     serie_dies_partidos = models.TextField(blank=True, null=True)
+    checkbox = models.BooleanField(default=False, verbose_name="Feito")
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -175,6 +176,7 @@ class PedidosDiametro(models.Model):
     numero_fieiras = models.IntegerField()
     pedido_por = models.TextField(max_length=50, blank=True, null=True)
     serie_dies = models.TextField(blank=True, null=True)
+    checkbox = models.BooleanField(default=False, verbose_name="Feito")
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

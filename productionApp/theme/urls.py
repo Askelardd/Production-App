@@ -29,4 +29,7 @@ urlpatterns = [
     path('qOfficeMenu/', views.qOfficeMenu, name='qOfficeMenu'),
     path('productionMenu/', views.productionMenu, name='productionMenu'),
     path('comercialMenu/', views.comercialMenu, name='comercialMenu'),
+    path('partidos/<int:pk>/toggle-feito-ajax/', views.toggle_partido_feito_ajax, name='toggle_partido_feito_ajax'),
+    path('pedidos/<int:pk>/toggle-feito-ajax/', views.toggle_pedido_diametro_feito_ajax, name='toggle_pedido_diametro_feito_ajax'),
+
 ]

@@ -23,6 +23,7 @@
                 <th class="px-4 py-3">Nº de Fieiras</th>
                 <th class="px-4 py-3">Pedido Por</th>
                 <th class="px-4 py-3">Data de Criação</th>
+                <th class="px-4 py-3">Feito</th>
 
             </tr>
         </thead>
@@ -35,8 +36,24 @@
                 <td class="px-4 py-2">{{ pedido.serie_dies }}</td>
                 <td class="px-4 py-2">{{ pedido.numero_fieiras }}</td>
                 <td class="px-4 py-2">{{ pedido.pedido_por }}</td>
-                
                 <td class="px-4 py-2">{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-2">
+                <form method="post" action="{% url 'toggle_pedido_feito' pedido.id %}">
+                    {% csrf_token %}
+                    <label class="inline-flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        name="feito"
+                        class="h-4 w-4 accent-green-600"
+                        {% if pedido.checkbox %}checked{% endif %}
+                        onchange="this.form.submit()"
+                    />
+                    <span class="text-sm text-gray-700">
+                        {% if pedido.checkbox %}Sim{% else %}Não{% endif %}
+                    </span>
+                    </label>
+                </form>
+                </td>
 
             </tr>
             {% empty %}

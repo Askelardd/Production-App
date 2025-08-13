@@ -13,6 +13,7 @@
                 <th class="px-4 py-3">Partido</th>
                 <th class="px-4 py-3">Série Dies Partidos</th>
                 <th class="px-4 py-3">Criado em</th>
+                <th class="px-4 py-3">Feito</th>
             </tr>
         </thead>
         <tbody class="text-gray-800">
@@ -28,10 +29,28 @@
                     {% endif %}
                 </td>
                 <td class="px-4 py-2">{{ numero_partido.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-2 text-center">
+                <form method="post" action="{% url 'editar_checkbox_partido' numero_partido.id %}">
+                    {% csrf_token %}
+                    <label class="inline-flex items-center gap-2">
+                    <!-- name="checkbox" <- bate com a view -->
+                    <input
+                        type="checkbox"
+                        name="checkbox"
+                        class="h-4 w-4 accent-green-600"
+                        {% if numero_partido.checkbox %}checked{% endif %}
+                        onchange="this.form.submit()"
+                    />
+                    <span class="text-sm text-gray-700">
+                        {% if numero_partido.checkbox %}Sim{% else %}Não{% endif %}
+                    </span>
+                    </label>
+                </form>
+                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="4" class="text-center text-gray-500 py-4">Nenhum partido cadastrado.</td>
+                <td colspan="5" class="text-center text-gray-500 py-4">Nenhum partido cadastrado.</td>
             </tr>
             {% endfor %}
         </tbody>

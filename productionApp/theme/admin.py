@@ -152,4 +152,4 @@ class NumeroPartidosAdmin(admin.ModelAdmin):
 class PedidosDiametroAdmin(admin.ModelAdmin):
     list_display = ['qr_code', 'diametro', 'numero_fieiras', 'created_at']
     search_fields = ['qr_code__toma_order_nr', 'diametro']
-    list_filter = ['created_at']
+    list_filter = ['created_at', 'checkbox']

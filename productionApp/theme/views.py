@@ -14,6 +14,7 @@ import re  # type: ignore
 import pandas as pd  # type: ignore
 from django.http import HttpResponse  # type: ignore
 from django.db.models import Count  # type: ignore
+from django.views.decorators.http import require_POST  # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -27,6 +28,41 @@ def productionMenu(request):
 
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
+
+def _parse_checked(request):
+    """Lê o boolean 'checked' do corpo JSON ou do POST tradicional."""
+    try:
+        data = json.loads(request.body or '{}')
+        return bool(data.get('checked'))
+    except Exception:
+        return bool(request.POST.get('checked'))
+
+@require_POST
+def toggle_partido_feito_ajax(request, pk):
+    obj = get_object_or_404(NumeroPartidos, pk=pk)
+    checked = _parse_checked(request)
+    obj.checkbox = checked
+    obj.save(update_fields=['checkbox'])
+    return JsonResponse({
+        "ok": True,
+        "id": obj.id,
+        "checked": obj.checkbox,
+        "label": "Sim" if obj.checkbox else "Não"
+    })
+
+@require_POST
+def toggle_pedido_diametro_feito_ajax(request, pk):
+    obj = get_object_or_404(PedidosDiametro, pk=pk)
+    checked = _parse_checked(request)
+    obj.checkbox = checked
+    obj.save(update_fields=['checkbox'])
+    return JsonResponse({
+        "ok": True,
+        "id": obj.id,
+        "checked": obj.checkbox,
+        "label": "Sim" if obj.checkbox else "Não"
+    })
+
 
 
 @csrf_exempt
