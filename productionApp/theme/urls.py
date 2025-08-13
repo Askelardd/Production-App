@@ -5,7 +5,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('create-user/', views.create_user, name='create_user'),
     path('login/<int:user_id>/', views.login_view, name='login'),
-    path('productionMenu/<int:user_id>/', views.productionMenu, name='productionMenu'),
+    path('mainMenu/<int:user_id>/', views.mainMenu, name='mainMenu'),
     path('inputProduction/', views.inputProduction, name='inputProduction'),
     path('editProduct/<int:produto_id>/', views.editProduct, name='editProduct'),
     path('delectProduct/<int:produto_id>/', views.deleteProduct, name='delectProduct'),
@@ -26,4 +26,7 @@ urlpatterns = [
     path('listarPedidosDiametro/', views.listarPedidosDiametro, name='listarPedidosDiametro'),
     path('listarPartidos/', views.listarPartidos, name='listarPartidos'),
     path('localizarFieira/', views.localizarFieira, name='localizarFieira'),
+    path('qOfficeMenu/', views.qOfficeMenu, name='qOfficeMenu'),
+    path('productionMenu/', views.productionMenu, name='productionMenu'),
+    path('comercialMenu/', views.comercialMenu, name='comercialMenu'),
 ]

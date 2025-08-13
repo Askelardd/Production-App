@@ -19,6 +19,16 @@ def home(request):
     users = User.objects.all()
     return render(request, 'theme/home.html', {'users': users})
 
+def qOfficeMenu(request):
+    return render(request, 'theme/qOfficeMenu.html')
+
+def productionMenu(request):
+    return render(request, 'theme/productionMenu.html')
+
+def comercialMenu(request):
+    return render(request, 'theme/comercialMenu.html')
+
+
 @csrf_exempt
 def create_user(request):  
     if request.method == 'POST':
@@ -47,7 +57,7 @@ def create_user(request):
     return render(request, 'theme/createUser.html')
 
 @login_required
-def productionMenu(request, user_id):
+def mainMenu(request, user_id):
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
@@ -59,7 +69,7 @@ def productionMenu(request, user_id):
         messages.error(request, 'Acesso negado.')
         return redirect('home')
 
-    return render(request, 'theme/productionMenu.html', {'user': user})
+    return render(request, 'theme/mainMenu.html', {'user': user})
 
 
 @csrf_exempt
@@ -80,7 +90,7 @@ def login_view(request, user_id):
                 user=request.user,
                 action=f"{request.user.first_name or request.user.username} fez login no sistema."
             )
-            return redirect('productionMenu', user_id=user.id)
+            return redirect('mainMenu', user_id=user.id)
         else:
             messages.error(request, 'Palavra-passe incorreta.')
 
