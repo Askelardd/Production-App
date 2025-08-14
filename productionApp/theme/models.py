@@ -2,7 +2,7 @@ from django.utils import timezone # type: ignore
 from django.db import models # type: ignore
 from django.contrib.auth.models import User # type: ignore
 from decimal import Decimal, InvalidOperation
-
+from django.core.exceptions import ValidationError # type: ignore
     
 class FlexibleDecimalField(models.DecimalField):
     def to_python(self, value):
@@ -195,6 +195,95 @@ class DieWork(models.Model):
 
     def __str__(self):
         return f"{self.get_work_type_display()} - {self.die.serial_number}"
+
+
+class DeliveryType(models.Model):
+    name = models.CharField(max_length=100, unique=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class DeliveryEntity(models.Model):
+    name = models.CharField(max_length=100, unique=True, blank=True)
+    email = models.EmailField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class DeliveryInfo(models.Model):
+    identificator = models.ForeignKey(
+        'QRData',
+        to_field="toma_order_full",
+        on_delete=models.CASCADE,
+        db_column="identificator",
+        null=True, blank=True
+    )
+    deliveryEntity = models.ForeignKey(
+        DeliveryEntity,
+        to_field="name",
+        on_delete=models.CASCADE,
+        null=True, blank=True
+    )
+    deliveryDate = models.DateField(null=True, blank=True)
+    deliveryType = models.ForeignKey(
+        DeliveryType,
+        to_field="name",
+        on_delete=models.CASCADE,
+        null=True, blank=True
+    )
+    costumer = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        ent = self.deliveryEntity.name if self.deliveryEntity else 'N/A'
+        return f"{self.identificator} - {ent} - {self.deliveryDate} - {self.deliveryType}"
+
+    # --- Regras de negócio centralizadas no modelo ---
+    def clean(self):
+        super().clean()
+
+        # Se não houver deliveryType, não aplicamos regras adicionais
+        if not self.deliveryType:
+            return
+
+        dtype = (self.deliveryType.name or '').strip().lower()
+
+        if dtype == 'customer':
+            # precisa de identificator para sabermos o cliente
+            if not self.identificator:
+                raise ValidationError("Para Delivery Type = Customer, selecione um Identificator (QRData).")
+            # não exigimos deliveryEntity aqui; será definido no save()
+        elif dtype == 'supplier':
+            # para Supplier, deliveryEntity é obrigatório
+            if not self.deliveryEntity:
+                raise ValidationError("Para Delivery Type = Supplier, selecione o Delivery Entity.")
+        # outros tipos (se existirem) não têm regra específica aqui
+
+    def save(self, *args, **kwargs):
+        """
+        Força as regras também no save para garantir consistência
+        mesmo fora de ModelForms. Chamamos full_clean() para validar.
+        """
+        # valida antes de salvar
+        self.full_clean()
+
+        if self.identificator:
+            # espelha sempre o nome do cliente do QR no campo costumer
+            self.costumer = self.identificator.customer
+
+        if self.deliveryType:
+            dtype = (self.deliveryType.name or '').strip().lower()
+
+            if dtype == 'customer':
+                # força deliveryEntity = cliente do QRData
+                customer_name = self.identificator.customer if self.identificator else None
+                if customer_name:
+                    ent, _ = DeliveryEntity.objects.get_or_create(name=customer_name)
+                    self.deliveryEntity = ent
+
+            # se for Supplier, mantemos o que veio do form (já validado no clean)
+
+        return super().save(*args, **kwargs)
+    
 
 class DieWorkWorker(models.Model):
     work = models.ForeignKey('DieWork', on_delete=models.CASCADE, related_name='workers')

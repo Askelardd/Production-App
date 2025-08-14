@@ -1,4 +1,6 @@
 from django.contrib import admin # type: ignore
+from django import forms  # type: ignore
+
 from .models import (
     Products, ProductDeleteLog, QRData, Jobs,
     Diameters, Die, Tolerance,
@@ -7,7 +9,10 @@ from .models import (
     DieWork, DieWorkWorker,
     WhereDie,
     whereBox,
-    globalLogs
+    globalLogs,
+    DeliveryInfo,
+    DeliveryEntity,
+    DeliveryType
 )
 
 # -------------------
@@ -153,3 +158,67 @@ class PedidosDiametroAdmin(admin.ModelAdmin):
     list_display = ['qr_code', 'diametro', 'numero_fieiras', 'created_at']
     search_fields = ['qr_code__toma_order_nr', 'diametro']
     list_filter = ['created_at', 'checkbox']
+
+
+# -------------------
+# DeliveryInfo, DeliveryEntity
+# -------------------
+
+@admin.register(DeliveryEntity)
+class DeliveryEntityAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
+
+@admin.register(DeliveryType)
+class DeliveryTypeAdmin(admin.ModelAdmin):
+    list_display = ['name']  # Removed 'description' since it does not exist on the model
+    search_fields = ['name']
+    list_per_page = 20
+
+# --- Admin do DeliveryInfo usando o form acima ---
+class DeliveryInfoForm(forms.ModelForm):
+    class Meta:
+        model = DeliveryInfo
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Mostrar apenas toma_order_full para identificator
+        if 'identificator' in self.fields:
+            self.fields['identificator'].queryset = QRData.objects.order_by('toma_order_full')
+            self.fields['identificator'].label_from_instance = lambda obj: obj.toma_order_full
+
+        # Mostrar apenas name para deliveryEntity
+        if 'deliveryEntity' in self.fields:
+            self.fields['deliveryEntity'].queryset = DeliveryEntity.objects.order_by('name')
+            self.fields['deliveryEntity'].label_from_instance = lambda obj: obj.name
+
+        # Mostrar apenas name para deliveryType
+        if 'deliveryType' in self.fields:
+            self.fields['deliveryType'].queryset = DeliveryType.objects.order_by('name')
+            self.fields['deliveryType'].label_from_instance = lambda obj: obj.name
+
+        # Dica visual
+        self.fields['deliveryEntity'].help_text = (
+            "Quando Delivery Type = Customer, este campo é preenchido automaticamente com o nome do cliente do QR."
+        )
+
+@admin.register(DeliveryInfo)
+class DeliveryInfoAdmin(admin.ModelAdmin):
+    form = DeliveryInfoForm
+    list_display = ('identificator_toma', 'deliveryType', 'deliveryEntity', 'deliveryDate', 'costumer')
+    list_filter = ('deliveryType', 'deliveryDate', 'deliveryEntity')
+    search_fields = ('identificator__toma_order_full', 'deliveryEntity__name', 'costumer')
+    list_per_page = 20
+
+    # (opcional) autocompletar se preferires em vez de dropdown
+    # autocomplete_fields = ('identificator', 'deliveryEntity', 'deliveryType')
+
+    def identificator_toma(self, obj):
+        return getattr(obj.identificator, 'toma_order_full', None)
+    identificator_toma.short_description = 'TOMA'
+
+    class Media:
+        # carrega o JS que esconde/desativa o campo deliveryEntity quando Type=Customer
+        js = ('theme/js/deliveryinfo_admin.js',)

@@ -31,5 +31,8 @@ urlpatterns = [
     path('comercialMenu/', views.comercialMenu, name='comercialMenu'),
     path('partidos/<int:pk>/toggle-feito-ajax/', views.toggle_partido_feito_ajax, name='toggle_partido_feito_ajax'),
     path('pedidos/<int:pk>/toggle-feito-ajax/', views.toggle_pedido_diametro_feito_ajax, name='toggle_pedido_diametro_feito_ajax'),
+    path('deliveryIdentification/<slug:toma_order_full>/', views.deliveryIdentification, name='deliveryIdentification'),
+    path('delivery/calendar/', views.deliveryCalendar, name='deliveryCalendar'),
+
 
 ]

@@ -87,7 +87,12 @@
             <tr class="border-b hover:bg-gray-100 transition-colors">
                 <td class="px-4 py-2">{{ qr.customer }}</td>
                 <td class="px-4 py-2">{{ qr.customer_order_nr }}</td>
-                <td class="px-4 py-2">{{ qr.toma_order_nr }}</td>
+                <td class="px-4 py-2">
+                    <a href="{% url 'deliveryIdentification' qr.toma_order_full %}" 
+                    class="text-blue-600 hover:underline">
+                        {{ qr.toma_order_nr }}
+                    </a>
+                </td>
                 <td class="px-4 py-2">{{ qr.toma_order_year }}</td>
                 <td class="px-4 py-2">{{ qr.box_nr }}</td>
                 <td class="px-4 py-2">{{ qr.qt }}</td>

@@ -1,3 +1,5 @@
+import calendar
+from datetime import date, timedelta
 import json  # type: ignore
 import logging  # type: ignore
 from django.http import JsonResponse  # type: ignore
@@ -15,6 +17,7 @@ import pandas as pd  # type: ignore
 from django.http import HttpResponse  # type: ignore
 from django.db.models import Count  # type: ignore
 from django.views.decorators.http import require_POST  # type: ignore
+from django.db import transaction # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -28,6 +31,47 @@ def productionMenu(request):
 
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
+
+@require_http_methods(["GET", "POST"])
+def deliveryIdentification(request, toma_order_full):
+    qr = get_object_or_404(QRData, toma_order_full=toma_order_full)
+
+    # obter ou criar o DeliveryInfo para este QR
+    info, _created = DeliveryInfo.objects.get_or_create(identificator=qr)
+
+    # listas para selects
+    types = DeliveryType.objects.order_by('name')
+    entities = DeliveryEntity.objects.order_by('name')
+
+    if request.method == "POST":
+        dtype_name = (request.POST.get('deliveryType') or '').strip()
+        dent_name  = (request.POST.get('deliveryEntity') or '').strip()
+        ddate      = (request.POST.get('deliveryDate') or '').strip()
+        costumer   = (request.POST.get('costumer') or '').strip()
+
+        # aplicar no objeto
+        info.deliveryType = DeliveryType.objects.filter(name=dtype_name).first() if dtype_name else None
+        info.deliveryEntity = DeliveryEntity.objects.filter(name=dent_name).first() if dent_name else None
+        info.costumer = costumer or info.costumer
+        info.deliveryDate = ddate or None  # DateInput manda 'YYYY-MM-DD' (o modelo converte)
+
+        # Regras finais continuam garantidas no modelo (clean/save)
+        try:
+            with transaction.atomic():
+                info.save()
+            messages.success(request, "Informação de entrega atualizada com sucesso.")
+            return redirect('deliveryIdentification', toma_order_full=toma_order_full)
+        except Exception as e:
+            messages.error(request, f"Ocorreu um erro ao guardar: {e}")
+
+    return render(request, 'theme/deliveryIdentification.html', {
+        'toma_order_full': toma_order_full,
+        'qr': qr,
+        'info': info,
+        'types': types,
+        'entities': entities,
+    })
+
 
 def _parse_checked(request):
     """Lê o boolean 'checked' do corpo JSON ou do POST tradicional."""
@@ -815,3 +859,70 @@ def localizarFieira(request):
         'q': q,
         'results': results,
     })
+
+def deliveryCalendar(request):
+    today = timezone.localdate()
+
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except ValueError:
+        year, month = today.year, today.month
+
+    # limites do mês
+    first_day = date(year, month, 1)
+    last_day = date(year, month, calendar.monthrange(year, month)[1])
+
+    # eventos só do mês (com deliveryDate definido)
+    events = DeliveryInfo.objects.filter(deliveryDate__range=(first_day, last_day))
+
+    # mapa por dia
+    events_by_day = {}
+    for ev in events:
+        events_by_day.setdefault(ev.deliveryDate, []).append(ev)
+
+    cal = calendar.Calendar(firstweekday=0)   # 0 = Segunda, 6 = Domingo
+    weeks = []
+    for week in cal.monthdatescalendar(year, month):
+        week_cells = []
+        for d in week:
+            in_month = (d.month == month)
+            day_events = events_by_day.get(d, [])
+            is_today = (d == today)
+            # “a vermelho” se dentro dos próximos 7 dias (>= hoje e <= hoje+7)
+            is_soon = (d >= today and d <= today + timedelta(days=7) and in_month and len(day_events) > 0)
+            week_cells.append({
+                'date': d,
+                'in_month': in_month,
+                'events': day_events,
+                'is_today': is_today,
+                'is_soon': is_soon,
+            })
+        weeks.append(week_cells)
+
+    # avisos (lista plana dos próximos 7 dias com eventos, independentemente do mês)
+    soon_start = today
+    soon_end = today + timedelta(days=7)
+    soon_events = (
+        DeliveryInfo.objects
+        .filter(deliveryDate__range=(soon_start, soon_end))
+        .order_by('deliveryDate')
+    )
+
+    # navegação (prev/next)
+    prev_month = (first_day.replace(day=1) - timedelta(days=1)).replace(day=1)
+    next_month = (last_day + timedelta(days=1)).replace(day=1)
+
+    context = {
+        'today': today,
+        'year': year,
+        'month': month,
+        'month_name': calendar.month_name[month],
+        'weeks': weeks,
+        'soon_events': soon_events,
+        'prev_year': prev_month.year,
+        'prev_month': prev_month.month,
+        'next_year': next_month.year,
+        'next_month': next_month.month,
+    }
+    return render(request, 'theme/deliveryCalendar.html', context)
