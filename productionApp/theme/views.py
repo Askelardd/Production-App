@@ -562,8 +562,12 @@ def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
 
-
+@login_required
 def create_caixa(request):
+    if not request.user.groups.filter(name__in=['Q-Office', 'Administração']).exists():
+        messages.error(request, "Não tens permissão para criar caixas.")
+        return redirect('listarDies')
+    
     if request.method == 'POST':
         required_fields = ['customer', 'customer_order_nr', 'toma_order_nr', 'toma_order_year', 'box_nr', 'qt', 'diameters']
 
