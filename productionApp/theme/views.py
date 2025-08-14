@@ -60,7 +60,7 @@ def deliveryIdentification(request, toma_order_full):
             with transaction.atomic():
                 info.save()
             messages.success(request, "Informação de entrega atualizada com sucesso.")
-            return redirect('deliveryIdentification', toma_order_full=toma_order_full)
+            return redirect('deliveryCalendar')
         except Exception as e:
             messages.error(request, f"Ocorreu um erro ao guardar: {e}")
 
@@ -215,6 +215,22 @@ def deleteProduct(request, produto_id):
 def listQrcodes(request):
     qrcodes = QRData.objects.all().order_by('-created_at')
     return render(request, 'theme/listQrcodes.html', {'qrcodes': qrcodes})
+
+
+def listarInfo(request):
+    deliveries = DeliveryInfo.objects.all()
+    return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
+
+def deletar_delivery(request, id):
+    delivery = get_object_or_404(DeliveryInfo, id=id)
+
+    if request.method == 'POST':
+        delivery.delete()
+        messages.success(request, 'Entrega deletada com sucesso!')
+        return redirect('listarInfo')
+
+    messages.error(request, 'Requisição inválida.')
+    return redirect('listarInfo')
 
 # Configure logging
 logger = logging.getLogger(__name__)
