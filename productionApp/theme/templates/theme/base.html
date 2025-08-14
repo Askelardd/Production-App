@@ -41,7 +41,12 @@
           </div>
           <!-- Links Desktop -->
           <div class="hidden md:flex space-x-6">
-            <a href="{% url 'mainMenu' user_id=request.user.id %}" class="hover:text-blue-400 transition">Menus</a>
+            {% if request.user.is_authenticated %}
+              <a href="{% url 'mainMenu' request.user.id %}">Menus</a>
+            {% else %}
+              <a href="{% url 'login' 0 %}">Login</a>
+            {% endif %}
+
             <a href="{% url 'listQrcodes' %}" class="hover:text-blue-400 transition">Inserir Caixa</a>
             <a href="{% url 'listarDies' %}" class="hover:text-blue-400 transition">Trabalhar Fieiras</a>
             <a href="{% url 'deliveryCalendar' %}" class="hover:text-blue-400 transition">Calendário de Entregas</a>
@@ -58,7 +63,12 @@
       </div>
       <!-- Menu Mobile -->
       <div id="mobile-menu" class="hidden md:hidden bg-gray-700 px-4 pb-4">
-        <a href="{% url 'mainMenu' user_id=request.user.id %}" class="block py-2 hover:text-blue-400">Menus</a>
+        {% if request.user.is_authenticated %}
+            <a href="{% url 'mainMenu' request.user.id %}">Menus</a>
+        {% else %}
+            <a href="{% url 'login' 0 %}">Login</a>
+        {% endif %}
+
         <a href="{% url 'listQrcodes' %}" class="block py-2 hover:text-blue-400">Inserir Caixa</a>
         <a href="{% url 'listarDies' %}" class="block py-2 hover:text-blue-400">Trabalhar Fieiras</a>
         <a href="{% url 'deliveryCalendar' %}" class="block py-2 hover:text-blue-400">Calendário de Entregas</a>
