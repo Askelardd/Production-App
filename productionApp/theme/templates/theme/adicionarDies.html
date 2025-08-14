@@ -85,6 +85,39 @@
     </a>
 </form>
 <script>
+
+document.getElementById('diesForm').addEventListener('submit', function(e) {
+    let valid = true;
+    const total = parseInt(document.querySelector('input[name="total"]').value);
+
+    for (let i = 1; i <= total; i++) {
+        const requiredFields = [
+            `serial_${i}`,
+            `diameter_${i}`,
+            `diam_desbastado_${i}`,
+            `diam_requerido_${i}`,
+            `die_${i}`,
+            `job_${i}`,
+            `tol_max_${i}`,
+            `tol_min_${i}`,
+            `cone_${i}`,
+            `bearing_${i}`
+        ];
+        for (const field of requiredFields) {
+            const el = document.querySelector(`[name="${field}"]`);
+            if (!el || !el.value.trim()) {
+                valid = false;
+                break;
+            }
+        }
+        if (!valid) break;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os campos obrigatórios antes de salvar.');
+    }
+});
 document.addEventListener('DOMContentLoaded', () => {
     const total = parseInt(document.querySelector('input[name="total"]').value);
 
