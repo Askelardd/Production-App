@@ -35,4 +35,6 @@ urlpatterns = [
     path('delivery/calendar/', views.deliveryCalendar, name='deliveryCalendar'),
     path('listarInfo/', views.listarInfo, name='listarInfo'),
     path('deletarDelivery/<int:id>/', views.deletar_delivery, name='deletar_delivery'),
+    path('logout/', views.user_logout, name='logout'),
+
 ]

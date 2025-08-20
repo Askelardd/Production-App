@@ -78,6 +78,7 @@
                 <li>
                     {{ partido.partido }} fieiras
                     <small class="text-gray-500">({{ partido.created_at|date:"d/m/Y H:i" }})</small>
+                    <p class="text-gray-600">{{ partido.observations|default:"-" }}</p>
                 </li>
             {% endfor %}
         </ul>

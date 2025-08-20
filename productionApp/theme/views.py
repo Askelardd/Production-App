@@ -6,7 +6,7 @@ from django.http import JsonResponse  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
 from django.contrib import messages  # type: ignore
 from django.contrib.auth.models import User  # type: ignore
-from django.contrib.auth import authenticate, login  # type: ignore
+from django.contrib.auth import authenticate, login, logout # type: ignore
 from django.contrib.auth.decorators import login_required  # type: ignore
 from django.views.decorators.http import require_http_methods  # type: ignore
 from django.views.decorators.csrf import csrf_exempt  # type: ignore
@@ -33,6 +33,11 @@ def productionMenu(request):
 
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
+
+def user_logout(request):
+    logout(request)
+    messages.success(request, "Saiu da sua conta com sucesso!")
+    return redirect('login', 0)
 
 @require_http_methods(["GET", "POST"])
 def deliveryIdentification(request, toma_order_full):
@@ -324,6 +329,7 @@ def partidosMenu(request, toma_order_full):
         numero = request.POST.get('numeroPartidos')
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe checkboxes
         serie_dies_partidos = ', '.join(serie_dies_list)     # <-- transforma em string
+        observations = request.POST.get('observations', '')
 
         try:
             partido = int(numero)
@@ -333,7 +339,8 @@ def partidosMenu(request, toma_order_full):
                 NumeroPartidos.objects.create(
                     qr_code=qr_code,
                     partido=partido,
-                    serie_dies_partidos=serie_dies_partidos
+                    serie_dies_partidos=serie_dies_partidos,
+                    observations=observations
                 )
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
@@ -367,6 +374,7 @@ def diametroMenu(request, toma_order_full):
         pedido_por = request.POST.get('pedidoPor')
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe os checkboxes
         serie_dies = ', '.join(serie_dies_list)
+        observations = request.POST.get('observations', '')
 
         try:
             numero = int(numero)
@@ -380,7 +388,8 @@ def diametroMenu(request, toma_order_full):
                     diametro=diametro,
                     numero_fieiras=numero,
                     pedido_por=pedido_por,
-                    serie_dies=serie_dies
+                    serie_dies=serie_dies,
+                    observations=observations
                 )
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
@@ -398,7 +407,8 @@ def diametroMenu(request, toma_order_full):
                         f"- Diâmetro: {diametro}\n"
                         f"- Nº de fieiras: {numero}\n"
                         f"- Pedido por: {pedido_por or '-'}\n"
-                        f"- Série de dies: {serie_dies or '-'}"
+                        f"- Série de dies: {serie_dies or '-'}\n"
+                        f"- Observações: {observations or '-'}"
                     ),
                     from_email=None,               # usa DEFAULT_FROM_EMAIL
                     recipient_list=["andrepimentel@toma.tools"],  # destino

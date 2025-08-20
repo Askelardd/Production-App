@@ -164,6 +164,8 @@ class NumeroPartidos(models.Model):
     partido = models.IntegerField(null=False, blank=False)
     serie_dies_partidos = models.TextField(blank=True, null=True)
     checkbox = models.BooleanField(default=False, verbose_name="Feito")
+    observations = models.TextField(blank=True, null=True)
+
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -177,6 +179,7 @@ class PedidosDiametro(models.Model):
     pedido_por = models.TextField(max_length=50, blank=True, null=True)
     serie_dies = models.TextField(blank=True, null=True)
     checkbox = models.BooleanField(default=False, verbose_name="Feito")
+    observations = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
