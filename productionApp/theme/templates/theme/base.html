@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>{% block title %}Toma Tools{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -77,17 +78,26 @@
 
     <!-- CONTEÚDO -->
     <main class="relative z-10 max-w-7xl mx-auto p-6">
-        {% if messages %}
-          <ul class="mb-4">
-            {% for message in messages %}
-              <li class="text-sm text-{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-        
-        {% block content %}
-        {% endblock %}
+      {% block content %}{% endblock %}
     </main>
+
+    {# Popups para Django messages #}
+    {% if messages %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        {% for message in messages %}
+          Swal.fire({
+            icon: "{% if 'success' in message.tags %}success{% elif 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}",
+            title: "{{ message|escapejs }}",
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            heightAuto: false
+          });
+        {% endfor %}
+      });
+    </script>
+    {% endif %}
 
     <script>
       const menuBtn = document.getElementById('menu-btn');

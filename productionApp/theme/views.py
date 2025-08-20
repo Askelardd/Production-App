@@ -18,6 +18,8 @@ from django.http import HttpResponse  # type: ignore
 from django.db.models import Count  # type: ignore
 from django.views.decorators.http import require_POST  # type: ignore
 from django.db import transaction # type: ignore
+import smtplib
+from django.core.mail import send_mail # type: ignore
 
 def home(request):
     users = User.objects.all()
@@ -385,6 +387,24 @@ def diametroMenu(request, toma_order_full):
                     user=request.user,
                     action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
                 )
+                
+                send_mail(
+                    subject="Novo Pedido de Diâmetro",
+                    message=(
+                        f"Novo pedido de diâmetro criado:\n"
+                        f"Pedido criado por {request.user.first_name or request.user.username}\n"
+                        f"- QR Code: {qr_code.toma_order_full}\n"
+                        f"- Cliente: {qr_code.customer}\n"
+                        f"- Diâmetro: {diametro}\n"
+                        f"- Nº de fieiras: {numero}\n"
+                        f"- Pedido por: {pedido_por or '-'}\n"
+                        f"- Série de dies: {serie_dies or '-'}"
+                    ),
+                    from_email=None,               # usa DEFAULT_FROM_EMAIL
+                    recipient_list=["andrepimentel@toma.tools"],  # destino
+                    fail_silently=False,
+                )
+
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
         except Exception as e:
@@ -447,19 +467,21 @@ def adicionar_dies(request, qr_id):
     dies = Die.objects.all()
     jobs = Jobs.objects.all()
 
-    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", qr_code.diameters)
-
+    raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
     diameters_list = []
-    for qty, value in matches:
-        qty = int(qty)
-        value = value.replace(",", ".")
-        diameters_list.extend([value] * qty)
 
-    # Garantir que não ultrapasse qt
-    diameters_list = diameters_list[:qr_code.qt]
+    # Verifica se está no formato antigo (ex: "2 x 0,1243")
+    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
 
-    while len(diameters_list) < qr_code.qt:
-        diameters_list.append("")
+    if matches:
+        for qty, value in matches:
+            qty = int(qty)
+            value = value.replace(",", ".")
+            diameters_list.extend([value] * qty)
+    else:
+        # Caso não tenha "x", assume que é apenas o diâmetro
+        value = raw_value.replace(",", ".")
+        diameters_list = [value] * qr_code.qt
 
     existing_dies = list(dieInstance.objects.filter(customer=qr_code).order_by('id'))
 

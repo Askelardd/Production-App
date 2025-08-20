@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-d=9u^&=xe%bsmerta5ngq!f^z&zq2hh8c93i8f4ev8gtyz$a#i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['c6f73122e6ac.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000']
+ALLOWED_HOSTS = ['c6f73122e6ac.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000', '192.168.1.105']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000/', 'http://192.168.1.105:8000']
 
 # Application definition
 
@@ -62,6 +63,16 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'productionApp.urls'
 
+# settings.py
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "EMAIL_USER"
+EMAIL_HOST_PASSWORD = "EMAIL_PASSWORD"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -92,7 +103,6 @@ DATABASES = {
 }
 
 # CSRF trusted origins (add your trusted domains here, e.g., 'http://localhost:8000')
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000/', 'https://0992cc7f21b0.ngrok-free.app']
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
