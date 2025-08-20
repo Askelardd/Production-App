@@ -25,7 +25,8 @@
         </thead>
         <tbody>
             {% for qr in qrcodes %}
-            <tr class="border-b hover:bg-gray-100 transition-colors">
+            <!-- Linha principal com data-id -->
+            <tr class="border-b hover:bg-gray-100 transition-colors" data-id="{{ qr.id }}">
                 <td class="px-4 py-2">{{ qr.customer }}</td>
                 <td class="px-4 py-2">{{ qr.customer_order_nr }}</td>
                 <td class="px-4 py-2">{{ qr.toma_order_nr }}</td>
@@ -41,33 +42,31 @@
                                 Mostrar Dies
                             </button>
                             <a href="{% url 'diametroMenu' qr.toma_order_full %}" 
-                            class="text-blue-600 hover:underline text-sm px-2 py-2">
-                            Novo Diametro
+                               class="text-blue-600 hover:underline text-sm px-2 py-2">
+                               Novo Diametro
                             </a>
                         </div>
 
                         <!-- Segunda linha -->
                         <div class="flex flex-wrap justify-center gap-3">
                             <a href="{% url 'partidosMenu' qr.toma_order_full %}" 
-                            class="text-red-600 hover:underline text-sm px-2 py-2">
-                            Adicionar Partidos
+                               class="text-red-600 hover:underline text-sm px-2 py-2">
+                               Adicionar Partidos
                             </a>
                             <a href="{% url 'showDetails' qr.id %}" 
-                            class="text-green-600 hover:underline text-sm px-2 py-2">
-                            Ver Detalhes
+                               class="text-green-600 hover:underline text-sm px-2 py-2">
+                               Ver Detalhes
                             </a>
                             <a href="{% url 'enviar_caixa' qr.id %}" 
-                            class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 text-sm">
-                            Enviar Caixa
+                               class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 text-sm">
+                               Enviar Caixa
                             </a>
                         </div>
                     </div>
                 </td>
-
-
             </tr>
 
-            <!-- Linha oculta com os dies -->
+            <!-- Linha oculta com os dies (SEM data-id, COM id e hidden) -->
             <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50">
                 <td colspan="7" class="p-4">
                     {% if qr.die_instances.all %}
@@ -119,15 +118,16 @@
                                     </div>
                                 </div>
                                 <div class="flex justify-start gap-2 mt-2">
-                                    <a href="{% url 'die_details' die.id %}" class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-xs">Ver Trabalhos</a>
-                                    <a href="{% url 'enviar_fieira' die.id %}" class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">Enviar Fieira</a>
+                                    <a href="{% url 'die_details' die.id %}" 
+                                       class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-xs">Ver Trabalhos</a>
+                                    <a href="{% url 'enviar_fieira' die.id %}" 
+                                       class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">Enviar Fieira</a>
                                 </div>
                             </div>
                         {% empty %}
                             <p class="text-gray-500">Nenhum die associado.</p>
                         {% endfor %}
                     </div>
-
                     {% else %}
                         <p class="text-gray-500">Nenhum die associado.</p>
                     {% endif %}
@@ -141,33 +141,46 @@
 
 {% block extra_js %}
 <script>
-    // Função para alternar a visibilidade dos dies
-    function toggleDies(id) {
-        const row = document.getElementById(id);
-        row.classList.toggle('hidden');
+  // Função global para o botão Mostrar Dies
+  window.toggleDies = function(id) {
+    const row = document.getElementById(id);
+    if (row) {
+      row.classList.toggle('hidden');
     }
+  };
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.getElementById('searchInput');
-        const table = document.getElementById('qrcodeTable').getElementsByTagName('tbody')[0];
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.querySelector('#qrcodeTable tbody');
+    if (!searchInput || !tableBody) return;
 
-        searchInput.addEventListener('keyup', function () {
-            const filter = searchInput.value.toLowerCase();
-            const rows = table.getElementsByTagName('tr');
+    searchInput.addEventListener('keyup', function () {
+      const filter = searchInput.value.toLowerCase();
+      const mainRows = tableBody.querySelectorAll('tr[data-id]');
 
-            for (let i = 0; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                let found = false;
+      mainRows.forEach(function(row) {
+        const cells = row.getElementsByTagName('td');
+        let found = false;
 
-                for (let j = 0; j < cells.length - 1; j++) { // Ignora última coluna (Ações)
-                    if (cells[j].textContent.toLowerCase().includes(filter)) {
-                        found = true;
-                        break;
-                    }
-                }
-                rows[i].style.display = found ? '' : 'none';
-            }
-        });
+        // verifica todas as colunas menos a última
+        for (let j = 0; j < cells.length - 1; j++) {
+          const text = (cells[j].textContent || '').toLowerCase();
+          if (text.includes(filter)) {
+            found = true;
+            break;
+          }
+        }
+
+        // mostra/esconde a linha principal
+        row.style.display = found ? '' : 'none';
+
+        // mostra/esconde a linha dos dies correspondente (sem mexer na classe hidden)
+        const diesRow = document.getElementById('dies-' + row.dataset.id);
+        if (diesRow) {
+          diesRow.style.display = found ? '' : 'none';
+        }
+      });
     });
+  });
 </script>
 {% endblock %}
