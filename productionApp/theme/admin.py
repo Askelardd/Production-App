@@ -2,7 +2,7 @@ from django.contrib import admin # type: ignore
 from django import forms  # type: ignore
 
 from .models import (
-    Products, ProductDeleteLog, QRData, Jobs,
+    Order, Products, ProductDeleteLog, QRData, Jobs,
     Diameters, Die, Tolerance,
     NumeroPartidos, PedidosDiametro,
     dieInstance,
@@ -12,7 +12,8 @@ from .models import (
     globalLogs,
     DeliveryInfo,
     DeliveryEntity,
-    DeliveryType
+    DeliveryType,
+    OrderFile
 )
 
 # -------------------
@@ -222,3 +223,29 @@ class DeliveryInfoAdmin(admin.ModelAdmin):
     class Media:
         # carrega o JS que esconde/desativa o campo deliveryEntity quando Type=Customer
         js = ('theme/js/deliveryinfo_admin.js',)
+
+# -------------------
+# Order , OrderFile
+# -------------------
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = ['tracking_number', 'courier', 'shipping_date']
+    search_fields = ['tracking_number', 'courier']
+    list_filter = ['courier', 'shipping_date']
+    inlines = []
+
+    class OrderFileInline(admin.TabularInline):
+        model = OrderFile
+        extra = 0
+        fields = ['file', 'uploaded_at']
+        readonly_fields = ['uploaded_at']
+
+    inlines.append(OrderFileInline)
+
+
+@admin.register(OrderFile)
+class OrderFileAdmin(admin.ModelAdmin):
+    list_display = ['order', 'file', 'uploaded_at']
+    search_fields = ['order__tracking_number', 'order__courier']
+    list_filter = ['order__courier', 'order__shipping_date']

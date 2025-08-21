@@ -1,0 +1,105 @@
+{% extends 'theme/base.html' %}
+{% block title %}Editar Order{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Editar Order</h1>
+
+<form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+  {% csrf_token %}
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Tracking Number</label>
+    <input type="text" name="tracking_number" value="{{ order.tracking_number }}"
+           class="border border-gray-300 rounded-lg p-2 w-full" required>
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Orders Coming</label>
+    <textarea name="orders_coming" class="border border-gray-300 rounded-lg p-2 w-full">{{ order.orders_coming }}</textarea>
+  </div>
+
+  <div class="mb-4">
+    <label for="courier" class="block text-gray-700">Courier</label>
+    <select id="courier" name="courier" class="border border-gray-300 rounded-lg p-2 w-full">
+      <option value="">Select Courier</option>
+      {% for courier in courier_choices %}
+        <option value="{{ courier }}" {% if order.courier == courier %}selected{% endif %}>{{ courier }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Shipping Date</label>
+    <input type="date" name="shipping_date" value="{{ order.shipping_date|date:'Y-m-d' }}"
+           class="border border-gray-300 rounded-lg p-2 w-full">
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Comment</label>
+    <textarea name="comment" class="border border-gray-300 rounded-lg p-2 w-full">{{ order.comment }}</textarea>
+  </div>
+
+  <div class="mb-4">
+    <label for="files" class="block text-gray-700">Upload Files</label>
+    <input type="file" id="files" name="files" multiple
+           class="border border-gray-300 rounded-lg p-2 w-full">
+
+    <!-- Pré-visualização com checkbox "Restrito" -->
+    <div id="file-list" class="mt-3 space-y-2"></div>
+  </div>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+    Guardar alterações
+  </button>
+  <a href="{% url 'listarOrders' %}" class="ml-3 text-gray-700 hover:underline">Voltar</a>
+</form>
+
+<!-- Lista os ficheiros já existentes -->
+<div class="bg-white p-6 rounded-lg shadow-md mt-6">
+  <h2 class="text-lg font-semibold mb-3">Ficheiros</h2>
+  {% if files %}
+    <ul class="space-y-2">
+      {% for f in files %}
+        <li class="flex items-center gap-3">
+          <a href="{{ f.file.url }}" target="_blank" class="text-blue-600 hover:underline">
+            {{ f.file.name|cut:"order_files/" }}
+          </a>
+          {% if f.restricted %}
+            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">Restrito</span>
+          {% endif %}
+          <form method="post" action="{% url 'deleteOrderFile' f.id %}"
+                onsubmit="return confirm('Apagar este ficheiro?');">
+            {% csrf_token %}
+            <button class="text-red-600 hover:underline">Apagar</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">Sem ficheiros.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('files').addEventListener('change', function (e) {
+    const fileList = document.getElementById('file-list');
+    fileList.innerHTML = ''; // limpa antes
+
+    Array.from(e.target.files).forEach((file, index) => {
+      const row = document.createElement('div');
+      row.className = "flex items-center gap-3";
+
+      row.innerHTML = `
+        <span class="text-gray-700">${file.name}</span>
+        <input type="checkbox" name="restricted_${index}" value="1"
+               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <label class="text-sm text-gray-600">Restrito</label>
+      `;
+
+      fileList.appendChild(row);
+    });
+  });
+</script>
+{% endblock %}

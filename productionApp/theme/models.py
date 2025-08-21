@@ -1,3 +1,4 @@
+from importlib.resources import files
 from django.utils import timezone # type: ignore
 from django.db import models # type: ignore
 from django.contrib.auth.models import User # type: ignore
@@ -295,3 +296,40 @@ class DieWorkWorker(models.Model):
 
     def __str__(self):
         return f"{self.worker.get_full_name()} - {self.work}"
+
+
+class Order(models.Model):
+    # -- DHL, UPS, FedEx , SCHNENKER , TNT
+    courier_choices = [
+        'DHL',
+        'UPS',
+        'FedEx',
+        'SCHENKER',
+        'TNT'
+    ]
+    tracking_number = models.CharField(max_length=20, unique=True)
+    orders_coming = models.CharField(max_length=100, blank=True, null=True)
+    courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
+    shipping_date = models.DateField(null=True, blank=True)
+    comment = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Order {self.tracking_number}, {self.courier}, {self.shipping_date}"
+
+class OrderFile(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='files')
+    file = models.FileField(upload_to='order_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    restricted = models.BooleanField(default=False)
+
+class OrderFile(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='files')
+    file = models.FileField(upload_to='order_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    restricted = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.file.name}"
+
+    
+

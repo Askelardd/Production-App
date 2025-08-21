@@ -1,5 +1,6 @@
 import calendar
 from datetime import date, timedelta
+import datetime
 import json  # type: ignore
 import logging  # type: ignore
 from django.http import JsonResponse  # type: ignore
@@ -18,7 +19,6 @@ from django.http import HttpResponse  # type: ignore
 from django.db.models import Count  # type: ignore
 from django.views.decorators.http import require_POST  # type: ignore
 from django.db import transaction # type: ignore
-import smtplib
 from django.core.mail import send_mail # type: ignore
 
 def home(request):
@@ -34,10 +34,148 @@ def productionMenu(request):
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
 
+
+def orders(request):
+    choices = Order.courier_choices
+
+    if request.method == 'POST':
+        tracking_number = request.POST.get('tracking_number')
+        orders_coming = request.POST.get('orders_coming')
+        courier = request.POST.get('courier') or None
+        shipping_date_str = request.POST.get('shipping_date') or ""
+        comment = request.POST.get('comment', '')
+
+        # parse data (YYYY-MM-DD do input type=date)
+        shipping_date = None
+        if shipping_date_str:
+            try:
+                shipping_date = datetime.datetime.strptime(shipping_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de envio inválida.")
+                return render(request, 'theme/orders.html', {'courier_choices': choices})
+
+        # cria a Order
+        order = Order.objects.create(
+            tracking_number=tracking_number,
+            orders_coming=orders_coming,
+            courier=courier,
+            shipping_date=shipping_date,
+            comment=comment
+        )
+
+        # grava os ficheiros
+        for index, f in enumerate(request.FILES.getlist('files')):
+            restricted = bool(request.POST.get(f'restricted_{index}'))
+            OrderFile.objects.create(order=order, file=f, restricted=restricted)
+
+        send_mail(
+            subject=f"New Order, tracking number= {tracking_number}",
+            message=(
+                f"New order created:\n"
+                f"Tracking Number: {tracking_number}\n"
+                f"Orders Coming: {orders_coming}\n"
+                f"Courier: {courier}\n"
+                f"Shipping Date: {shipping_date}\n"
+                f"Comment: {comment}\n"
+            ),
+            from_email=None,               # usa DEFAULT_FROM_EMAIL
+            recipient_list=["destinyEmail@example.com"],  # destino
+            fail_silently=False,
+        )
+
+        messages.success(request, "Pedido criado com sucesso!")
+        return redirect('listarOrders')
+
+    return render(request, 'theme/orders.html', {'courier_choices': choices})
+
+def listar_orders(request):
+    orders = Order.objects.all().order_by('-shipping_date', '-id').prefetch_related('files')
+    is_admin = request.user.groups.filter(name="Administração").exists()
+    return render(request, 'theme/listarOrders.html', {
+        'orders': orders,
+        'is_admin': is_admin,
+    })
+
+
+def edit_order(request, order_id):
+    if not request.user.groups.filter(name__in=['Administração']).exists():
+        messages.error(request, "Não tem permissão para editar esta ordem.")
+        return redirect('listarOrders')
+
+    order = get_object_or_404(Order, id=order_id)
+    files = order.files.all()
+    choices = Order.courier_choices
+
+    if request.method == 'POST':
+        order.tracking_number = request.POST.get('tracking_number')
+        order.orders_coming = request.POST.get('orders_coming')
+        order.courier = request.POST.get('courier') or None
+        shipping_date_str = request.POST.get('shipping_date') or ""
+        order.comment = request.POST.get('comment', '')
+
+        shipping_date = None
+        if shipping_date_str:
+            try:
+                shipping_date = datetime.datetime.strptime(shipping_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de envio inválida.")
+                return render(request, 'theme/editOrder.html', {
+                    'order': order,
+                    'files': files,
+                    'courier_choices': choices,
+                })
+
+        order.shipping_date = shipping_date
+        order.save()
+
+        # adicionar novos ficheiros (se enviados)
+        for index, f in enumerate(request.FILES.getlist('files')):
+            restricted = bool(request.POST.get(f'restricted_{index}'))
+            OrderFile.objects.create(order=order, file=f, restricted=restricted)
+
+        messages.success(request, "Pedido atualizado com sucesso!")
+        return redirect('listarOrders')
+
+    return render(request, 'theme/editOrder.html', {
+        'order': order,
+        'files': files,
+        'courier_choices': choices,
+    })
+
+@require_POST
+def delete_order(request, order_id):
+    if not request.user.groups.filter(name__in=['Administração']).exists():
+        messages.error(request, "Não tem permissão para eliminar esta ordem.")
+        return redirect('listarOrders')
+
+    order = get_object_or_404(Order, id=order_id)
+    order.delete()
+    messages.success(request, "Pedido eliminado com sucesso!")
+    return redirect('listarOrders')
+
+@require_POST
+def delete_order_file(request, file_id):
+    f = get_object_or_404(OrderFile, id=file_id)
+    order_id = f.order_id
+    # Apaga o ficheiro do storage também:
+    if f.file:
+        f.file.delete(save=False)
+    f.delete()
+    messages.success(request, "Ficheiro eliminado com sucesso!")
+    # volta para a listagem ou para a edição da order
+    return redirect('listarOrders')  # ou redirect('editOrder', order_id=order_id)
+
+
+def administrationMenu(request):
+    return render(request, 'theme/administrationMenu.html')
+
 def user_logout(request):
     logout(request)
     messages.success(request, "Saiu da sua conta com sucesso!")
     return redirect('login', 0)
+
+from django.http import FileResponse, Http404 # type: ignore
+
 
 @require_http_methods(["GET", "POST"])
 def deliveryIdentification(request, toma_order_full):
