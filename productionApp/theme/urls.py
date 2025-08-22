@@ -40,10 +40,12 @@ urlpatterns = [
     path('deletarDelivery/<int:id>/', views.deletar_delivery, name='deletar_delivery'),
     path('logout/', views.user_logout, name='logout'),
     path('orders/', views.orders, name='orders'),
-    path('listar-orders/', views.listar_orders, name='listarOrders'),
+    path('orders/listar/', views.listar_orders, name='listarOrders'),  
     path('orders/<int:order_id>/edit/', views.edit_order, name='editOrder'),
     path('orders/<int:order_id>/delete/', views.delete_order, name='deleteOrder'),
     path('orders/file/<int:file_id>/delete/', views.delete_order_file, name='deleteOrderFile'),
+    path('orders/create_orders_coming_ajax/', views.create_orders_coming_ajax, name='create_orders_coming_ajax'),
+    path('orders/coming/<int:oc_id>/edit/', views.edit_orders_coming, name='editOrdersComing'),
     path('administrationMenu/', views.administrationMenu, name='administrationMenu'),
 
 ]

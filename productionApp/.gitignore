@@ -10,6 +10,7 @@ yarn-error.log*
 productionApp/db.sqlite3
 db.sqlite3
 
+
 # Logs
 logs/
 *.log
@@ -39,4 +40,5 @@ Thumbs.db
 # Misc
 coverage/
 *.tgz
+
 

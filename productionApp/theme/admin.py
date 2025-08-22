@@ -13,7 +13,9 @@ from .models import (
     DeliveryInfo,
     DeliveryEntity,
     DeliveryType,
-    OrderFile
+    OrderFile,
+    OrdersComing
+    
 )
 
 # -------------------
@@ -228,24 +230,39 @@ class DeliveryInfoAdmin(admin.ModelAdmin):
 # Order , OrderFile
 # -------------------
 
+# -------------------
+# OrdersComing
+# -------------------
+@admin.register(OrdersComing)
+class OrdersComingAdmin(admin.ModelAdmin):
+    list_display = ['order', 'inspectionMetrology', 'mark', 'urgent', 'done', 'comment']
+    search_fields = ['order', 'comment']
+    list_filter = ['inspectionMetrology', 'mark', 'urgent', 'done']
+    list_per_page = 20
+
+# -------------------
+# Order + Inline OrderFile
+# -------------------
+class OrderFileInline(admin.TabularInline):
+    model = OrderFile
+    extra = 0
+    fields = ['file', 'uploaded_at', 'restricted']
+    readonly_fields = ['uploaded_at']
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['tracking_number', 'courier', 'shipping_date']
-    search_fields = ['tracking_number', 'courier']
-    list_filter = ['courier', 'shipping_date']
-    inlines = []
+    list_display = ['tracking_number', 'courier', 'shipping_date', 'comment']
+    search_fields = ['tracking_number', 'courier', 'orders_coming__order', 'comment']
+    list_filter = ['courier', 'shipping_date', 'orders_coming']
+    inlines = [OrderFileInline]
+    list_per_page = 20
 
-    class OrderFileInline(admin.TabularInline):
-        model = OrderFile
-        extra = 0
-        fields = ['file', 'uploaded_at']
-        readonly_fields = ['uploaded_at']
-
-    inlines.append(OrderFileInline)
-
-
+# -------------------
+# OrderFile
+# -------------------
 @admin.register(OrderFile)
 class OrderFileAdmin(admin.ModelAdmin):
-    list_display = ['order', 'file', 'uploaded_at']
+    list_display = ['order', 'file', 'uploaded_at', 'restricted']
     search_fields = ['order__tracking_number', 'order__courier']
-    list_filter = ['order__courier', 'order__shipping_date']
+    list_filter = ['order__courier', 'order__shipping_date', 'restricted']
+    list_per_page = 20

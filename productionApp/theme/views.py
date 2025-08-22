@@ -2,7 +2,8 @@ import calendar
 from datetime import date, timedelta
 import datetime
 import json  # type: ignore
-import logging  # type: ignore
+import logging
+from urllib import request  # type: ignore
 from django.http import JsonResponse  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
 from django.contrib import messages  # type: ignore
@@ -34,63 +35,90 @@ def productionMenu(request):
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
 
-
 def orders(request):
     choices = Order.courier_choices
+    orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
 
     if request.method == 'POST':
         tracking_number = request.POST.get('tracking_number')
-        orders_coming = request.POST.get('orders_coming')
+        orders_coming_ids = request.POST.getlist('orders_coming')  # <- agora é uma lista
         courier = request.POST.get('courier') or None
         shipping_date_str = request.POST.get('shipping_date') or ""
         comment = request.POST.get('comment', '')
 
-        # parse data (YYYY-MM-DD do input type=date)
+        # Parse da data
         shipping_date = None
         if shipping_date_str:
             try:
                 shipping_date = datetime.datetime.strptime(shipping_date_str, "%Y-%m-%d").date()
             except ValueError:
                 messages.error(request, "Data de envio inválida.")
-                return render(request, 'theme/orders.html', {'courier_choices': choices})
+                return render(request, 'theme/orders.html', {
+                    'courier_choices': choices,
+                    'orders_coming': orders_coming_list,
+                })
 
-        # cria a Order
+        # Validação básica
+        if not tracking_number:
+            messages.error(request, "Número de rastreamento é obrigatório.")
+            return render(request, 'theme/orders.html', {
+                'courier_choices': choices,
+                'orders_coming': orders_coming_list,
+            })
+
+        # Busca múltiplos OrdersComing
+        orders_coming_qs = OrdersComing.objects.filter(id__in=orders_coming_ids)
+
+        # Cria a Order (sem orders_coming ainda)
         order = Order.objects.create(
             tracking_number=tracking_number,
-            orders_coming=orders_coming,
             courier=courier,
             shipping_date=shipping_date,
-            comment=comment
+            comment=comment,
         )
 
-        # grava os ficheiros
+        # Adiciona os múltiplos OrdersComing
+        order.orders_coming.set(orders_coming_qs)
+
+        # Grava os ficheiros
         for index, f in enumerate(request.FILES.getlist('files')):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
 
-        send_mail(
-            subject=f"New Order, tracking number= {tracking_number}",
-            message=(
-                f"New order created:\n"
-                f"Tracking Number: {tracking_number}\n"
-                f"Orders Coming: {orders_coming}\n"
-                f"Courier: {courier}\n"
-                f"Shipping Date: {shipping_date}\n"
-                f"Comment: {comment}\n"
-            ),
-            from_email=None,               # usa DEFAULT_FROM_EMAIL
-            recipient_list=["destinyEmail@example.com"],  # destino
-            fail_silently=False,
-        )
-
         messages.success(request, "Pedido criado com sucesso!")
         return redirect('listarOrders')
 
-    return render(request, 'theme/orders.html', {'courier_choices': choices})
+    return render(request, 'theme/orders.html', {
+        'courier_choices': choices,
+        'orders_coming': orders_coming_list,
+    })
+@csrf_exempt
+def create_orders_coming_ajax(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            oc = OrdersComing.objects.create(
+                order=data.get('order'),
+                urgent=data.get('urgent', False),
+                comment=data.get('comment', ''),
+            )
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'id': oc.id,
+                    'order': oc.order,
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Método inválido'})
 
 def listar_orders(request):
-    orders = Order.objects.all().order_by('-shipping_date', '-id').prefetch_related('files')
+    orders = Order.objects.prefetch_related('orders_coming', 'files') \
+                          .order_by('-shipping_date', '-id')
+    
     is_admin = request.user.groups.filter(name="Administração").exists()
+
     return render(request, 'theme/listarOrders.html', {
         'orders': orders,
         'is_admin': is_admin,
@@ -105,14 +133,16 @@ def edit_order(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     files = order.files.all()
     choices = Order.courier_choices
+    orders_coming_list = OrdersComing.objects.all().order_by('order')
 
     if request.method == 'POST':
         order.tracking_number = request.POST.get('tracking_number')
-        order.orders_coming = request.POST.get('orders_coming')
-        order.courier = request.POST.get('courier') or None
+        courier = request.POST.get('courier') or None
         shipping_date_str = request.POST.get('shipping_date') or ""
-        order.comment = request.POST.get('comment', '')
+        comment = request.POST.get('comment', '')
+        orders_coming_ids = request.POST.getlist('orders_coming')  # <-- now a list of IDs
 
+        # Parse shipping date
         shipping_date = None
         if shipping_date_str:
             try:
@@ -123,12 +153,19 @@ def edit_order(request, order_id):
                     'order': order,
                     'files': files,
                     'courier_choices': choices,
+                    'orders_coming': orders_coming_list,
                 })
 
+        order.courier = courier
         order.shipping_date = shipping_date
+        order.comment = comment
         order.save()
 
-        # adicionar novos ficheiros (se enviados)
+        # Atualiza relação ManyToMany
+        orders_coming_qs = OrdersComing.objects.filter(id__in=orders_coming_ids)
+        order.orders_coming.set(orders_coming_qs)
+
+        # Novos ficheiros
         for index, f in enumerate(request.FILES.getlist('files')):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
@@ -140,6 +177,7 @@ def edit_order(request, order_id):
         'order': order,
         'files': files,
         'courier_choices': choices,
+        'orders_coming': orders_coming_list,
     })
 
 @require_POST
@@ -164,6 +202,28 @@ def delete_order_file(request, file_id):
     messages.success(request, "Ficheiro eliminado com sucesso!")
     # volta para a listagem ou para a edição da order
     return redirect('listarOrders')  # ou redirect('editOrder', order_id=order_id)
+
+
+@require_http_methods(["GET", "POST"])
+def edit_orders_coming(request, oc_id):
+    orders_coming = get_object_or_404(OrdersComing, id=oc_id)
+
+    if request.method == 'POST':
+        orders_coming.order = request.POST.get('order')
+        orders_coming.inspectionMetrology = request.POST.get('inspectionMetrology') == 'on'
+        orders_coming.mark = request.POST.get('mark') == 'on'
+        orders_coming.urgent = request.POST.get('urgent') == 'on'
+        orders_coming.done = request.POST.get('done') == 'on'
+        orders_coming.comment = request.POST.get('comment', '')
+        orders_coming.save()
+
+        messages.success(request, "OrdersComing atualizado com sucesso.")
+        return redirect('listarOrders')
+
+    return render(request, 'theme/editOrdersComing.html', {
+        'oc': orders_coming
+    })
+
 
 
 def administrationMenu(request):

@@ -1,8 +1,8 @@
 {% extends 'theme/base.html' %}
-{% block title %}QR Codes e Dies{% endblock %}
+{% block title %}Caixas e Fieiras{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-white mb-8">QR Codes Registrados e seus Dies</h1>
+<h1 class="text-3xl font-bold text-white mb-8">Caixas Registradas e Fieiras</h1>
 
 <!-- Barra de Pesquisa -->
 <div class="mb-4">
@@ -20,7 +20,7 @@
                 <th class="px-4 py-3">Quantidade</th>
                 <th class="px-4 py-3">Numero Caixa</th>
                 <th class="px-4 py-3">Criado em</th>
-                <th class="px-4 py-3 text-center">Ver Dies</th>
+                <th class="px-4 py-3 text-center">Ver fieiras</th>
             </tr>
         </thead>
         <tbody>
@@ -39,7 +39,7 @@
                         <div class="flex flex-wrap justify-center gap-3">
                             <button onclick="toggleDies('dies-{{ qr.id }}')" 
                                 class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
-                                Mostrar Dies
+                                Mostrar fieiras
                             </button>
                             <a href="{% url 'diametroMenu' qr.toma_order_full %}" 
                                class="text-blue-600 hover:underline text-sm px-2 py-2">

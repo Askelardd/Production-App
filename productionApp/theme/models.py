@@ -297,6 +297,16 @@ class DieWorkWorker(models.Model):
     def __str__(self):
         return f"{self.worker.get_full_name()} - {self.work}"
 
+class OrdersComing(models.Model):
+    order = models.CharField(max_length=100, blank=False, null=False)
+    inspectionMetrology = models.BooleanField(default=False)
+    mark = models.BooleanField(default=False)
+    urgent = models.BooleanField(default=False)
+    done = models.BooleanField(default=False)
+    comment = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"OrdersComing {self.order}"
 
 class Order(models.Model):
     # -- DHL, UPS, FedEx , SCHNENKER , TNT
@@ -308,10 +318,12 @@ class Order(models.Model):
         'TNT'
     ]
     tracking_number = models.CharField(max_length=20, unique=True)
-    orders_coming = models.CharField(max_length=100, blank=True, null=True)
+    orders_coming = models.ManyToManyField(OrdersComing, related_name='orders', blank=True)
+
     courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
     shipping_date = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
+
 
     def __str__(self):
         return f"Order {self.tracking_number}, {self.courier}, {self.shipping_date}"
@@ -322,11 +334,6 @@ class OrderFile(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
     restricted = models.BooleanField(default=False)
 
-class OrderFile(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='files')
-    file = models.FileField(upload_to='order_files/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-    restricted = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.file.name}"
