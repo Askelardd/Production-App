@@ -35,7 +35,12 @@ def productionMenu(request):
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
 
+def permission_denied_view(request, exception=None):
+    return render(request, '403.html', status=403)
+
 def orders(request):
+    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+        return permission_denied_view(request)
     choices = Order.courier_choices
     orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
 
@@ -94,6 +99,9 @@ def orders(request):
     })
 @csrf_exempt
 def create_orders_coming_ajax(request):
+    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+        return permission_denied_view(request)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
@@ -114,6 +122,9 @@ def create_orders_coming_ajax(request):
     return JsonResponse({'success': False, 'message': 'Método inválido'})
 
 def listar_orders(request):
+    if not request.user.groups.filter(name__in=['Administração', 'Comercial','Q-Office']).exists():
+        return permission_denied_view(request)
+
     orders = Order.objects.prefetch_related('orders_coming', 'files') \
                           .order_by('-shipping_date', '-id')
     
@@ -126,7 +137,7 @@ def listar_orders(request):
 
 
 def edit_order(request, order_id):
-    if not request.user.groups.filter(name__in=['Administração']).exists():
+    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
         messages.error(request, "Não tem permissão para editar esta ordem.")
         return redirect('listarOrders')
 
@@ -169,7 +180,14 @@ def edit_order(request, order_id):
         for index, f in enumerate(request.FILES.getlist('files')):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
-
+            
+        
+        for f in files:
+            is_restricted = bool(request.POST.get(f'restricted_existing_%s' % f.id))
+            if f.restricted != is_restricted:
+                f.restricted = is_restricted
+                f.save()
+                
         messages.success(request, "Pedido atualizado com sucesso!")
         return redirect('listarOrders')
 
@@ -239,6 +257,10 @@ from django.http import FileResponse, Http404 # type: ignore
 
 @require_http_methods(["GET", "POST"])
 def deliveryIdentification(request, toma_order_full):
+    
+    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+        return permission_denied_view(request)
+    
     qr = get_object_or_404(QRData, toma_order_full=toma_order_full)
 
     # obter ou criar o DeliveryInfo para este QR

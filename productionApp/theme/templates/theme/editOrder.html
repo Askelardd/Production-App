@@ -70,7 +70,6 @@
     Guardar alterações
   </button>
   <a href="{% url 'listarOrders' %}" class="ml-3 text-gray-700 hover:underline">Voltar</a>
-</form>
 
 <!-- Lista os ficheiros já existentes -->
 <div class="bg-white p-6 rounded-lg shadow-md mt-6">
@@ -78,13 +77,16 @@
   {% if files %}
     <ul class="space-y-2">
       {% for f in files %}
-        <li class="flex items-center gap-3">
+        <li class="flex items-center gap-4">
           <a href="{{ f.file.url }}" target="_blank" class="text-blue-600 hover:underline">
             {{ f.file.name|cut:"order_files/" }}
           </a>
-          {% if f.restricted %}
-            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">Restrito</span>
-          {% endif %}
+
+          <label class="flex items-center space-x-2 text-sm">
+            <input type="checkbox" name="restricted_existing_{{ f.id }}" {% if f.restricted %}checked{% endif %}>
+            <span>Restrito</span>
+          </label>
+
           <form method="post" action="{% url 'deleteOrderFile' f.id %}"
                 onsubmit="return confirm('Apagar este ficheiro?');">
             {% csrf_token %}
@@ -97,6 +99,7 @@
     <p class="text-gray-500">Sem ficheiros.</p>
   {% endif %}
 </div>
+</form>
 
 <!-- Modal -->
 <div id="ordersComingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
