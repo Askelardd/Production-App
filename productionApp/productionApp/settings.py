@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-d=9u^&=xe%bsmerta5ngq!f^z&zq2hh8c93i8f4ev8gtyz$a#i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['82e34c3e0903.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000']
+ALLOWED_HOSTS = ['c6f73122e6ac.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000', '192.168.1.105']
+CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000', 'http://192.168.1.105:8000']
 
 # Application definition
 
@@ -43,7 +44,7 @@ INSTALLED_APPS = [
 NPM_BIN_PATH = "C:/Program Files/nodejs/npm.cmd"
 
 
-LOGIN_URL = '/login/'
+LOGIN_URL = '/login'
 
 TAILWIND_APP_NAME = 'theme'
 
@@ -62,10 +63,21 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'productionApp.urls'
 
+
+
+# settings.py
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "askelardd1@gmail.com"
+EMAIL_HOST_PASSWORD = "mmxb gwmt mbsu zsqu"  # 16 caracteres
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -86,13 +98,17 @@ WSGI_APPLICATION = 'productionApp.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'name',
+        'USER': 'hide name',
+        'PASSWORD': 'hide pass',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
 
+
 # CSRF trusted origins (add your trusted domains here, e.g., 'http://localhost:8000')
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000/', 'https://0992cc7f21b0.ngrok-free.app']
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -128,11 +144,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+STATIC_ROOT = BASE_DIR / 'staticfiles'      # destino do collectstatic
+
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 

@@ -1,4 +1,7 @@
 from django.urls import path # type: ignore
+from django.conf.urls.static import static # type: ignore
+
+from productionApp import settings # type: ignore
 from . import views
 
 urlpatterns = [
@@ -31,5 +34,23 @@ urlpatterns = [
     path('comercialMenu/', views.comercialMenu, name='comercialMenu'),
     path('partidos/<int:pk>/toggle-feito-ajax/', views.toggle_partido_feito_ajax, name='toggle_partido_feito_ajax'),
     path('pedidos/<int:pk>/toggle-feito-ajax/', views.toggle_pedido_diametro_feito_ajax, name='toggle_pedido_diametro_feito_ajax'),
+    path('deliveryIdentification/<slug:toma_order_full>/', views.deliveryIdentification, name='deliveryIdentification'),
+    path('delivery/calendar/', views.deliveryCalendar, name='deliveryCalendar'),
+    path('listarInfo/', views.listarInfo, name='listarInfo'),
+    path('deletarDelivery/<int:id>/', views.deletar_delivery, name='deletar_delivery'),
+    path('logout/', views.user_logout, name='logout'),
+    path('orders/', views.orders, name='orders'),
+    path('orders/listar/', views.listar_orders, name='listarOrders'),  
+    path('orders/<int:order_id>/edit/', views.edit_order, name='editOrder'),
+    path('orders/<int:order_id>/delete/', views.delete_order, name='deleteOrder'),
+    path('orders/file/<int:file_id>/delete/', views.delete_order_file, name='deleteOrderFile'),
+    path('orders/create_orders_coming_ajax/', views.create_orders_coming_ajax, name='create_orders_coming_ajax'),
+    path('orders/coming/<int:oc_id>/edit/', views.edit_orders_coming, name='editOrdersComing'),
+    path('administrationMenu/', views.administrationMenu, name='administrationMenu'),
 
 ]
+
+handler403 = 'theme.views.permission_denied_view'
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

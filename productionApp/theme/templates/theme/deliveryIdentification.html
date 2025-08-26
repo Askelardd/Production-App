@@ -1,0 +1,102 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block title %}Delivery Identification{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-6">Delivery Identification</h1>
+
+<div class="mb-4 text-sm text-white/90">
+  <div><span class="font-semibold">TOMA:</span> {{ qr.toma_order_full }}</div>
+  <div><span class="font-semibold">Cliente:</span> {{ qr.customer }}</div>
+  <div><span class="font-semibold">Caixa:</span> {{ qr.box_nr }}</div>
+</div>
+
+
+<div class="max-w-3xl bg-white rounded-lg shadow p-6">
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Identificator (TOMA)</label>
+      <input type="text" value="{{ qr.toma_order_full }}" class="w-full border rounded px-3 py-2 bg-gray-100" disabled>
+    </div>
+
+    <div>
+      <label for="deliveryType" class="block text-sm font-medium text-gray-700 mb-1">Delivery Type</label>
+      <select id="deliveryType" name="deliveryType" class="w-full border rounded px-3 py-2">
+        <option value="" {% if not info.deliveryType %}selected{% endif %}>— Selecione —</option>
+        {% for t in types %}
+          <option value="{{ t.name }}" {% if info.deliveryType and info.deliveryType.name == t.name %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="entityRow">
+      <label for="deliveryEntity" class="block text-sm font-medium text-gray-700 mb-1">Delivery Entity</label>
+      <select id="deliveryEntity" name="deliveryEntity" class="w-full border rounded px-3 py-2">
+        <option value="">— Selecione —</option>
+        {% for e in entities %}
+          <option value="{{ e.name }}" {% if info.deliveryEntity and info.deliveryEntity.name == e.name %}selected{% endif %}>
+            {{ e.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <p class="text-xs text-gray-500 mt-1">
+        Se o tipo for Customer, este campo será preenchido automaticamente com o nome do cliente.
+      </p>
+    </div>
+
+    <div>
+      <label for="deliveryDate" class="block text-sm font-medium text-gray-700 mb-1">Delivery Date</label>
+      <input id="deliveryDate" name="deliveryDate" type="date"
+             value="{% if info.deliveryDate %}{{ info.deliveryDate|date:'Y-m-d' }}{% endif %}"
+             class="w-full border rounded px-3 py-2" />
+    </div>
+
+    <div id="costumerRow">
+      <label for="costumer" class="block text-sm font-medium text-gray-700 mb-1">Customer (texto)</label>
+      <input id="costumer" name="costumer" type="text"
+             value="{{ info.costumer }}"
+             class="w-full border rounded px-3 py-2" />
+      <p class="text-xs text-gray-500 mt-1">Quando Type = Customer, será definido como o cliente do QR.</p>
+    </div>
+
+    <div class="pt-2">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">
+        Guardar
+      </button>
+      <a href="{% url 'listQrcodes' %}" class="ml-2 inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">
+        Voltar
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function(){
+  function $(id){ return document.getElementById(id); }
+  function toggleByType(){
+    var typeSel = $('deliveryType');
+    var entitySel = $('deliveryEntity');
+    var entityRow = $('entityRow');
+    var costumer = $('costumer');
+
+    if(!typeSel) return;
+    var txt = (typeSel.options[typeSel.selectedIndex]||{}).text || typeSel.value || '';
+    var isCustomer = txt.trim().toLowerCase() === 'customer';
+
+    if (entityRow) entityRow.style.opacity = isCustomer ? '0.6' : '1';
+    if (entitySel) entitySel.disabled = isCustomer;
+    if (costumer) costumer.disabled = isCustomer;
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    toggleByType();
+    var typeSel = document.getElementById('deliveryType');
+    if (typeSel) typeSel.addEventListener('change', toggleByType);
+  });
+})();
+</script>
+{% endblock %}
