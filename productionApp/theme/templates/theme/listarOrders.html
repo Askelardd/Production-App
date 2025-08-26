@@ -24,6 +24,7 @@
         <th class="px-4 py-3">Courier</th>
         <th class="px-4 py-3">Shipping Date</th>
         <th class="px-4 py-3">Orders Coming</th>
+        <th class="px-4 py-3">Status</th>
         <th class="px-4 py-3">Comments</th>
         <th class="px-4 py-3">Ficheiros</th>
         <th class="px-4 py-3 text-right">Ações</th>
@@ -50,6 +51,16 @@
               <span class="text-gray-400">—</span>
             {% endif %}
           </td>
+          <td class="px-4 py-2">
+            {% for oc in o.orders_coming.all %}
+              {% if oc in ordersComing %}
+                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                  {% if oc.done == True %}Done{% else %}Pending{% endif %}
+                </span>
+              {% endif %}
+            {% empty %}
+              <span class="text-gray-400">—</span>
+            {% endfor %}
           <td class="px-4 py-2">{{ o.comment|linebreaksbr|default:"—" }}</td>
 
           <td class="px-4 py-2">

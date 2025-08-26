@@ -298,7 +298,7 @@ class DieWorkWorker(models.Model):
         return f"{self.worker.get_full_name()} - {self.work}"
 
 class OrdersComing(models.Model):
-    order = models.CharField(max_length=100, blank=False, null=False)
+    order = models.CharField(max_length=500, blank=False, null=False)
     inspectionMetrology = models.BooleanField(default=False)
     mark = models.BooleanField(default=False)
     urgent = models.BooleanField(default=False)

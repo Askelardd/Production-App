@@ -127,12 +127,15 @@ def listar_orders(request):
 
     orders = Order.objects.prefetch_related('orders_coming', 'files') \
                           .order_by('-shipping_date', '-id')
-    
+
+    ordersComing = OrdersComing.objects.all()
+
     is_admin = request.user.groups.filter(name="Administração").exists()
 
     return render(request, 'theme/listarOrders.html', {
         'orders': orders,
         'is_admin': is_admin,
+        'ordersComing': ordersComing,
     })
 
 

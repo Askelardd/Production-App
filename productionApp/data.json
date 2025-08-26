@@ -1,0 +1,2167 @@
+[
+{
+  "model": "auth.group",
+  "fields": {
+    "name": "Administração",
+    "permissions": [
+      [
+        "add_logentry",
+        "admin",
+        "logentry"
+      ],
+      [
+        "change_logentry",
+        "admin",
+        "logentry"
+      ],
+      [
+        "delete_logentry",
+        "admin",
+        "logentry"
+      ],
+      [
+        "view_logentry",
+        "admin",
+        "logentry"
+      ],
+      [
+        "add_group",
+        "auth",
+        "group"
+      ],
+      [
+        "change_group",
+        "auth",
+        "group"
+      ],
+      [
+        "delete_group",
+        "auth",
+        "group"
+      ],
+      [
+        "view_group",
+        "auth",
+        "group"
+      ],
+      [
+        "add_permission",
+        "auth",
+        "permission"
+      ],
+      [
+        "change_permission",
+        "auth",
+        "permission"
+      ],
+      [
+        "delete_permission",
+        "auth",
+        "permission"
+      ],
+      [
+        "view_permission",
+        "auth",
+        "permission"
+      ],
+      [
+        "add_user",
+        "auth",
+        "user"
+      ],
+      [
+        "change_user",
+        "auth",
+        "user"
+      ],
+      [
+        "delete_user",
+        "auth",
+        "user"
+      ],
+      [
+        "view_user",
+        "auth",
+        "user"
+      ],
+      [
+        "add_contenttype",
+        "contenttypes",
+        "contenttype"
+      ],
+      [
+        "change_contenttype",
+        "contenttypes",
+        "contenttype"
+      ],
+      [
+        "delete_contenttype",
+        "contenttypes",
+        "contenttype"
+      ],
+      [
+        "view_contenttype",
+        "contenttypes",
+        "contenttype"
+      ],
+      [
+        "add_session",
+        "sessions",
+        "session"
+      ],
+      [
+        "change_session",
+        "sessions",
+        "session"
+      ],
+      [
+        "delete_session",
+        "sessions",
+        "session"
+      ],
+      [
+        "view_session",
+        "sessions",
+        "session"
+      ],
+      [
+        "add_deliveryentity",
+        "theme",
+        "deliveryentity"
+      ],
+      [
+        "change_deliveryentity",
+        "theme",
+        "deliveryentity"
+      ],
+      [
+        "delete_deliveryentity",
+        "theme",
+        "deliveryentity"
+      ],
+      [
+        "view_deliveryentity",
+        "theme",
+        "deliveryentity"
+      ],
+      [
+        "add_deliveryinfo",
+        "theme",
+        "deliveryinfo"
+      ],
+      [
+        "change_deliveryinfo",
+        "theme",
+        "deliveryinfo"
+      ],
+      [
+        "delete_deliveryinfo",
+        "theme",
+        "deliveryinfo"
+      ],
+      [
+        "view_deliveryinfo",
+        "theme",
+        "deliveryinfo"
+      ],
+      [
+        "add_deliverytype",
+        "theme",
+        "deliverytype"
+      ],
+      [
+        "change_deliverytype",
+        "theme",
+        "deliverytype"
+      ],
+      [
+        "delete_deliverytype",
+        "theme",
+        "deliverytype"
+      ],
+      [
+        "view_deliverytype",
+        "theme",
+        "deliverytype"
+      ],
+      [
+        "add_diameters",
+        "theme",
+        "diameters"
+      ],
+      [
+        "change_diameters",
+        "theme",
+        "diameters"
+      ],
+      [
+        "delete_diameters",
+        "theme",
+        "diameters"
+      ],
+      [
+        "view_diameters",
+        "theme",
+        "diameters"
+      ],
+      [
+        "add_die",
+        "theme",
+        "die"
+      ],
+      [
+        "change_die",
+        "theme",
+        "die"
+      ],
+      [
+        "delete_die",
+        "theme",
+        "die"
+      ],
+      [
+        "view_die",
+        "theme",
+        "die"
+      ],
+      [
+        "add_dieinstance",
+        "theme",
+        "dieinstance"
+      ],
+      [
+        "change_dieinstance",
+        "theme",
+        "dieinstance"
+      ],
+      [
+        "delete_dieinstance",
+        "theme",
+        "dieinstance"
+      ],
+      [
+        "view_dieinstance",
+        "theme",
+        "dieinstance"
+      ],
+      [
+        "add_diework",
+        "theme",
+        "diework"
+      ],
+      [
+        "change_diework",
+        "theme",
+        "diework"
+      ],
+      [
+        "delete_diework",
+        "theme",
+        "diework"
+      ],
+      [
+        "view_diework",
+        "theme",
+        "diework"
+      ],
+      [
+        "add_dieworkworker",
+        "theme",
+        "dieworkworker"
+      ],
+      [
+        "change_dieworkworker",
+        "theme",
+        "dieworkworker"
+      ],
+      [
+        "delete_dieworkworker",
+        "theme",
+        "dieworkworker"
+      ],
+      [
+        "view_dieworkworker",
+        "theme",
+        "dieworkworker"
+      ],
+      [
+        "add_globallogs",
+        "theme",
+        "globallogs"
+      ],
+      [
+        "change_globallogs",
+        "theme",
+        "globallogs"
+      ],
+      [
+        "delete_globallogs",
+        "theme",
+        "globallogs"
+      ],
+      [
+        "view_globallogs",
+        "theme",
+        "globallogs"
+      ],
+      [
+        "add_jobs",
+        "theme",
+        "jobs"
+      ],
+      [
+        "change_jobs",
+        "theme",
+        "jobs"
+      ],
+      [
+        "delete_jobs",
+        "theme",
+        "jobs"
+      ],
+      [
+        "view_jobs",
+        "theme",
+        "jobs"
+      ],
+      [
+        "add_numeropartidos",
+        "theme",
+        "numeropartidos"
+      ],
+      [
+        "change_numeropartidos",
+        "theme",
+        "numeropartidos"
+      ],
+      [
+        "delete_numeropartidos",
+        "theme",
+        "numeropartidos"
+      ],
+      [
+        "view_numeropartidos",
+        "theme",
+        "numeropartidos"
+      ],
+      [
+        "add_order",
+        "theme",
+        "order"
+      ],
+      [
+        "change_order",
+        "theme",
+        "order"
+      ],
+      [
+        "delete_order",
+        "theme",
+        "order"
+      ],
+      [
+        "view_order",
+        "theme",
+        "order"
+      ],
+      [
+        "add_orderfile",
+        "theme",
+        "orderfile"
+      ],
+      [
+        "change_orderfile",
+        "theme",
+        "orderfile"
+      ],
+      [
+        "delete_orderfile",
+        "theme",
+        "orderfile"
+      ],
+      [
+        "view_orderfile",
+        "theme",
+        "orderfile"
+      ],
+      [
+        "add_orderscoming",
+        "theme",
+        "orderscoming"
+      ],
+      [
+        "change_orderscoming",
+        "theme",
+        "orderscoming"
+      ],
+      [
+        "delete_orderscoming",
+        "theme",
+        "orderscoming"
+      ],
+      [
+        "view_orderscoming",
+        "theme",
+        "orderscoming"
+      ],
+      [
+        "add_pedidosdiametro",
+        "theme",
+        "pedidosdiametro"
+      ],
+      [
+        "change_pedidosdiametro",
+        "theme",
+        "pedidosdiametro"
+      ],
+      [
+        "delete_pedidosdiametro",
+        "theme",
+        "pedidosdiametro"
+      ],
+      [
+        "view_pedidosdiametro",
+        "theme",
+        "pedidosdiametro"
+      ],
+      [
+        "add_productdeletelog",
+        "theme",
+        "productdeletelog"
+      ],
+      [
+        "change_productdeletelog",
+        "theme",
+        "productdeletelog"
+      ],
+      [
+        "delete_productdeletelog",
+        "theme",
+        "productdeletelog"
+      ],
+      [
+        "view_productdeletelog",
+        "theme",
+        "productdeletelog"
+      ],
+      [
+        "add_products",
+        "theme",
+        "products"
+      ],
+      [
+        "change_products",
+        "theme",
+        "products"
+      ],
+      [
+        "delete_products",
+        "theme",
+        "products"
+      ],
+      [
+        "view_products",
+        "theme",
+        "products"
+      ],
+      [
+        "add_qrdata",
+        "theme",
+        "qrdata"
+      ],
+      [
+        "change_qrdata",
+        "theme",
+        "qrdata"
+      ],
+      [
+        "delete_qrdata",
+        "theme",
+        "qrdata"
+      ],
+      [
+        "view_qrdata",
+        "theme",
+        "qrdata"
+      ],
+      [
+        "add_tolerance",
+        "theme",
+        "tolerance"
+      ],
+      [
+        "change_tolerance",
+        "theme",
+        "tolerance"
+      ],
+      [
+        "delete_tolerance",
+        "theme",
+        "tolerance"
+      ],
+      [
+        "view_tolerance",
+        "theme",
+        "tolerance"
+      ],
+      [
+        "add_wherebox",
+        "theme",
+        "wherebox"
+      ],
+      [
+        "change_wherebox",
+        "theme",
+        "wherebox"
+      ],
+      [
+        "delete_wherebox",
+        "theme",
+        "wherebox"
+      ],
+      [
+        "view_wherebox",
+        "theme",
+        "wherebox"
+      ],
+      [
+        "add_wheredie",
+        "theme",
+        "wheredie"
+      ],
+      [
+        "change_wheredie",
+        "theme",
+        "wheredie"
+      ],
+      [
+        "delete_wheredie",
+        "theme",
+        "wheredie"
+      ],
+      [
+        "view_wheredie",
+        "theme",
+        "wheredie"
+      ]
+    ]
+  }
+},
+{
+  "model": "auth.group",
+  "fields": {
+    "name": "Q-Office",
+    "permissions": []
+  }
+},
+{
+  "model": "auth.group",
+  "fields": {
+    "name": "Produção",
+    "permissions": []
+  }
+},
+{
+  "model": "auth.group",
+  "fields": {
+    "name": "Comercial",
+    "permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$euIW9SFo5yzdk4f5Uu1Y6q$RnSj+kJn9SzwH7upHMAsMj9yaAMKRt4Di4hbelfRwoY=",
+    "last_login": "2025-08-25T13:35:40.362Z",
+    "is_superuser": true,
+    "username": "Administrador",
+    "first_name": "",
+    "last_name": "",
+    "email": "andrepimentel@toma.tools",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-08-22T10:07:29Z",
+    "groups": [
+      [
+        "Administração"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$afbVqjgoQda25rqLIvB09P$m5oelWOSQXCvQhVH6inve/RbGde2rfwnCvFNvNomuaE=",
+    "last_login": "2025-08-25T08:09:16.561Z",
+    "is_superuser": false,
+    "username": "RicardoCruz",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-22T10:12:52Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$bnamaqDVCaCnY4JgP3CuCT$nf1tU/bT8RGpW8CTFcaZy6ZuktOwv0PwprieL1kY4d0=",
+    "last_login": "2025-08-25T13:22:21.957Z",
+    "is_superuser": false,
+    "username": "Sonia",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-22T10:13:05Z",
+    "groups": [
+      [
+        "Q-Office"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$krZvJtc12CypprumUGrCYc$yQMwX4rp1TXHHO9tHs4MtgL/HyEvBY5pO1q0bfu6qCQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "CristinaLinhares",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:40:31Z",
+    "groups": [
+      [
+        "Administração"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$nRuV66ZrL9QVbY1FqYErTv$MU92HdGYLwnkeITuxj4o8fTJbOfmH+4F2ZdbzBBHclw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "DanielaPenagos",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": true,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:48:40Z",
+    "groups": [
+      [
+        "Administração"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$N5cBneALdXphhJcyAGHkTK$pL35jDuR1AXN5lwvAYSfc9UidcEktTbhkGiOHzg6pDU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "AngelicaBranco",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:51:24Z",
+    "groups": [
+      [
+        "Administração"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$Gnh9Q4GjV2O4s9en5JtQyd$D7jfvbCl9qbl5gH6VsMrtI91ninjusa6AFNqF5W210Y=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "JessicaCunha",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:56:03Z",
+    "groups": [
+      [
+        "Q-Office"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$OifFOvk31bSzclZiTcercr$D1bcOhkHzGV77iwMuNYEbOKawPoBrhd+RDj90AJtFVU=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "TabataSimas",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:58:47Z",
+    "groups": [
+      [
+        "Q-Office"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$FOSnKvDzUuxSPGm6TqC3dy$V8YRjsSsuP3pvT45Qk3RvSR0bOZZD7ZHAfBiJCTDtKw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "SilviaRojas",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T13:59:42Z",
+    "groups": [
+      [
+        "Q-Office"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$gfEuSizBm5Dva0u49hgvbR$TybeIRW4tnVHRVjWACtp959QSaOqmnRuMsHJTzN/oLE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "Xana",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:12:41Z",
+    "groups": [
+      [
+        "Q-Office"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$d0PdPQdI0Jxko3gr1Oohja$gnCv5kxNgsLOnkSm4itf6qH/R3mHBPv/8aHngUla//Y=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "SoniaSantos",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:21:12Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$2R5mC4NFzdDgHr7PikN4HY$cqI7vlsZ5Dzqw/dS/+Fudka+XsaTBuKGINfasb7sh0Q=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "DomingoDias",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:21:27Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$z8Uugvgn0HI1MHuZKuOcd2$aihYo3qaMZUbD9HfRhJwK1YTflzNDDnPZXRlifMrVnA=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "AnaFerrira",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:22:05Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$HuD0dIHdnLHngOgaC2eIbh$4PdRB07Wgy/xYxp0LsTJWbzwfUNFpgLQjEKH+lIQ0AI=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ClaudiaSa",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:22:22Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$0vYSxDLktsDqtfYndGssS6$OfqggrbUA6vXMvYnIHDy+5OtyiE897ecofeM35KAzBw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "SergioEnes",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:22:39Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$Mqh8QcHQiWjVk51qaCSGsa$au57khXb/9uXQMlsTqqYzqFvPN8K7WDZywj1Wehkgiw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "MarianaCosta",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:22:53Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$pjp910qpPSbYrgvJ905KBc$QtL2zDud8dr3B45rEg8UU2R7XBqDbdrF8FB11L6NZdQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "RafaelFernandes",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:23:19Z",
+    "groups": [
+      [
+        "Q-Office"
+      ],
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$ESSbKRZm6DPRoN28MzgUJ0$afIGge25cpQVtH42cOcSBHczk2YVaxhFWS7KBM8FHZ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "PauloMarques",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:23:34Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$ytEdKNXgEkaDkPlWi7lYnk$L4vy7DVI9Q/W5+63cGLpuLuBjIaW5jDcgmhhnYaY+KQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "LeandrroOchoa",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:23:53Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$G1MFcZAhUCJE8rLwbFY7s3$BPVfUG1G0KSRRAGlujwqaUT9uwOioh1sFarg5cv2STE=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "LeilaOrmache",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:24:06Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$42PgiMYELBNwiLs24hLRSz$nYziZI4mJcbH52J3c94VingOq75AAmtz/A8fKk9O7bw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ElisaCamalandua",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:24:22Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$21JeJ0kXsuHrKsWJePql3C$rqXzmHWzN4YNf7xPqLbR0twkbFwrfx+OM96DIGZ0PWw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ReinaldoAlbuquerque",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:24:32Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$bKYteXBVAHiK9AOe1g0U7f$SoJtb2Y/oWzxQgnd3zCRvvFBPNefFO5JFAFtT6XNNtw=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "JadnaAvila",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:24:51Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$p41haMVWT5q0osF0xvevMq$BmrAl+QQuOp5jt/Rqq2gkwW4FyAwUeFB/Dc/6UaeBX8=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "CarlosSilva",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:25:06Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$eQONKmIExLonh1DdLmKcxF$F6B1C7Xi5VmxA0iBHK6DAEY5Z4xgVZ9sYadU0pJ8yUQ=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "GleicyMota",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:25:38Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$GERnlCRTghqlsOHrEvKpnB$pAxSmkS/tFRH0zsmCkVdAZsqNy3mdOUBUoUrA7QX+/I=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ItaloFreitas",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:25:55Z",
+    "groups": [
+      [
+        "Produção"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$y4yHedISGDvR1kuN9RZDF6$bW7WTC/85luqWH457icJt3RwqQLYgb+UgarGBOCBVog=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "MariaMacedo",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:26:43Z",
+    "groups": [
+      [
+        "Comercial"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "auth.user",
+  "fields": {
+    "password": "pbkdf2_sha256$720000$tMVrrCNVaFf8ISM5DgFYMa$rwQtwahqEyFYS3OV6kMDRLqln1Irp6utPQtYNlfHfTM=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "MariaLinda",
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2025-08-25T14:27:01Z",
+    "groups": [
+      [
+        "Comercial"
+      ]
+    ],
+    "user_permissions": []
+  }
+},
+{
+  "model": "sessions.session",
+  "pk": "s2odrt7ws3nzyrklivswjfuv0rcxzu85",
+  "fields": {
+    "session_data": ".eJxVjEEOgjAQRe_StWmm0A7FpXvP0Mx0BosaSCisjHdXEha6_e-9_zKJtrWkreqSRjFn48zpd2PKD512IHeabrPN87QuI9tdsQet9jqLPi-H-3dQqJZvTdA6r9BH7IMKDEIdYpDgkDSwQGbw5IAxRh0ayC364EQ7bgJK5Ma8P9x1N8I:1uqXMK:BDnaf663CNQuYCq3TicAZh-i6hAjJRMKTMaGiUKXprM",
+    "expire_date": "2025-09-08T13:35:40.379Z"
+  }
+},
+{
+  "model": "theme.jobs",
+  "pk": 1,
+  "fields": {
+    "job": "F",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.jobs",
+  "pk": 2,
+  "fields": {
+    "job": "R",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.jobs",
+  "pk": 3,
+  "fields": {
+    "job": "P",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.jobs",
+  "pk": 4,
+  "fields": {
+    "job": "W",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.jobs",
+  "pk": 5,
+  "fields": {
+    "job": "N",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.die",
+  "pk": 1,
+  "fields": {
+    "die_type": "ND",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.die",
+  "pk": 2,
+  "fields": {
+    "die_type": "PCD",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.die",
+  "pk": 3,
+  "fields": {
+    "die_type": "MCD",
+    "descricao": null
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 1,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 2,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 3,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 4,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 5,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 6,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.tolerance",
+  "pk": 7,
+  "fields": {
+    "min": "0.0030",
+    "max": "0.0010"
+  }
+},
+{
+  "model": "theme.diameters",
+  "pk": 1,
+  "fields": {
+    "min": "0.1250",
+    "max": "0.1340"
+  }
+},
+{
+  "model": "theme.qrdata",
+  "pk": 1,
+  "fields": {
+    "customer": "YA.56",
+    "diameters": "0,4540",
+    "customer_order_nr": "PO90166, L24",
+    "toma_order_nr": "2592",
+    "toma_order_year": "2025",
+    "toma_order_full": "2025-2592",
+    "tolerance": null,
+    "box_nr": 1,
+    "qt": 2,
+    "created_at": "2025-08-22T10:16:24.521Z",
+    "observations": "nenhuma"
+  }
+},
+{
+  "model": "theme.qrdata",
+  "pk": 2,
+  "fields": {
+    "customer": "R24G3",
+    "diameters": "1,5556",
+    "customer_order_nr": "n/a ",
+    "toma_order_nr": "2321",
+    "toma_order_year": "2025",
+    "toma_order_full": "2025-2321",
+    "tolerance": null,
+    "box_nr": 2,
+    "qt": 5,
+    "created_at": "2025-08-22T10:19:01.098Z",
+    "observations": "teste"
+  }
+},
+{
+  "model": "theme.wherebox",
+  "pk": 1,
+  "fields": {
+    "order_number": 1,
+    "where": "POLIMENTO"
+  }
+},
+{
+  "model": "theme.wheredie",
+  "pk": 1,
+  "fields": {
+    "die": 6,
+    "where": "DESBASTE_AGULHA",
+    "updated_at": "2025-08-22T10:24:47.020Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 1,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador criou uma nova caixa com o número 1.",
+    "timestamp": "2025-08-22T10:16:24.528Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 2,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador criou uma nova caixa com o número 2.",
+    "timestamp": "2025-08-22T10:19:01.131Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 3,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador adicionou/atualizou dies para o QR Code 2321.",
+    "timestamp": "2025-08-22T10:20:14.835Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 4,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador adicionou/atualizou dies para o QR Code 2592.",
+    "timestamp": "2025-08-22T10:20:45.178Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 5,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador adicionou um pedido de diâmetro 1.732 para 2 fieiras no QR Code 2025-2592.",
+    "timestamp": "2025-08-22T10:22:51.246Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 6,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador adicionou o partido 1 ao QR Code 2025-2321.",
+    "timestamp": "2025-08-22T10:23:16.915Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 7,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador criou um trabalho 'polimento' para o Die 1697340.",
+    "timestamp": "2025-08-22T10:23:45.577Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 8,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador atualizou/adicionou os diâmetros do Die 1697340 para 0.125 - 0.134.",
+    "timestamp": "2025-08-22T10:23:57.331Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 9,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador enviou a fieira 1697340 para Desbaste Agulha",
+    "timestamp": "2025-08-22T10:24:47.029Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 10,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador enviou a caixa 2592 para Polimento",
+    "timestamp": "2025-08-22T10:24:52.866Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 11,
+  "fields": {
+    "user": [
+      "Sonia"
+    ],
+    "action": "Sonia fez login no sistema.",
+    "timestamp": "2025-08-22T11:01:22.211Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 12,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-22T11:03:41.931Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 13,
+  "fields": {
+    "user": [
+      "Sonia"
+    ],
+    "action": "Sonia fez login no sistema.",
+    "timestamp": "2025-08-22T11:05:33.180Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 14,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-22T11:05:49.777Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 15,
+  "fields": {
+    "user": [
+      "RicardoCruz"
+    ],
+    "action": "RicardoCruz fez login no sistema.",
+    "timestamp": "2025-08-25T07:44:50.178Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 16,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-25T08:00:34.862Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 17,
+  "fields": {
+    "user": [
+      "RicardoCruz"
+    ],
+    "action": "RicardoCruz fez login no sistema.",
+    "timestamp": "2025-08-25T08:09:16.569Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 18,
+  "fields": {
+    "user": [
+      "Sonia"
+    ],
+    "action": "Sonia fez login no sistema.",
+    "timestamp": "2025-08-25T08:10:04.557Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 19,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-25T13:21:24.780Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 20,
+  "fields": {
+    "user": [
+      "Sonia"
+    ],
+    "action": "Sonia fez login no sistema.",
+    "timestamp": "2025-08-25T13:22:21.969Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 21,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-25T13:23:42.086Z"
+  }
+},
+{
+  "model": "theme.globallogs",
+  "pk": 22,
+  "fields": {
+    "user": [
+      "Administrador"
+    ],
+    "action": "Administrador fez login no sistema.",
+    "timestamp": "2025-08-25T13:35:40.370Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 1,
+  "fields": {
+    "customer": 2,
+    "serial_number": "34432432",
+    "diameter_text": "1,432",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "1.5556",
+    "die": 1,
+    "job": 1,
+    "tolerance": 1,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:14.746Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 2,
+  "fields": {
+    "customer": 2,
+    "serial_number": "34432433",
+    "diameter_text": "1,432",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "1.5556",
+    "die": 1,
+    "job": 1,
+    "tolerance": 2,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:14.764Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 3,
+  "fields": {
+    "customer": 2,
+    "serial_number": "34432434",
+    "diameter_text": "1,432",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "1.5556",
+    "die": 1,
+    "job": 1,
+    "tolerance": 3,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:14.782Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 4,
+  "fields": {
+    "customer": 2,
+    "serial_number": "34432435",
+    "diameter_text": "1,432",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "1.5556",
+    "die": 1,
+    "job": 1,
+    "tolerance": 4,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:14.807Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 5,
+  "fields": {
+    "customer": 2,
+    "serial_number": "34432436",
+    "diameter_text": "1,432",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "1.5556",
+    "die": 1,
+    "job": 1,
+    "tolerance": 5,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:14.824Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 6,
+  "fields": {
+    "customer": 1,
+    "serial_number": "1697340",
+    "diameter_text": "0.564",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "0.4540",
+    "die": 3,
+    "job": 3,
+    "tolerance": 6,
+    "diam_max_min": 1,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:45.153Z"
+  }
+},
+{
+  "model": "theme.dieinstance",
+  "pk": 7,
+  "fields": {
+    "customer": 1,
+    "serial_number": "1697341",
+    "diameter_text": "0.564",
+    "cone": "18º",
+    "bearing": "30%",
+    "diam_desbastado": "1.5432",
+    "diam_requerido": "0.4540",
+    "die": 3,
+    "job": 3,
+    "tolerance": 7,
+    "diam_max_min": null,
+    "observations": "",
+    "created_at": "2025-08-22T10:20:45.169Z"
+  }
+},
+{
+  "model": "theme.numeropartidos",
+  "pk": 1,
+  "fields": {
+    "qr_code": 2,
+    "partido": 1,
+    "serie_dies_partidos": "34432436",
+    "checkbox": false,
+    "observations": "",
+    "created_at": "2025-08-22T10:23:16.902Z"
+  }
+},
+{
+  "model": "theme.pedidosdiametro",
+  "pk": 1,
+  "fields": {
+    "qr_code": 1,
+    "diametro": "1.732",
+    "numero_fieiras": 2,
+    "pedido_por": "Andre",
+    "serie_dies": "1697341, 1697340",
+    "checkbox": false,
+    "observations": "",
+    "created_at": "2025-08-22T10:22:51.210Z"
+  }
+},
+{
+  "model": "theme.diework",
+  "pk": 1,
+  "fields": {
+    "die": 6,
+    "work_type": "polimento",
+    "subtype": "saida",
+    "created_at": "2025-08-22T10:23:45.565Z"
+  }
+},
+{
+  "model": "theme.deliverytype",
+  "pk": 1,
+  "fields": {
+    "name": "Supplier"
+  }
+},
+{
+  "model": "theme.deliverytype",
+  "pk": 2,
+  "fields": {
+    "name": "Customer"
+  }
+},
+{
+  "model": "theme.deliveryentity",
+  "pk": 1,
+  "fields": {
+    "name": "Toma Tools",
+    "email": "portugal@toma.tools"
+  }
+},
+{
+  "model": "theme.deliveryentity",
+  "pk": 2,
+  "fields": {
+    "name": "P2",
+    "email": null
+  }
+},
+{
+  "model": "theme.deliveryentity",
+  "pk": 3,
+  "fields": {
+    "name": "P3",
+    "email": null
+  }
+},
+{
+  "model": "theme.deliveryentity",
+  "pk": 4,
+  "fields": {
+    "name": "224",
+    "email": null
+  }
+},
+{
+  "model": "theme.deliveryentity",
+  "pk": 5,
+  "fields": {
+    "name": "R24G3",
+    "email": null
+  }
+},
+{
+  "model": "theme.deliveryinfo",
+  "pk": 1,
+  "fields": {
+    "identificator": "2025-2592",
+    "deliveryEntity": "P2",
+    "deliveryDate": "2025-08-25",
+    "deliveryType": "Supplier",
+    "costumer": "YA.56"
+  }
+},
+{
+  "model": "theme.deliveryinfo",
+  "pk": 2,
+  "fields": {
+    "identificator": "2025-2321",
+    "deliveryEntity": "R24G3",
+    "deliveryDate": "2025-08-22",
+    "deliveryType": "Customer",
+    "costumer": "R24G3"
+  }
+},
+{
+  "model": "theme.dieworkworker",
+  "pk": 1,
+  "fields": {
+    "work": 1,
+    "worker": [
+      "Sonia"
+    ],
+    "added_at": "2025-08-22T10:24:06.215Z"
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 1,
+  "fields": {
+    "order": "No.149 – 2025/2662 – PROFILE PCD DIE 1 pc - Pre-shipment inspection + Send on the 25th/08",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": true,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 2,
+  "fields": {
+    "order": "No.18 – 2025/2800 – ND DIES 30 pcs. Pre-shipment inspection. Shipment day after receiving. ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 3,
+  "fields": {
+    "order": "No.45 – 2025/2763 – ND DIES 48 pcs - Inspection Metrology + Conoptica report + Send as soon as possible",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 4,
+  "fields": {
+    "order": "No.196 – 2025/2669 – RECONDITIONING DIE 1 pc -  Inspection Metrology + Send on the 25th/08 ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 5,
+  "fields": {
+    "order": "No.245 – 2025/2850 –  ND DIES 24 pcs - Inspection from Xana needed, please check the dies do not have a step between Casing and Diamond. ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 6,
+  "fields": {
+    "order": "No.133 – 2025/2513 – ND DIES 180 pcs + PCD DIES 48 pcs",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 7,
+  "fields": {
+    "order": "No.6 – 2025/2773+2811 –  PROFILE PCD DIES 3 pcs",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 8,
+  "fields": {
+    "order": "No.9 – 2025/2654 –  RECONDITIONING DIES 33 pcs",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 9,
+  "fields": {
+    "order": "No.245 – 2025/2850 –  ND DIES 24 pcs ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 10,
+  "fields": {
+    "order": "No.133 – 2025/2513 – ND DIES 180 pcs + PCD DIES 48 pcs ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 11,
+  "fields": {
+    "order": "No.6 – 2025/2773+2811 –  PROFILE PCD DIES 3 pcs ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 12,
+  "fields": {
+    "order": "No.9 – 2025/2654 –  RECONDITIONING DIES 33 pcs ",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 13,
+  "fields": {
+    "order": "No.75 – 2025/2795 –  ND DIES 40 pcs + RECONDITIONING DIES 20 pcs",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": false,
+    "done": true,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 14,
+  "fields": {
+    "order": "No.75 – 2025/2873 –  PCD DIES 4 pcs ",
+    "inspectionMetrology": true,
+    "mark": true,
+    "urgent": true,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.orderscoming",
+  "pk": 15,
+  "fields": {
+    "order": "No.42 – 2025/2763 – ND DIES 48 pcs - Inspection Metrology + Conoptica report + Send as soon as possible",
+    "inspectionMetrology": false,
+    "mark": false,
+    "urgent": true,
+    "done": false,
+    "comment": ""
+  }
+},
+{
+  "model": "theme.order",
+  "pk": 3,
+  "fields": {
+    "tracking_number": "9508459586",
+    "courier": "DHL",
+    "shipping_date": "2025-08-22",
+    "comment": "Inspection from Xana needed, please check the dies do not have a step between Casing and Diamond. ",
+    "orders_coming": [
+      5,
+      6,
+      7,
+      8
+    ]
+  }
+},
+{
+  "model": "theme.order",
+  "pk": 4,
+  "fields": {
+    "tracking_number": "7488589636",
+    "courier": null,
+    "shipping_date": "2025-08-22",
+    "comment": "RECONDITIONING DIES 20 pcs",
+    "orders_coming": [
+      13,
+      14
+    ]
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 6,
+  "fields": {
+    "order": 3,
+    "file": "order_files/9-2654SET4.xlsx",
+    "uploaded_at": "2025-08-22T10:45:31.788Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 7,
+  "fields": {
+    "order": 3,
+    "file": "order_files/133-2513-cono.xlsx",
+    "uploaded_at": "2025-08-22T10:45:31.809Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 8,
+  "fields": {
+    "order": 3,
+    "file": "order_files/250821-Measurement_Report.xlsx",
+    "uploaded_at": "2025-08-22T10:45:31.839Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 9,
+  "fields": {
+    "order": 3,
+    "file": "order_files/25070598-4.705x2.345.pdf",
+    "uploaded_at": "2025-08-22T10:45:31.864Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 10,
+  "fields": {
+    "order": 3,
+    "file": "order_files/25070751-5.938X1.409.pdf",
+    "uploaded_at": "2025-08-22T10:45:31.884Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 11,
+  "fields": {
+    "order": 3,
+    "file": "order_files/25070752-6.290x1.761.pdf",
+    "uploaded_at": "2025-08-22T10:45:31.904Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 12,
+  "fields": {
+    "order": 4,
+    "file": "order_files/75-2795.xlsx",
+    "uploaded_at": "2025-08-22T10:49:26.149Z",
+    "restricted": true
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 13,
+  "fields": {
+    "order": 4,
+    "file": "order_files/250822-20250822001-002-DHL.pdf",
+    "uploaded_at": "2025-08-22T10:49:26.161Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 14,
+  "fields": {
+    "order": 4,
+    "file": "order_files/250822-20250822001-002-DHL.xlsx",
+    "uploaded_at": "2025-08-22T10:49:26.170Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 15,
+  "fields": {
+    "order": 4,
+    "file": "order_files/250822-Measurement_Report.xlsx",
+    "uploaded_at": "2025-08-22T10:49:26.180Z",
+    "restricted": false
+  }
+},
+{
+  "model": "theme.orderfile",
+  "pk": 16,
+  "fields": {
+    "order": 4,
+    "file": "order_files/Toma_Tools_EtiquetasNovas_HYRb28P.docx",
+    "uploaded_at": "2025-08-22T11:01:06.211Z",
+    "restricted": false
+  }
+}
+]
