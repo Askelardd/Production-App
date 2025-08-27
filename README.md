@@ -1,7 +1,7 @@
 # 📦 Sistema de Gestão de Caixas e Esferas - Toma Tools
 
 ## 📖 Introdução
-Este projeto foi desenvolvido com o objetivo de **organizar e otimizar o setor de Produção e Q-Office da empresa Toma Tools**, garantindo melhor controle sobre **onde estão e como estão as caixas e esferas da empresa**.
+Este projeto foi desenvolvido com o objetivo de **organizar e otimizar o setor de Produção, Q-Office, Administração e Comercial da empresa Toma Tools**, garantindo melhor controle sobre **onde estão e como estão as caixas, fieiras e encomendas da empresa**.
 
 ---
 
@@ -25,6 +25,7 @@ Este projeto foi desenvolvido com o objetivo de **organizar e otimizar o setor d
   - Alterar diâmetro
   - Mover caixas para outros setores
 - **Exportação de dados para Excel** para relatórios e análise.
+- **Criação/Edição de encomendas** para uma melhor gestão das encomendas e saber onde elas estão localizadas
 
 ---
 
