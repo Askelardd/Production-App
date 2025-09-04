@@ -6,6 +6,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# database
+productionApp/db.sqlite3
+db.sqlite3
+
 # Logs
 logs/
 *.log
@@ -35,10 +39,8 @@ Thumbs.db
 # Misc
 coverage/
 *.tgz
-Production-App-danielaAlteracoes.zip
-transportInfo/
-productionApp/media/
-productionApp/staticfiles/
-productionApp/dados.json
-productionApp/start_nginx.bat
-productionApp/stop_nginx.bat
+
+productionApp/
+
+transportInfo/staticfiles/
+transportInfo/media
