@@ -1,10 +1,16 @@
+import calendar
+from datetime import date, timedelta
+import datetime
 import json  # type: ignore
-import logging  # type: ignore
+import logging
+from unicodedata import name
+from urllib import request  # type: ignore
+from django.conf import settings
 from django.http import JsonResponse  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
 from django.contrib import messages  # type: ignore
 from django.contrib.auth.models import User  # type: ignore
-from django.contrib.auth import authenticate, login  # type: ignore
+from django.contrib.auth import authenticate, login, logout # type: ignore
 from django.contrib.auth.decorators import login_required  # type: ignore
 from django.views.decorators.http import require_http_methods  # type: ignore
 from django.views.decorators.csrf import csrf_exempt  # type: ignore
@@ -15,6 +21,11 @@ import pandas as pd  # type: ignore
 from django.http import HttpResponse  # type: ignore
 from django.db.models import Count  # type: ignore
 from django.views.decorators.http import require_POST  # type: ignore
+from django.db import transaction # type: ignore
+from django.core.mail import send_mail # type: ignore
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.decorators import login_required
+
 
 def home(request):
     users = User.objects.all()
@@ -28,6 +39,382 @@ def productionMenu(request):
 
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
+
+def permission_denied_view(request, exception=None):
+    return render(request, '403.html', status=403)
+
+def orders(request):
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
+        return permission_denied_view(request)
+    choices = Order.courier_choices
+    plants = Order.plant_choices
+    orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
+    
+    if request.method == 'POST':
+        plant = request.POST.get('plant') or None
+        tracking_number = request.POST.get('tracking_number')
+        orders_coming_ids = request.POST.getlist('orders_coming')  # <- agora é uma lista
+        courier = request.POST.get('courier') or None
+        shipping_date_str = request.POST.get('shipping_date') or ""
+        comment = request.POST.get('comment', '')
+
+        # Parse da data
+        shipping_date = None
+        if shipping_date_str:
+            try:
+                shipping_date = datetime.datetime.strptime(shipping_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de envio inválida.")
+                return render(request, 'theme/orders.html', {
+                    'courier_choices': choices,
+                    'orders_coming': orders_coming_list,
+                })
+
+        # Validação básica
+        if not tracking_number:
+            messages.error(request, "Número de rastreamento é obrigatório.")
+            return render(request, 'theme/orders.html', {
+                'courier_choices': choices,
+                'orders_coming': orders_coming_list,
+                'plant_choices': plants,
+            })
+
+        # Busca múltiplos OrdersComing
+        orders_coming_qs = OrdersComing.objects.filter(id__in=orders_coming_ids)
+
+        # Cria a Order (sem orders_coming ainda)
+        order = Order.objects.create(
+            plant=plant,
+            tracking_number=tracking_number,
+            courier=courier,
+            shipping_date=shipping_date,
+            comment=comment,
+        )
+
+        # Adiciona os múltiplos OrdersComing
+        order.orders_coming.set(orders_coming_qs)
+
+        # Grava os ficheiros
+        for index, f in enumerate(request.FILES.getlist('files')):
+            restricted = bool(request.POST.get(f'restricted_{index}'))
+            OrderFile.objects.create(order=order, file=f, restricted=restricted)
+
+        send_mail(
+            subject=f"Novo pedido criado: {order.tracking_number} de {order.plant}",
+            message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
+                     f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=settings.DEFAULT_REPLY_TO_EMAIL if isinstance(settings.DEFAULT_REPLY_TO_EMAIL, list) else [settings.DEFAULT_REPLY_TO_EMAIL],  # lista de emails
+        )
+
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} criou o pedido {order.tracking_number}.",
+        )
+
+        messages.success(request, "Pedido criado com sucesso!")
+        return redirect('listarOrders')
+
+    return render(request, 'theme/orders.html', {
+        'courier_choices': choices,
+        'plant_choices': plants,
+        'orders_coming': orders_coming_list,
+    })
+
+@csrf_exempt
+def create_orders_coming_ajax(request):
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
+        return permission_denied_view(request)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            oc = OrdersComing.objects.create(
+                order=data.get('order'),
+                urgent=data.get('urgent', False),
+                comment=data.get('comment', ''),
+            )
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'id': oc.id,
+                    'order': oc.order,
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)})
+    return JsonResponse({'success': False, 'message': 'Método inválido'})
+
+def listar_orders(request):
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists():
+        return permission_denied_view(request)
+
+    orders = Order.objects.prefetch_related('orders_coming', 'files') \
+                          .order_by('-shipping_date', '-id')
+
+    ordersComing = OrdersComing.objects.all()
+
+    is_admin = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
+
+    return render(request, 'theme/listarOrders.html', {
+        'orders': orders,
+        'is_admin': is_admin,
+        'ordersComing': ordersComing,
+    })
+
+
+def edit_order(request, order_id):
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
+        messages.error(request, "Não tem permissão para editar esta ordem.")
+        return redirect('listarOrders')
+
+    order = get_object_or_404(Order, id=order_id)
+    files = order.files.all()
+    choices = Order.courier_choices
+    plants = Order.plant_choices
+    orders_coming_list = OrdersComing.objects.all().order_by('order')
+
+    if request.method == 'POST':
+        plants = request.POST.get('plant') or None
+        order.tracking_number = request.POST.get('tracking_number')
+        courier = request.POST.get('courier') or None
+        shipping_date_str = request.POST.get('shipping_date') or ""
+        arriving_date_str = request.POST.get('arriving_date') or ""
+        comment = request.POST.get('comment', '')
+        orders_coming_ids = request.POST.getlist('orders_coming')  # <-- now a list of IDs
+
+        
+        arriving_date = None
+        if arriving_date_str:
+            try:
+                arriving_date = datetime.datetime.strptime(arriving_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de chegada inválida.")
+                return render(request, 'theme/editOrder.html', {
+                    'order': order,
+                    'files': files,
+                    'courier_choices': choices,
+                    'plant_choices': plants,
+                    'orders_coming': orders_coming_list,
+                })
+        # Parse shipping date
+        shipping_date = None
+        if shipping_date_str:
+            try:
+                shipping_date = datetime.datetime.strptime(shipping_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de envio inválida.")
+                return render(request, 'theme/editOrder.html', {
+                    'order': order,
+                    'files': files,
+                    'courier_choices': choices,
+                    'plant_choices': plants,
+                    'orders_coming': orders_coming_list,
+                })
+
+        order.courier = courier
+        order.plant = plants
+        order.shipping_date = shipping_date
+        order.arriving_date = arriving_date
+        order.comment = comment
+        order.save()
+
+        # Atualiza relação ManyToMany
+        orders_coming_qs = OrdersComing.objects.filter(id__in=orders_coming_ids)
+        order.orders_coming.set(orders_coming_qs)
+
+        # Novos ficheiros
+        for index, f in enumerate(request.FILES.getlist('files')):
+            restricted = bool(request.POST.get(f'restricted_{index}'))
+            OrderFile.objects.create(order=order, file=f, restricted=restricted)
+            
+        
+        for f in files:
+            is_restricted = bool(request.POST.get(f'restricted_existing_%s' % f.id))
+            if f.restricted != is_restricted:
+                f.restricted = is_restricted
+                f.save()
+                
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} editou o pedido {order.tracking_number}.",
+        )
+
+        messages.success(request, "Pedido atualizado com sucesso!")
+        return redirect('listarOrders')
+    
+
+
+    return render(request, 'theme/editOrder.html', {
+        'order': order,
+        'files': files,
+        'courier_choices': choices,
+        'plant_choices': plants,
+        'orders_coming': orders_coming_list,
+    })
+
+@require_POST
+def delete_order(request, order_id):
+    if not request.user.groups.filter(name__in=['Administracao']).exists():
+        messages.error(request, "Não tem permissão para eliminar esta ordem.")
+        return redirect('listarOrders')
+
+    order = get_object_or_404(Order, id=order_id)
+    order.delete()
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} eliminou o pedido {order.tracking_number}.",
+    )
+    messages.success(request, "Pedido eliminado com sucesso!")
+    return redirect('listarOrders')
+
+@require_POST
+def delete_order_file(request, file_id):
+    f = get_object_or_404(OrderFile, id=file_id)
+    order_id = f.order_id
+    # Apaga o ficheiro do storage também:
+    if f.file:
+        f.file.delete(save=False)
+    f.delete()
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} eliminou o ficheiro {f.file.name}.",
+    )
+    messages.success(request, "Ficheiro eliminado com sucesso!")
+    # volta para a listagem ou para a edição da order
+    return redirect('listarOrders')  # ou redirect('editOrder', order_id=order_id)
+
+
+@require_http_methods(["GET", "POST"])
+def edit_orders_coming(request, oc_id):
+    orders_coming = get_object_or_404(OrdersComing, id=oc_id)
+
+    if request.method == 'POST':
+        orders_coming.order = request.POST.get('order')
+        orders_coming.inspectionMetrology = request.POST.get('inspectionMetrology') == 'on'
+        orders_coming.preshipment = request.POST.get('preshipment') == 'on'
+        orders_coming.mark = request.POST.get('mark') == 'on'
+        orders_coming.urgent = request.POST.get('urgent') == 'on'
+        orders_coming.done = request.POST.get('done') == 'on'
+        orders_coming.comment = request.POST.get('comment', '')
+        orders_coming.save()
+
+        messages.success(request, "OrdersComing atualizado com sucesso.")
+        return redirect('listarOrders')
+
+    return render(request, 'theme/editOrdersComing.html', {
+        'oc': orders_coming
+    })
+
+def exportOrderExcel(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    orders_coming = order.orders_coming.all()
+    order_files = order.files.all()
+
+    # Criar lista com dados
+    data = []
+    for orders in orders_coming:
+        data.append({
+            'Plant': order.plant or 'N/A',
+            'Shipping Number': order.tracking_number or 'N/A',
+            'Order': orders.order,
+            'Inspection Metrology': 'Sim' if orders.inspectionMetrology else 'Não',
+            'Preshipment': 'Sim' if orders.preshipment else 'Não',
+            'Mark': 'Sim' if orders.mark else 'Não',
+            'Urgent': 'Sim' if orders.urgent else 'Não',
+            'Done': 'Sim' if orders.done else 'Não',
+            'Comment': orders.comment,
+        })
+
+    # Converter para DataFrame
+    df = pd.DataFrame(data)
+
+    # Criar resposta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Order_{order.tracking_number}_Details.xlsx'
+
+    # Gravar no Excel
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Dados', index=False)
+
+    # Adiciona log na tabela globalLogs
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} criou um exel da ordem {order.tracking_number}.",
+    )
+
+    return response
+
+def administrationMenu(request):
+    return render(request, 'theme/administrationMenu.html')
+
+@login_required
+def user_logout(request):
+    uid = request.user.id                            # <-- guarda antes do logout
+    username = request.user.get_username()
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{username} fez logout do sistema."
+    )
+
+    auth_logout(request)
+    messages.success(request, "Saiu da sua conta com sucesso!")
+    return redirect('login', 0)            # <-- passa o argumento exigido
+
+
+
+@require_http_methods(["GET", "POST"])
+def deliveryIdentification(request, toma_order_full):
+    
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
+        return permission_denied_view(request)
+    
+    qr = get_object_or_404(QRData, toma_order_full=toma_order_full)
+
+    # obter ou criar o DeliveryInfo para este QR
+    info, _created = DeliveryInfo.objects.get_or_create(identificator=qr)
+
+    # listas para selects
+    types = DeliveryType.objects.order_by('name')
+    entities = DeliveryEntity.objects.order_by('name')
+
+    if request.method == "POST":
+        dtype_name = (request.POST.get('deliveryType') or '').strip()
+        dent_name  = (request.POST.get('deliveryEntity') or '').strip()
+        ddate      = (request.POST.get('deliveryDate') or '').strip()
+        costumer   = (request.POST.get('costumer') or '').strip()
+
+        # aplicar no objeto
+        info.deliveryType = DeliveryType.objects.filter(name=dtype_name).first() if dtype_name else None
+        info.deliveryEntity = DeliveryEntity.objects.filter(name=dent_name).first() if dent_name else None
+        info.costumer = costumer or info.costumer
+        info.deliveryDate = ddate or None  # DateInput manda 'YYYY-MM-DD' (o modelo converte)
+
+        # Regras finais continuam garantidas no modelo (clean/save)
+        try:
+            with transaction.atomic():
+                info.save()
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} atualizou a informação de entrega do pedido {info.id}.",
+            )
+            messages.success(request, "Informação de entrega atualizada com sucesso.")
+            return redirect('deliveryCalendar')
+        except Exception as e:
+            messages.error(request, f"Ocorreu um erro ao guardar: {e}")
+
+
+    return render(request, 'theme/deliveryIdentification.html', {
+        'toma_order_full': toma_order_full,
+        'qr': qr,
+        'info': info,
+        'types': types,
+        'entities': entities,
+    })
+
 
 def _parse_checked(request):
     """Lê o boolean 'checked' do corpo JSON ou do POST tradicional."""
@@ -118,19 +505,19 @@ def login_view(request, user_id):
 
     if request.method == 'POST':
         password = request.POST.get('password')
-
         user = authenticate(request, username=user.username, password=password)
         if user is not None:
-            login(request, user)  # faz o login
+            login(request, user)
             globalLogs.objects.create(
-                user=request.user,
-                action=f"{request.user.first_name or request.user.username} fez login no sistema."
+                user=request.user,  # já autenticado
+                action=f"{request.user.get_username()} fez login no sistema."
             )
             return redirect('mainMenu', user_id=user.id)
         else:
             messages.error(request, 'Palavra-passe incorreta.')
 
     return render(request, 'theme/login.html', {'user': user})
+
 
 def inputProduction(request):
     products = Products.objects.all().order_by('-created_at')
@@ -171,6 +558,22 @@ def deleteProduct(request, produto_id):
 def listQrcodes(request):
     qrcodes = QRData.objects.all().order_by('-created_at')
     return render(request, 'theme/listQrcodes.html', {'qrcodes': qrcodes})
+
+
+def listarInfo(request):
+    deliveries = DeliveryInfo.objects.all()
+    return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
+
+def deletar_delivery(request, id):
+    delivery = get_object_or_404(DeliveryInfo, id=id)
+
+    if request.method == 'POST':
+        delivery.delete()
+        messages.success(request, 'Entrega deletada com sucesso!')
+        return redirect('listarInfo')
+
+    messages.error(request, 'Requisição inválida.')
+    return redirect('listarInfo')
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -262,6 +665,7 @@ def partidosMenu(request, toma_order_full):
         numero = request.POST.get('numeroPartidos')
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe checkboxes
         serie_dies_partidos = ', '.join(serie_dies_list)     # <-- transforma em string
+        observations = request.POST.get('observations', '')
 
         try:
             partido = int(numero)
@@ -271,12 +675,13 @@ def partidosMenu(request, toma_order_full):
                 NumeroPartidos.objects.create(
                     qr_code=qr_code,
                     partido=partido,
-                    serie_dies_partidos=serie_dies_partidos
+                    serie_dies_partidos=serie_dies_partidos,
+                    observations=observations
                 )
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
+                    action=f"{request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
                 )
         except ValueError:
             messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
@@ -305,6 +710,7 @@ def diametroMenu(request, toma_order_full):
         pedido_por = request.POST.get('pedidoPor')
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe os checkboxes
         serie_dies = ', '.join(serie_dies_list)
+        observations = request.POST.get('observations', '')
 
         try:
             numero = int(numero)
@@ -318,13 +724,33 @@ def diametroMenu(request, toma_order_full):
                     diametro=diametro,
                     numero_fieiras=numero,
                     pedido_por=pedido_por,
-                    serie_dies=serie_dies
+                    serie_dies=serie_dies,
+                    observations=observations
                 )
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
+                    action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
                 )
+                
+                send_mail(
+                    subject="Novo Pedido de Diâmetro",
+                    message=(
+                        f"Novo pedido de diâmetro criado:\n"
+                        f"Pedido criado por {request.user.username}\n"
+                        f"- QR Code: {qr_code.toma_order_full}\n"
+                        f"- Cliente: {qr_code.customer}\n"
+                        f"- Diâmetro: {diametro}\n"
+                        f"- Nº de fieiras: {numero}\n"
+                        f"- Pedido por: {pedido_por or '-'}\n"
+                        f"- Série de dies: {serie_dies or '-'}\n"
+                        f"- Observações: {observations or '-'}"
+                    ),
+                    from_email=None,               # usa DEFAULT_FROM_EMAIL
+                    recipient_list=settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL],  # lista de emails
+                    fail_silently=False,
+                )
+
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
         except Exception as e:
@@ -387,19 +813,21 @@ def adicionar_dies(request, qr_id):
     dies = Die.objects.all()
     jobs = Jobs.objects.all()
 
-    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", qr_code.diameters)
-
+    raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
     diameters_list = []
-    for qty, value in matches:
-        qty = int(qty)
-        value = value.replace(",", ".")
-        diameters_list.extend([value] * qty)
 
-    # Garantir que não ultrapasse qt
-    diameters_list = diameters_list[:qr_code.qt]
+    # Verifica se está no formato antigo (ex: "2 x 0,1243")
+    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
 
-    while len(diameters_list) < qr_code.qt:
-        diameters_list.append("")
+    if matches:
+        for qty, value in matches:
+            qty = int(qty)
+            value = value.replace(",", ".")
+            diameters_list.extend([value] * qty)
+    else:
+        # Caso não tenha "x", assume que é apenas o diâmetro
+        value = raw_value.replace(",", ".")
+        diameters_list = [value] * qr_code.qt
 
     existing_dies = list(dieInstance.objects.filter(customer=qr_code).order_by('id'))
 
@@ -466,7 +894,7 @@ def adicionar_dies(request, qr_id):
 
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
+            action=f"{request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
         )
 
 
@@ -518,8 +946,12 @@ def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
 
-
+@login_required
 def create_caixa(request):
+    if not request.user.groups.filter(name__in=['Q-Office', 'Administracao']).exists():
+        messages.error(request, "Não tens permissão para criar caixas.")
+        return redirect('listarDies')
+    
     if request.method == 'POST':
         required_fields = ['customer', 'customer_order_nr', 'toma_order_nr', 'toma_order_year', 'box_nr', 'qt', 'diameters']
 
@@ -553,7 +985,7 @@ def create_caixa(request):
 
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} criou uma nova caixa com o número {box_nr}.",
+            action=f"{request.user.username} criou uma nova caixa com o número {box_nr}.",
         )
 
         return redirect('listarDies')
@@ -599,7 +1031,7 @@ def die_details(request, die_id):
                     # Adiciona log na tabela globalLogs
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} atualizou/adicionou os diâmetros do Die {die.serial_number} para {diametro_min} - {diametro_max}.",
+            action=f"{request.user.username} atualizou/adicionou os diâmetros do Die {die.serial_number} para {diametro_min} - {diametro_max}.",
         )
         return redirect('die_details', die_id=die.id)
 
@@ -630,7 +1062,7 @@ def create_die_work(request, die_id):
                     # Adiciona log na tabela globalLogs
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
+            action=f"{request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
         )
         return redirect('die_details', die_id=die.id)
 
@@ -710,7 +1142,7 @@ def export_qrcode_excel(request, qr_id):
                 # Adiciona log na tabela globalLogs
     globalLogs.objects.create(
         user=request.user,
-        action=f"{request.user.first_name or request.user.username} criou um exel da ordem {qr.toma_order_nr}",
+        action=f"{request.user.username} criou um exel da ordem {qr.toma_order_nr}",
     )
 
     return response
@@ -766,7 +1198,7 @@ def enviar_caixa(request, qr_id):
             # Adiciona log na tabela globalLogs
             globalLogs.objects.create(
                 user=request.user,
-                action=f"{request.user.first_name or request.user.username} enviou a caixa {qr.toma_order_nr} para {box_location.get_where_display()}",
+                action=f"{request.user.username} enviou a caixa {qr.toma_order_nr} para {box_location.get_where_display()}",
             )
 
             return redirect('listarDies')
@@ -776,7 +1208,6 @@ def enviar_caixa(request, qr_id):
     return render(request, 'theme/enviar_caixa.html', {'qr': qr, 'choices': whereBox.ONDESTA})
 
 def contar_dies_por_usuario(qr_id, user_id):
-    from theme.models import DieWorkWorker
 
     count = DieWorkWorker.objects.filter(
         die_work__die__customer_id=qr_id, 
@@ -815,3 +1246,70 @@ def localizarFieira(request):
         'q': q,
         'results': results,
     })
+
+def deliveryCalendar(request):
+    today = timezone.localdate()
+
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except ValueError:
+        year, month = today.year, today.month
+
+    # limites do mês
+    first_day = date(year, month, 1)
+    last_day = date(year, month, calendar.monthrange(year, month)[1])
+
+    # eventos só do mês (com deliveryDate definido)
+    events = DeliveryInfo.objects.filter(deliveryDate__range=(first_day, last_day))
+
+    # mapa por dia
+    events_by_day = {}
+    for ev in events:
+        events_by_day.setdefault(ev.deliveryDate, []).append(ev)
+
+    cal = calendar.Calendar(firstweekday=0)   # 0 = Segunda, 6 = Domingo
+    weeks = []
+    for week in cal.monthdatescalendar(year, month):
+        week_cells = []
+        for d in week:
+            in_month = (d.month == month)
+            day_events = events_by_day.get(d, [])
+            is_today = (d == today)
+            # “a vermelho” se dentro dos próximos 7 dias (>= hoje e <= hoje+7)
+            is_soon = (d >= today and d <= today + timedelta(days=7) and in_month and len(day_events) > 0)
+            week_cells.append({
+                'date': d,
+                'in_month': in_month,
+                'events': day_events,
+                'is_today': is_today,
+                'is_soon': is_soon,
+            })
+        weeks.append(week_cells)
+
+    # avisos (lista plana dos próximos 7 dias com eventos, independentemente do mês)
+    soon_start = today
+    soon_end = today + timedelta(days=7)
+    soon_events = (
+        DeliveryInfo.objects
+        .filter(deliveryDate__range=(soon_start, soon_end))
+        .order_by('deliveryDate')
+    )
+
+    # navegação (prev/next)
+    prev_month = (first_day.replace(day=1) - timedelta(days=1)).replace(day=1)
+    next_month = (last_day + timedelta(days=1)).replace(day=1)
+
+    context = {
+        'today': today,
+        'year': year,
+        'month': month,
+        'month_name': calendar.month_name[month],
+        'weeks': weeks,
+        'soon_events': soon_events,
+        'prev_year': prev_month.year,
+        'prev_month': prev_month.month,
+        'next_year': next_month.year,
+        'next_month': next_month.month,
+    }
+    return render(request, 'theme/deliveryCalendar.html', context)

@@ -42,3 +42,6 @@ productionApp/staticfiles/
 productionApp/dados.json
 productionApp/start_nginx.bat
 productionApp/stop_nginx.bat
+stockManager
+productionApp/data.json
+productionApp/data_utf8.json
