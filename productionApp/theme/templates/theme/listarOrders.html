@@ -20,10 +20,12 @@
   <table class="min-w-full table-auto text-xs md:text-sm text-left">
     <thead class="bg-blue-600 text-white uppercase font-semibold text-sm">
       <tr>
+        <th class="px-4 py-3">Plant</th>
         <th class="px-4 py-3">Tracking</th>
         <th class="px-4 py-3">Courier</th>
         <th class="px-4 py-3">Shipping Date</th>
-        <th class="px-4 py-3">Orders Coming</th>
+        <th class="px-4 py-3">Arriving Date</th>
+        <th class="px-4 py-3 min-w-[260px]">Orders Coming</th>
         <th class="px-4 py-3">Status</th>
         <th class="px-4 py-3">Comments</th>
         <th class="px-4 py-3">Ficheiros</th>
@@ -33,16 +35,18 @@
     <tbody class="text-gray-800">
       {% for o in orders %}
         <tr class="border-b hover:bg-gray-100 transition-colors">
+          <td class="px-4 py-2">{{ o.plant }}</td>
           <td class="px-4 py-2">{{ o.tracking_number }}</td>
           <td class="px-4 py-2">{{ o.courier }}</td>
           <td class="px-4 py-2">{{ o.shipping_date|default:"—" }}</td>
-          <td class="px-4 py-2">
+          <td class="px-4 py-2">{{ o.arriving_date|default:"—" }}</td>
+          <td class="px-4 py-2 ">
             {% if o.orders_coming.all %}
               <ul class="list-disc list-inside space-y-1">
                 {% for oc in o.orders_coming.all %}
                   <li>
                     <a href="{% url 'editOrdersComing' oc.id %}" class="text-blue-600 hover:underline">
-                      {{ oc.order|linebreaksbr|safe|cut:"<br />"|truncatechars:25 }}
+                      {{ oc.order|linebreaksbr|safe|cut:"<br />"|truncatechars:40 }}
                     </a>
                   </li>
                 {% endfor %}
@@ -80,20 +84,23 @@
             {% empty %}
               <span class="text-gray-500">—</span>
             {% endfor %}
-          </td>
-          <td class="px-4 py-2 text-right flex gap-2 justify-end">
-            <a href="{% url 'editOrder' o.id %}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition">Editar</a>
-            <form method="POST" action="{% url 'deleteOrder' o.id %}" class="inline-block">
+            </td>
+            <td class="px-4 py-2 text-right">
+            <div class="flex flex-col gap-2 items-end">
+              <a href="{% url 'editOrder' o.id %}" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition w-full text-center">Editar</a>
+              <form method="POST" action="{% url 'deleteOrder' o.id %}" class="w-full">
               {% csrf_token %}
-              <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition" onclick="return confirm('Deseja realmente eliminar esta order e os seus ficheiros?');">
-                Eliminar
+              <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition w-full text-center" onclick="return confirm('Deseja realmente eliminar esta order e os seus ficheiros?');">
+              Eliminar
               </button>
-            </form>
-          </td>
+              </form>
+              <a href="{% url 'exportOrderExcel' o.id %}" class="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition w-full text-center">Exportar Excel</a>
+            </div>
+            </td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6" class="text-center text-gray-500 py-4">Sem orders ainda.</td>
+          <td colspan="9" class="text-center text-gray-500 py-4">Sem orders ainda.</td>
         </tr>
       {% endfor %}
     </tbody>

@@ -25,8 +25,20 @@ SECRET_KEY = 'django-insecure-d=9u^&=xe%bsmerta5ngq!f^z&zq2hh8c93i8f4ev8gtyz$a#i
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['c6f73122e6ac.ngrok-free.app','127.0.0.1', 'localhost', 'localhost:8000', '192.168.1.105']
-CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'https://127.0.0.1:8000', 'http://192.168.1.105:8000']
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.1.105",
+    "transportinfo",
+    "transportinfo.lan",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1",
+    "http://192.168.1.105",
+    "http://transportinfo",
+    "http://transportinfo.lan",
+]
 
 # Application definition
 
@@ -70,9 +82,14 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "askelardd1@gmail.com"
-EMAIL_HOST_PASSWORD = "mmxb gwmt mbsu zsqu"  # 16 caracteres
+EMAIL_HOST_USER = "toma.tools2017@gmail.com"
+EMAIL_HOST_PASSWORD = "hhrh iegj qmey qsyk"  # 16 caracteres
+EMAIL_TO_EMAIL = ["Info@toma.tools","michaelgraf@toma.tools","patrickgraf@toma.tools","angelicabranco@toma.tools","cristinalinhares@toma.tools", 
+                  "silviarojas@toma.tools", "tabatasimas@toma.tools","mariamacedo@toma.tools","andrepimentel@toma.tools"]
+EMAIL_DIAMETRO = ["silviarojas@toma.tools", "tabatasimas@toma.tools"]
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+DEFAULT_REPLY_TO_EMAIL = EMAIL_TO_EMAIL
+DEFAULT_BCC_EMAIL = EMAIL_DIAMETRO
 
 TEMPLATES = [
     {
@@ -99,9 +116,9 @@ WSGI_APPLICATION = 'productionApp.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'name',
-        'USER': 'hide name',
-        'PASSWORD': 'hide pass',
+        'NAME': 'transporteInfo',
+        'USER': 'askelardd',
+        'PASSWORD': 'Asdasasdas25_.',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }

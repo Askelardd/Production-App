@@ -253,7 +253,7 @@ class OrderFileInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ['tracking_number', 'courier', 'shipping_date', 'comment']
     search_fields = ['tracking_number', 'courier', 'orders_coming__order', 'comment']
-    list_filter = ['courier', 'shipping_date', 'orders_coming']
+    list_filter = ['courier', 'shipping_date', 'orders_coming', 'arriving_date']
     inlines = [OrderFileInline]
     list_per_page = 20
 

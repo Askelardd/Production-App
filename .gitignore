@@ -40,3 +40,7 @@ Thumbs.db
 coverage/
 *.tgz
 
+productionApp/
+
+transportInfo/staticfiles/
+transportInfo/media

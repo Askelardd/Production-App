@@ -1,0 +1,186 @@
+{% extends 'theme/base.html' %}
+{% block title %}Caixas e Fieiras{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Caixas Registradas e Fieiras</h1>
+
+<!-- Barra de Pesquisa -->
+<div class="mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
+           class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+</div>
+
+<div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+    <table id="qrcodeTable" class="min-w-full table-auto text-xs md:text-sm text-left">
+        <thead class="bg-custom-blue text-white">
+            <tr>
+                <th class="px-4 py-3">Cliente</th>
+                <th class="px-4 py-3">Ordem Cliente</th>
+                <th class="px-4 py-3">Toma Ordem</th>
+                <th class="px-4 py-3">Quantidade</th>
+                <th class="px-4 py-3">Numero Caixa</th>
+                <th class="px-4 py-3">Criado em</th>
+                <th class="px-4 py-3 text-center">Ver fieiras</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for qr in qrcodes %}
+            <!-- Linha principal com data-id -->
+            <tr class="border-b hover:bg-gray-100 transition-colors" data-id="{{ qr.id }}">
+                <td class="px-4 py-2">{{ qr.customer }}</td>
+                <td class="px-4 py-2">{{ qr.customer_order_nr }}</td>
+                <td class="px-4 py-2">{{ qr.toma_order_nr }}</td>
+                <td class="px-4 py-2">{{ qr.qt }}</td>
+                <td class="px-4 py-2">{{ qr.box_nr }}</td>
+                <td class="px-4 py-2">{{ qr.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-2 text-center">
+                    <div class="flex flex-col items-center gap-2">
+                        <!-- Primeira linha -->
+                        <div class="flex flex-wrap justify-center gap-3">
+                            <button onclick="toggleDies('dies-{{ qr.id }}')" 
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 text-sm">
+                                Mostrar fieiras
+                            </button>
+                            <a href="{% url 'diametroMenu' qr.toma_order_full %}" 
+                               class="text-blue-600 hover:underline text-sm px-2 py-2">
+                               Novo Diametro
+                            </a>
+                        </div>
+
+                        <!-- Segunda linha -->
+                        <div class="flex flex-wrap justify-center gap-3">
+                            <a href="{% url 'partidosMenu' qr.toma_order_full %}" 
+                               class="text-red-600 hover:underline text-sm px-2 py-2">
+                               Adicionar Partidos
+                            </a>
+                            <a href="{% url 'showDetails' qr.id %}" 
+                               class="text-green-600 hover:underline text-sm px-2 py-2">
+                               Ver Detalhes
+                            </a>
+                            <a href="{% url 'enviar_caixa' qr.id %}" 
+                               class="bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600 text-sm">
+                               Enviar Caixa
+                            </a>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+
+            <!-- Linha oculta com os dies (SEM data-id, COM id e hidden) -->
+            <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50">
+                <td colspan="7" class="p-4">
+                    {% if qr.die_instances.all %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for die in qr.die_instances.all %}
+                            <div class="border p-4 rounded shadow bg-white">
+                                <div class="grid grid-cols-2 gap-2 mb-4">
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Serial:</p>
+                                        <p class="font-semibold">{{ die.serial_number }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Diâmetro:</p>
+                                        <p class="font-semibold">{{ die.diameter_text }}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Diam. Desbastado:</p>
+                                        <p>{{ die.diam_desbastado }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Diam. Requerido:</p>
+                                        <p>{{ die.diam_requerido }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Tipo:</p>
+                                        <p>{{ die.die.get_die_type_display }}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Job:</p>
+                                        <p>{{ die.job.get_job_display }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Tolerância:</p>
+                                        <p>
+                                            {% if die.tolerance %}
+                                                {{ die.tolerance.min }} - {{ die.tolerance.max }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Observações:</p>
+                                        <p>{{ die.observations|default:"-" }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex justify-start gap-2 mt-2">
+                                    <a href="{% url 'die_details' die.id %}" 
+                                       class="bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600 text-xs">Ver Trabalhos</a>
+                                    <a href="{% url 'enviar_fieira' die.id %}" 
+                                       class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-xs">Enviar Fieira</a>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-gray-500">Nenhum die associado.</p>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                        <p class="text-gray-500">Nenhum die associado.</p>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Função global para o botão Mostrar Dies
+  window.toggleDies = function(id) {
+    const row = document.getElementById(id);
+    if (row) {
+      row.classList.toggle('hidden');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.querySelector('#qrcodeTable tbody');
+    if (!searchInput || !tableBody) return;
+
+    searchInput.addEventListener('keyup', function () {
+      const filter = searchInput.value.toLowerCase();
+      const mainRows = tableBody.querySelectorAll('tr[data-id]');
+
+      mainRows.forEach(function(row) {
+        const cells = row.getElementsByTagName('td');
+        let found = false;
+
+        // verifica todas as colunas menos a última
+        for (let j = 0; j < cells.length - 1; j++) {
+          const text = (cells[j].textContent || '').toLowerCase();
+          if (text.includes(filter)) {
+            found = true;
+            break;
+          }
+        }
+
+        // mostra/esconde a linha principal
+        row.style.display = found ? '' : 'none';
+
+        // mostra/esconde a linha dos dies correspondente (sem mexer na classe hidden)
+        const diesRow = document.getElementById('dies-' + row.dataset.id);
+        if (diesRow) {
+          diesRow.style.display = found ? '' : 'none';
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

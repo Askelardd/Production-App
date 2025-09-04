@@ -1,0 +1,229 @@
+{% extends 'theme/base.html' %}
+{% block title %}Editar Order{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Editar Order</h1>
+
+<form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+  {% csrf_token %}
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Plant</label>
+    <select name="plant" class="border border-gray-300 rounded-lg p-2 w-full">
+      <option value="">Select Plant</option>
+      {% for plant in plant_choices %}
+        <option value="{{ plant }}" {% if order.plant == plant %}selected{% endif %}>{{ plant }}</option>
+      {% endfor %}
+    </select>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Tracking Number</label>
+    <input type="text" name="tracking_number" value="{{ order.tracking_number }}"
+           class="border border-gray-300 rounded-lg p-2 w-full" required>
+  </div>
+
+<div class="mb-4">
+  <label class="block text-gray-700">Orders Coming</label>
+  <div class="flex space-x-2">
+    <select name="orders_coming" id="orders_coming" multiple
+            class="border border-gray-300 rounded-lg p-2 w-full">
+      {% for oc in orders_coming %}
+        <option value="{{ oc.id }}"
+          {% if oc in order.orders_coming.all %}selected{% endif %}>
+          {{ oc.order }}
+        </option>
+      {% endfor %}
+    </select>
+    <button type="button" onclick="openOrdersComingModal()" 
+            class="bg-green-500 text-white px-3 py-1 rounded">
+      + Novo
+    </button>
+  </div>
+  <p class="text-sm text-gray-500 mt-1">Use Ctrl (ou Cmd no Mac) para selecionar múltiplas ordens.</p>
+</div>
+
+
+
+  <div class="mb-4">
+    <label for="courier" class="block text-gray-700">Courier</label>
+    <select id="courier" name="courier" class="border border-gray-300 rounded-lg p-2 w-full">
+      <option value="">Select Courier</option>
+      {% for courier in courier_choices %}
+        <option value="{{ courier }}" {% if order.courier == courier %}selected{% endif %}>{{ courier }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Shipping Date</label>
+    <input type="date" name="shipping_date" value="{{ order.shipping_date|date:'Y-m-d' }}"
+           class="border border-gray-300 rounded-lg p-2 w-full">
+  </div>
+  
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Comment</label>
+    <textarea name="comment" class="border border-gray-300 rounded-lg p-2 w-full">{{ order.comment }}</textarea>
+  </div>
+
+  <div class="mb-4">
+    <label for="files" class="block text-gray-700">Upload Files</label>
+    <input type="file" id="files" name="files" multiple
+           class="border border-gray-300 rounded-lg p-2 w-full">
+
+    <!-- Pré-visualização com checkbox "Restrito" -->
+    <div id="file-list" class="mt-3 space-y-2"></div>
+  </div>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+    Guardar alterações
+  </button>
+  <a href="{% url 'listarOrders' %}" class="ml-3 text-gray-700 hover:underline">Voltar</a>
+
+<!-- Lista os ficheiros já existentes -->
+<div class="bg-white p-6 rounded-lg shadow-md mt-6">
+  <h2 class="text-lg font-semibold mb-3">Ficheiros</h2>
+  {% if files %}
+    <ul class="space-y-2">
+      {% for f in files %}
+        <li class="flex items-center gap-4">
+          <a href="{{ f.file.url }}" target="_blank" class="text-blue-600 hover:underline">
+            {{ f.file.name|cut:"order_files/" }}
+          </a>
+
+          <label class="flex items-center space-x-2 text-sm">
+            <input type="checkbox" name="restricted_existing_{{ f.id }}" {% if f.restricted %}checked{% endif %}>
+            <span>Restrito</span>
+          </label>
+
+          <form method="post" action="{% url 'deleteOrderFile' f.id %}"
+                onsubmit="return confirm('Apagar este ficheiro?');">
+            {% csrf_token %}
+            <button class="text-red-600 hover:underline">Apagar</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">Sem ficheiros.</p>
+  {% endif %}
+</div>
+</form>
+
+<!-- Modal -->
+<div id="ordersComingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
+    <h2 class="text-xl font-bold mb-4">Adicionar Orders Coming</h2>
+    <form id="ordersComingForm">
+      {% csrf_token %}
+      <label class="block mb-2 text-sm text-gray-700">Nome da Ordem</label>
+      <input type="text" id="oc_order" name="order" required class="w-full p-2 border rounded mb-4">
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="urgent" id="oc_urgent">
+        <span>Urgente</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="inspectionMetrology" id="oc_inspectionMetrology">
+        <span>Inspection Metrology</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="preshipment" id="oc_preshipment">
+        <span>Pre-Shipment</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="mark" id="oc_mark">
+        <span>Mark</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="done" id="oc_done">
+        <span>Done</span>
+      </label>
+
+      <label class="block text-sm text-gray-700 mb-1">Comentário</label>
+      <textarea id="oc_comment" name="comment" class="w-full p-2 border rounded mb-4"></textarea>
+
+      <div class="flex justify-end space-x-2">
+        <button type="button" onclick="closeOrdersComingModal()" class="text-gray-600">Cancelar</button>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('files').addEventListener('change', function (e) {
+    const fileList = document.getElementById('file-list');
+    fileList.innerHTML = ''; // limpa antes
+
+    Array.from(e.target.files).forEach((file, index) => {
+      const row = document.createElement('div');
+      row.className = "flex items-center gap-3";
+
+      row.innerHTML = `
+        <span class="text-gray-700">${file.name}</span>
+        <input type="checkbox" name="restricted_${index}" value="1"
+               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <label class="text-sm text-gray-600">Restrito</label>
+      `;
+
+      fileList.appendChild(row);
+    });
+  });
+
+function openOrdersComingModal() {
+  document.getElementById('ordersComingModal').classList.remove('hidden');
+}
+
+function closeOrdersComingModal() {
+  document.getElementById('ordersComingModal').classList.add('hidden');
+}
+
+document.getElementById('ordersComingForm').addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+  const data = {
+    order: document.getElementById('oc_order').value,
+    urgent: document.getElementById('oc_urgent').checked,
+    comment: document.getElementById('oc_comment').value
+  };
+
+  fetch("{% url 'create_orders_coming_ajax' %}", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(json => {
+    if (json.success) {
+      // adiciona ao <select>
+      const select = document.getElementById('orders_coming');
+      const option = document.createElement('option');
+      option.value = json.data.id;
+      option.text = json.data.order;
+      option.selected = true;
+      select.appendChild(option);
+
+      // fecha o modal e limpa
+      closeOrdersComingModal();
+      document.getElementById('ordersComingForm').reset();
+    } else {
+      alert("Erro ao criar: " + json.message);
+    }
+  });
+});
+
+</script>
+{% endblock %}

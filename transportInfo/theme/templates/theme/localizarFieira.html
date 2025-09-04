@@ -1,0 +1,98 @@
+{% extends 'theme/base.html' %}
+{% block title %}Onde está a Fieira{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Onde está a Fieira</h1>
+
+<form method="get" class="mb-6 flex flex-col md:flex-row gap-3 md:items-center">
+  <input
+    type="text"
+    name="q"
+    value="{{ q }}"
+    placeholder="Digite o nº de série da fieira (ex: S123...)"
+    class="w-full md:w-2/3 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300"
+    autofocus
+  />
+  <button
+    class="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
+    type="submit"
+  >
+    Procurar
+  </button>
+</form>
+
+<div class="overflow-x-auto w-full max-w-6xl bg-white rounded-lg shadow-lg p-6">
+  <table class="min-w-full table-auto text-xs md:text-sm text-left">
+    <thead class="bg-blue-600 text-white uppercase font-semibold text-sm">
+      <tr>
+        <th class="px-4 py-3">Serial</th>
+        <th class="px-4 py-3">Cliente</th>
+        <th class="px-4 py-3">TOMA Order</th>
+        <th class="px-4 py-3">Caixa</th>
+        <th class="px-4 py-3">Diâmetro</th>
+        <th class="px-4 py-3">Onde está</th>
+        <th class="px-4 py-3">Criado em</th>
+        <th class="px-4 py-3 text-center">Ações</th>
+      </tr>
+    </thead>
+
+    <tbody class="text-gray-800">
+      {% if q and results %}
+        {% for die in results %}
+          <tr class="border-b hover:bg-gray-100 transition-colors">
+            <td class="px-4 py-2 font-mono">{{ die.serial_number }}</td>
+            <td class="px-4 py-2">{{ die.customer.customer }}</td>
+            <td class="px-4 py-2">
+              {{ die.customer.toma_order_full|default:die.customer.toma_order_nr }}
+            </td>
+            <td class="px-4 py-2">{{ die.customer.box_nr|default:"—" }}</td>
+            <td class="px-4 py-2">{{ die.diameter_text|default:"—" }}</td>
+            <td class="px-4 py-2">
+              {% if die.wheredie %}
+                {{ die.wheredie.get_where_display }}
+              {% else %}
+                <span class="text-gray-400 italic">—</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2">{{ die.created_at|date:"d/m/Y H:i" }}</td>
+            <td class="px-4 py-2 text-center">
+            <button
+                type="button"
+                class="copy-btn underline text-blue-700"
+                data-copy="{{ die.customer.toma_order_nr }}"
+            >
+                Copiar Toma Order
+            </button>
+            </td>
+          </tr>
+        {% endfor %}
+      {% elif q %}
+        <tr>
+          <td colspan="8" class="text-center text-gray-500 py-6">
+            Nenhuma fieira encontrada para “{{ q }}”.
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-gray-500 py-6">
+            Comece procurando pelo nº de série da fieira.
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.copy-btn');
+    if (!btn) return;
+    const text = btn.getAttribute('data-copy') || '';
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar TOMA', 1200);
+    });
+  });
+</script>
+
+{% endblock %}

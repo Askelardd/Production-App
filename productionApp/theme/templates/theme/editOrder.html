@@ -8,6 +8,15 @@
   {% csrf_token %}
 
   <div class="mb-4">
+    <label class="block text-gray-700">Plant</label>
+    <select name="plant" class="border border-gray-300 rounded-lg p-2 w-full">
+      <option value="">Select Plant</option>
+      {% for plant in plant_choices %}
+        <option value="{{ plant }}" {% if order.plant == plant %}selected{% endif %}>{{ plant }}</option>
+      {% endfor %}
+    </select>
+
+  <div class="mb-4">
     <label class="block text-gray-700">Tracking Number</label>
     <input type="text" name="tracking_number" value="{{ order.tracking_number }}"
            class="border border-gray-300 rounded-lg p-2 w-full" required>
@@ -50,7 +59,12 @@
     <input type="date" name="shipping_date" value="{{ order.shipping_date|date:'Y-m-d' }}"
            class="border border-gray-300 rounded-lg p-2 w-full">
   </div>
-  
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Arriving Date</label>
+    <input type="date" name="arriving_date" value="{{ order.arriving_date|date:'Y-m-d' }}"
+           class="border border-gray-300 rounded-lg p-2 w-full">
+  </div>
 
   <div class="mb-4">
     <label class="block text-gray-700">Comment</label>
@@ -118,6 +132,11 @@
       <label class="flex items-center space-x-2 mb-2">
         <input type="checkbox" name="inspectionMetrology" id="oc_inspectionMetrology">
         <span>Inspection Metrology</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="preshipment" id="oc_preshipment">
+        <span>Pre-Shipment</span>
       </label>
 
       <label class="flex items-center space-x-2 mb-2">

@@ -3,7 +3,9 @@ from datetime import date, timedelta
 import datetime
 import json  # type: ignore
 import logging
+from unicodedata import name
 from urllib import request  # type: ignore
+from django.conf import settings
 from django.http import JsonResponse  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
 from django.contrib import messages  # type: ignore
@@ -21,6 +23,9 @@ from django.db.models import Count  # type: ignore
 from django.views.decorators.http import require_POST  # type: ignore
 from django.db import transaction # type: ignore
 from django.core.mail import send_mail # type: ignore
+from django.contrib.auth import logout as auth_logout
+from django.contrib.auth.decorators import login_required
+
 
 def home(request):
     users = User.objects.all()
@@ -39,12 +44,14 @@ def permission_denied_view(request, exception=None):
     return render(request, '403.html', status=403)
 
 def orders(request):
-    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
         return permission_denied_view(request)
     choices = Order.courier_choices
+    plants = Order.plant_choices
     orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
-
+    
     if request.method == 'POST':
+        plant = request.POST.get('plant') or None
         tracking_number = request.POST.get('tracking_number')
         orders_coming_ids = request.POST.getlist('orders_coming')  # <- agora é uma lista
         courier = request.POST.get('courier') or None
@@ -69,6 +76,7 @@ def orders(request):
             return render(request, 'theme/orders.html', {
                 'courier_choices': choices,
                 'orders_coming': orders_coming_list,
+                'plant_choices': plants,
             })
 
         # Busca múltiplos OrdersComing
@@ -76,6 +84,7 @@ def orders(request):
 
         # Cria a Order (sem orders_coming ainda)
         order = Order.objects.create(
+            plant=plant,
             tracking_number=tracking_number,
             courier=courier,
             shipping_date=shipping_date,
@@ -90,16 +99,31 @@ def orders(request):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
 
+        send_mail(
+            subject=f"Novo pedido criado: {order.tracking_number} de {order.plant}",
+            message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
+                     f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=settings.DEFAULT_REPLY_TO_EMAIL if isinstance(settings.DEFAULT_REPLY_TO_EMAIL, list) else [settings.DEFAULT_REPLY_TO_EMAIL],  # lista de emails
+        )
+
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} criou o pedido {order.tracking_number}.",
+        )
+
         messages.success(request, "Pedido criado com sucesso!")
         return redirect('listarOrders')
 
     return render(request, 'theme/orders.html', {
         'courier_choices': choices,
+        'plant_choices': plants,
         'orders_coming': orders_coming_list,
     })
+
 @csrf_exempt
 def create_orders_coming_ajax(request):
-    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
         return permission_denied_view(request)
 
     if request.method == 'POST':
@@ -122,7 +146,7 @@ def create_orders_coming_ajax(request):
     return JsonResponse({'success': False, 'message': 'Método inválido'})
 
 def listar_orders(request):
-    if not request.user.groups.filter(name__in=['Administração', 'Comercial','Q-Office']).exists():
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists():
         return permission_denied_view(request)
 
     orders = Order.objects.prefetch_related('orders_coming', 'files') \
@@ -130,7 +154,7 @@ def listar_orders(request):
 
     ordersComing = OrdersComing.objects.all()
 
-    is_admin = request.user.groups.filter(name="Administração").exists()
+    is_admin = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
 
     return render(request, 'theme/listarOrders.html', {
         'orders': orders,
@@ -140,22 +164,39 @@ def listar_orders(request):
 
 
 def edit_order(request, order_id):
-    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
         messages.error(request, "Não tem permissão para editar esta ordem.")
         return redirect('listarOrders')
 
     order = get_object_or_404(Order, id=order_id)
     files = order.files.all()
     choices = Order.courier_choices
+    plants = Order.plant_choices
     orders_coming_list = OrdersComing.objects.all().order_by('order')
 
     if request.method == 'POST':
+        plants = request.POST.get('plant') or None
         order.tracking_number = request.POST.get('tracking_number')
         courier = request.POST.get('courier') or None
         shipping_date_str = request.POST.get('shipping_date') or ""
+        arriving_date_str = request.POST.get('arriving_date') or ""
         comment = request.POST.get('comment', '')
         orders_coming_ids = request.POST.getlist('orders_coming')  # <-- now a list of IDs
 
+        
+        arriving_date = None
+        if arriving_date_str:
+            try:
+                arriving_date = datetime.datetime.strptime(arriving_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(request, "Data de chegada inválida.")
+                return render(request, 'theme/editOrder.html', {
+                    'order': order,
+                    'files': files,
+                    'courier_choices': choices,
+                    'plant_choices': plants,
+                    'orders_coming': orders_coming_list,
+                })
         # Parse shipping date
         shipping_date = None
         if shipping_date_str:
@@ -167,11 +208,14 @@ def edit_order(request, order_id):
                     'order': order,
                     'files': files,
                     'courier_choices': choices,
+                    'plant_choices': plants,
                     'orders_coming': orders_coming_list,
                 })
 
         order.courier = courier
+        order.plant = plants
         order.shipping_date = shipping_date
+        order.arriving_date = arriving_date
         order.comment = comment
         order.save()
 
@@ -191,24 +235,37 @@ def edit_order(request, order_id):
                 f.restricted = is_restricted
                 f.save()
                 
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} editou o pedido {order.tracking_number}.",
+        )
+
         messages.success(request, "Pedido atualizado com sucesso!")
         return redirect('listarOrders')
+    
+
 
     return render(request, 'theme/editOrder.html', {
         'order': order,
         'files': files,
         'courier_choices': choices,
+        'plant_choices': plants,
         'orders_coming': orders_coming_list,
     })
 
 @require_POST
 def delete_order(request, order_id):
-    if not request.user.groups.filter(name__in=['Administração']).exists():
+    if not request.user.groups.filter(name__in=['Administracao']).exists():
         messages.error(request, "Não tem permissão para eliminar esta ordem.")
         return redirect('listarOrders')
 
     order = get_object_or_404(Order, id=order_id)
     order.delete()
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} eliminou o pedido {order.tracking_number}.",
+    )
     messages.success(request, "Pedido eliminado com sucesso!")
     return redirect('listarOrders')
 
@@ -220,6 +277,11 @@ def delete_order_file(request, file_id):
     if f.file:
         f.file.delete(save=False)
     f.delete()
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} eliminou o ficheiro {f.file.name}.",
+    )
     messages.success(request, "Ficheiro eliminado com sucesso!")
     # volta para a listagem ou para a edição da order
     return redirect('listarOrders')  # ou redirect('editOrder', order_id=order_id)
@@ -232,6 +294,7 @@ def edit_orders_coming(request, oc_id):
     if request.method == 'POST':
         orders_coming.order = request.POST.get('order')
         orders_coming.inspectionMetrology = request.POST.get('inspectionMetrology') == 'on'
+        orders_coming.preshipment = request.POST.get('preshipment') == 'on'
         orders_coming.mark = request.POST.get('mark') == 'on'
         orders_coming.urgent = request.POST.get('urgent') == 'on'
         orders_coming.done = request.POST.get('done') == 'on'
@@ -245,23 +308,68 @@ def edit_orders_coming(request, oc_id):
         'oc': orders_coming
     })
 
+def exportOrderExcel(request, order_id):
+    order = get_object_or_404(Order, id=order_id)
+    orders_coming = order.orders_coming.all()
+    order_files = order.files.all()
 
+    # Criar lista com dados
+    data = []
+    for orders in orders_coming:
+        data.append({
+            'Plant': order.plant or 'N/A',
+            'Shipping Number': order.tracking_number or 'N/A',
+            'Order': orders.order,
+            'Inspection Metrology': 'Sim' if orders.inspectionMetrology else 'Não',
+            'Preshipment': 'Sim' if orders.preshipment else 'Não',
+            'Mark': 'Sim' if orders.mark else 'Não',
+            'Urgent': 'Sim' if orders.urgent else 'Não',
+            'Done': 'Sim' if orders.done else 'Não',
+            'Comment': orders.comment,
+        })
+
+    # Converter para DataFrame
+    df = pd.DataFrame(data)
+
+    # Criar resposta HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename=Order_{order.tracking_number}_Details.xlsx'
+
+    # Gravar no Excel
+    with pd.ExcelWriter(response, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Dados', index=False)
+
+    # Adiciona log na tabela globalLogs
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{request.user.username} criou um exel da ordem {order.tracking_number}.",
+    )
+
+    return response
 
 def administrationMenu(request):
     return render(request, 'theme/administrationMenu.html')
 
+@login_required
 def user_logout(request):
-    logout(request)
-    messages.success(request, "Saiu da sua conta com sucesso!")
-    return redirect('login', 0)
+    uid = request.user.id                            # <-- guarda antes do logout
+    username = request.user.get_username()
 
-from django.http import FileResponse, Http404 # type: ignore
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"{username} fez logout do sistema."
+    )
+
+    auth_logout(request)
+    messages.success(request, "Saiu da sua conta com sucesso!")
+    return redirect('login', 0)            # <-- passa o argumento exigido
+
 
 
 @require_http_methods(["GET", "POST"])
 def deliveryIdentification(request, toma_order_full):
     
-    if not request.user.groups.filter(name__in=['Administração', 'Comercial']).exists():
+    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
         return permission_denied_view(request)
     
     qr = get_object_or_404(QRData, toma_order_full=toma_order_full)
@@ -289,10 +397,15 @@ def deliveryIdentification(request, toma_order_full):
         try:
             with transaction.atomic():
                 info.save()
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} atualizou a informação de entrega do pedido {info.id}.",
+            )
             messages.success(request, "Informação de entrega atualizada com sucesso.")
             return redirect('deliveryCalendar')
         except Exception as e:
             messages.error(request, f"Ocorreu um erro ao guardar: {e}")
+
 
     return render(request, 'theme/deliveryIdentification.html', {
         'toma_order_full': toma_order_full,
@@ -392,19 +505,19 @@ def login_view(request, user_id):
 
     if request.method == 'POST':
         password = request.POST.get('password')
-
         user = authenticate(request, username=user.username, password=password)
         if user is not None:
-            login(request, user)  # faz o login
+            login(request, user)
             globalLogs.objects.create(
-                user=request.user,
-                action=f"{request.user.first_name or request.user.username} fez login no sistema."
+                user=request.user,  # já autenticado
+                action=f"{request.user.get_username()} fez login no sistema."
             )
             return redirect('mainMenu', user_id=user.id)
         else:
             messages.error(request, 'Palavra-passe incorreta.')
 
     return render(request, 'theme/login.html', {'user': user})
+
 
 def inputProduction(request):
     products = Products.objects.all().order_by('-created_at')
@@ -568,7 +681,7 @@ def partidosMenu(request, toma_order_full):
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
+                    action=f"{request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
                 )
         except ValueError:
             messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
@@ -617,14 +730,14 @@ def diametroMenu(request, toma_order_full):
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.first_name or request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
+                    action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
                 )
                 
                 send_mail(
                     subject="Novo Pedido de Diâmetro",
                     message=(
                         f"Novo pedido de diâmetro criado:\n"
-                        f"Pedido criado por {request.user.first_name or request.user.username}\n"
+                        f"Pedido criado por {request.user.username}\n"
                         f"- QR Code: {qr_code.toma_order_full}\n"
                         f"- Cliente: {qr_code.customer}\n"
                         f"- Diâmetro: {diametro}\n"
@@ -634,7 +747,7 @@ def diametroMenu(request, toma_order_full):
                         f"- Observações: {observations or '-'}"
                     ),
                     from_email=None,               # usa DEFAULT_FROM_EMAIL
-                    recipient_list=["andrepimentel@toma.tools"],  # destino
+                    recipient_list=settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL],  # lista de emails
                     fail_silently=False,
                 )
 
@@ -781,7 +894,7 @@ def adicionar_dies(request, qr_id):
 
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
+            action=f"{request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
         )
 
 
@@ -835,7 +948,7 @@ def listar_qrcodes_com_dies(request):
 
 @login_required
 def create_caixa(request):
-    if not request.user.groups.filter(name__in=['Q-Office', 'Administração']).exists():
+    if not request.user.groups.filter(name__in=['Q-Office', 'Administracao']).exists():
         messages.error(request, "Não tens permissão para criar caixas.")
         return redirect('listarDies')
     
@@ -872,7 +985,7 @@ def create_caixa(request):
 
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} criou uma nova caixa com o número {box_nr}.",
+            action=f"{request.user.username} criou uma nova caixa com o número {box_nr}.",
         )
 
         return redirect('listarDies')
@@ -918,7 +1031,7 @@ def die_details(request, die_id):
                     # Adiciona log na tabela globalLogs
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} atualizou/adicionou os diâmetros do Die {die.serial_number} para {diametro_min} - {diametro_max}.",
+            action=f"{request.user.username} atualizou/adicionou os diâmetros do Die {die.serial_number} para {diametro_min} - {diametro_max}.",
         )
         return redirect('die_details', die_id=die.id)
 
@@ -949,7 +1062,7 @@ def create_die_work(request, die_id):
                     # Adiciona log na tabela globalLogs
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.first_name or request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
+            action=f"{request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
         )
         return redirect('die_details', die_id=die.id)
 
@@ -1029,7 +1142,7 @@ def export_qrcode_excel(request, qr_id):
                 # Adiciona log na tabela globalLogs
     globalLogs.objects.create(
         user=request.user,
-        action=f"{request.user.first_name or request.user.username} criou um exel da ordem {qr.toma_order_nr}",
+        action=f"{request.user.username} criou um exel da ordem {qr.toma_order_nr}",
     )
 
     return response
@@ -1085,7 +1198,7 @@ def enviar_caixa(request, qr_id):
             # Adiciona log na tabela globalLogs
             globalLogs.objects.create(
                 user=request.user,
-                action=f"{request.user.first_name or request.user.username} enviou a caixa {qr.toma_order_nr} para {box_location.get_where_display()}",
+                action=f"{request.user.username} enviou a caixa {qr.toma_order_nr} para {box_location.get_where_display()}",
             )
 
             return redirect('listarDies')
@@ -1095,7 +1208,6 @@ def enviar_caixa(request, qr_id):
     return render(request, 'theme/enviar_caixa.html', {'qr': qr, 'choices': whereBox.ONDESTA})
 
 def contar_dies_por_usuario(qr_id, user_id):
-    from theme.models import DieWorkWorker
 
     count = DieWorkWorker.objects.filter(
         die_work__die__customer_id=qr_id, 

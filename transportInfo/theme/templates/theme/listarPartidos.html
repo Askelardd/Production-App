@@ -1,0 +1,113 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Lista de Fieiras Partidas{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-white mb-8">Fieiras Partidas</h1>
+
+<div class="overflow-x-auto w-full max-w-6xl bg-white rounded-lg shadow-lg p-6">
+    <table class="min-w-full table-auto text-xs md:text-sm text-left">
+        <thead class="bg-blue-600 text-white uppercase font-semibold text-sm">
+            <tr>
+                <th class="px-4 py-3">QR Code</th>
+                <th class="px-4 py-3">Partido</th>
+                <th class="px-4 py-3">Série Dies Partidos</th>
+                <th class="px-4 py-3">Criado em</th>
+                <th class="px-4 py-3">Feito</th>
+            </tr>
+        </thead>
+        <tbody class="text-gray-800">
+            {% for numero_partido in numero_partidos %}
+            <tr class="border-b hover:bg-gray-100 transition-colors">
+                <td class="px-4 py-2">{{ numero_partido.qr_code.toma_order_nr }}</td>
+                <td class="px-4 py-2">{{ numero_partido.partido }}</td>
+                <td class="px-4 py-2">
+                    {% if numero_partido.serie_dies_partidos %}
+                        {{ numero_partido.serie_dies_partidos }}
+                    {% else %}
+                        <span class="text-gray-400 italic">Não especificado</span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-2">{{ numero_partido.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="px-4 py-2 text-center">
+                    <label class="inline-flex items-center gap-2">
+                        <input
+                        type="checkbox"
+                        class="h-4 w-4 accent-green-600 js-toggle-feito"
+                        data-url="{% url 'toggle_partido_feito_ajax' numero_partido.id %}"
+                        {% if numero_partido.checkbox %}checked{% endif %}
+                        />
+                        <span class="text-sm text-gray-700 js-toggle-label">
+                        {% if numero_partido.checkbox %}Sim{% else %}Não{% endif %}
+                        </span>
+                    </label>
+                    </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-gray-500 py-4">Nenhum partido cadastrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<script>
+         // Lê o csrftoken do cookie (padrão Django)
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    function setDisabled(el, disabled) {
+        el.disabled = disabled;
+        if (disabled) el.classList.add('opacity-60', 'cursor-not-allowed');
+        else el.classList.remove('opacity-60', 'cursor-not-allowed');
+    }
+
+    // Delegação: escuta mudanças em qualquer checkbox com a classe .js-toggle-feito
+    document.addEventListener('change', async (e) => {
+        const input = e.target.closest('.js-toggle-feito');
+        if (!input) return;
+
+        const url = input.getAttribute('data-url');
+        if (!url) return;
+
+        const label = input.closest('label')?.querySelector('.js-toggle-label');
+        const prevChecked = !input.checked ? true : false; // valor anterior caso precise reverter
+        // (na verdade, prevChecked deve ser o inverso do estado atual)
+        const previous = !input.checked;
+
+        setDisabled(input, true);
+
+        try {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ checked: input.checked })
+        });
+
+        if (!resp.ok) throw new Error('Erro na resposta do servidor');
+
+        const data = await resp.json();
+        if (!data.ok) throw new Error('Resposta JSON sem ok=true');
+
+        if (label) label.textContent = data.label || (data.checked ? 'Sim' : 'Não');
+        } catch (err) {
+        // Reverte estado se falhar
+        input.checked = previous;
+        if (label) label.textContent = previous ? 'Sim' : 'Não';
+        console.error(err);
+        // feedback rápido (opcional substituir por toast)
+        alert('Não foi possível atualizar. Tenta novamente.');
+        } finally {
+        setDisabled(input, false);
+        }
+    });
+
+</script>
+{% endblock %}

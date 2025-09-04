@@ -300,6 +300,7 @@ class DieWorkWorker(models.Model):
 class OrdersComing(models.Model):
     order = models.CharField(max_length=500, blank=False, null=False)
     inspectionMetrology = models.BooleanField(default=False)
+    preshipment = models.BooleanField(default=False)
     mark = models.BooleanField(default=False)
     urgent = models.BooleanField(default=False)
     done = models.BooleanField(default=False)
@@ -317,11 +318,18 @@ class Order(models.Model):
         'SCHENKER',
         'TNT'
     ]
+    plant_choices = [
+        'P2',
+        'P3',
+        'Toma'
+    ]
+
     tracking_number = models.CharField(max_length=20, unique=True)
     orders_coming = models.ManyToManyField(OrdersComing, related_name='orders', blank=True)
-
+    plant = models.CharField(max_length=6, choices=[(p, p) for p in plant_choices], blank=True, null=True)
     courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
     shipping_date = models.DateField(null=True, blank=True)
+    arriving_date = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
 
 

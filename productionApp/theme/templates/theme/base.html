@@ -47,7 +47,7 @@
             <a href="{% url 'listQrcodes' %}" class="hover:text-blue-400 transition">Inserir Caixa</a>
             <a href="{% url 'listarDies' %}" class="hover:text-blue-400 transition">Trabalhar Fieiras</a>
             <a href="{% url 'deliveryCalendar' %}" class="hover:text-blue-400 transition">Calendário de Entregas</a>
-            {% if request.user.groups.all.0.name in "Q-Office Administração" %}
+            {% if request.user.groups.all.0.name in "Q-Office Administracao Comercial" %}
               <a href="{% url 'listarOrders' %}" class="hover:text-blue-400 transition">Orders</a>
             {% endif %}
             <a href="{% url 'logout' %}" class="ml-4 px-1 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>

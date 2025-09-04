@@ -1,0 +1,26 @@
+{% extends 'theme/base.html' %}
+{% block title %}Adicionar Trabalhador{% endblock %}
+
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Adicionar Trabalhador ao trabalho {{ work.get_work_type_display }} do Die {{ work.die.serial_number }}</h2>
+
+<form method="POST">
+  {% csrf_token %}
+  
+  <label for="worker" class="block mb-2 font-semibold">Trabalhador:</label>
+  <select name="worker" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher Utilizador --</option>
+    {% for user in users %}
+      <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="password" class="block mb-2 font-semibold">Senha do Utilizador:</label>
+  <input type="password" name="password" required class="border rounded p-2 mb-4 w-full" placeholder="Digite a senha do utilizador" />
+
+  <div class="flex gap-2">
+    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Adicionar</button>
+    <a href="{% url 'die_details' work.die.id %}" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">Cancelar</a>
+  </div>  
+</form>
+{% endblock %}
