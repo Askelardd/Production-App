@@ -1,7 +1,10 @@
 from django.contrib import admin # type: ignore
 from django import forms  # type: ignore
 
+from django import forms  # type: ignore
+
 from .models import (
+    Order, Products, ProductDeleteLog, QRData, Jobs,
     Order, Products, ProductDeleteLog, QRData, Jobs,
     Diameters, Die, Tolerance,
     NumeroPartidos, PedidosDiametro,

@@ -1,6 +1,9 @@
 import calendar
 from datetime import date, timedelta
 import datetime
+import calendar
+from datetime import date, timedelta
+import datetime
 import json  # type: ignore
 import logging
 from unicodedata import name
@@ -10,6 +13,7 @@ from django.http import JsonResponse  # type: ignore
 from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
 from django.contrib import messages  # type: ignore
 from django.contrib.auth.models import User  # type: ignore
+from django.contrib.auth import authenticate, login, logout # type: ignore
 from django.contrib.auth import authenticate, login, logout # type: ignore
 from django.contrib.auth.decorators import login_required  # type: ignore
 from django.views.decorators.http import require_http_methods  # type: ignore
@@ -575,6 +579,22 @@ def deletar_delivery(request, id):
     messages.error(request, 'Requisição inválida.')
     return redirect('listarInfo')
 
+
+def listarInfo(request):
+    deliveries = DeliveryInfo.objects.all()
+    return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
+
+def deletar_delivery(request, id):
+    delivery = get_object_or_404(DeliveryInfo, id=id)
+
+    if request.method == 'POST':
+        delivery.delete()
+        messages.success(request, 'Entrega deletada com sucesso!')
+        return redirect('listarInfo')
+
+    messages.error(request, 'Requisição inválida.')
+    return redirect('listarInfo')
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -666,6 +686,7 @@ def partidosMenu(request, toma_order_full):
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe checkboxes
         serie_dies_partidos = ', '.join(serie_dies_list)     # <-- transforma em string
         observations = request.POST.get('observations', '')
+        observations = request.POST.get('observations', '')
 
         try:
             partido = int(numero)
@@ -710,6 +731,7 @@ def diametroMenu(request, toma_order_full):
         pedido_por = request.POST.get('pedidoPor')
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe os checkboxes
         serie_dies = ', '.join(serie_dies_list)
+        observations = request.POST.get('observations', '')
         observations = request.POST.get('observations', '')
 
         try:
@@ -814,7 +836,21 @@ def adicionar_dies(request, qr_id):
     jobs = Jobs.objects.all()
 
     raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
+    raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
     diameters_list = []
+
+    # Verifica se está no formato antigo (ex: "2 x 0,1243")
+    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
+
+    if matches:
+        for qty, value in matches:
+            qty = int(qty)
+            value = value.replace(",", ".")
+            diameters_list.extend([value] * qty)
+    else:
+        # Caso não tenha "x", assume que é apenas o diâmetro
+        value = raw_value.replace(",", ".")
+        diameters_list = [value] * qr_code.qt
 
     # Verifica se está no formato antigo (ex: "2 x 0,1243")
     matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
@@ -946,6 +982,7 @@ def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
 
+@login_required
 @login_required
 def create_caixa(request):
     if not request.user.groups.filter(name__in=['Q-Office', 'Administracao']).exists():
@@ -1246,6 +1283,74 @@ def localizarFieira(request):
         'q': q,
         'results': results,
     })
+
+def deliveryCalendar(request):
+    today = timezone.localdate()
+
+    try:
+        year = int(request.GET.get('year', today.year))
+        month = int(request.GET.get('month', today.month))
+    except ValueError:
+        year, month = today.year, today.month
+
+    # limites do mês
+    first_day = date(year, month, 1)
+    last_day = date(year, month, calendar.monthrange(year, month)[1])
+
+    # eventos só do mês (com deliveryDate definido)
+    events = DeliveryInfo.objects.filter(deliveryDate__range=(first_day, last_day))
+
+    # mapa por dia
+    events_by_day = {}
+    for ev in events:
+        events_by_day.setdefault(ev.deliveryDate, []).append(ev)
+
+    cal = calendar.Calendar(firstweekday=0)   # 0 = Segunda, 6 = Domingo
+    weeks = []
+    for week in cal.monthdatescalendar(year, month):
+        week_cells = []
+        for d in week:
+            in_month = (d.month == month)
+            day_events = events_by_day.get(d, [])
+            is_today = (d == today)
+            # “a vermelho” se dentro dos próximos 7 dias (>= hoje e <= hoje+7)
+            is_soon = (d >= today and d <= today + timedelta(days=7) and in_month and len(day_events) > 0)
+            week_cells.append({
+                'date': d,
+                'in_month': in_month,
+                'events': day_events,
+                'is_today': is_today,
+                'is_soon': is_soon,
+            })
+        weeks.append(week_cells)
+
+    # avisos (lista plana dos próximos 7 dias com eventos, independentemente do mês)
+    soon_start = today
+    soon_end = today + timedelta(days=7)
+    soon_events = (
+        DeliveryInfo.objects
+        .filter(deliveryDate__range=(soon_start, soon_end))
+        .order_by('deliveryDate')
+    )
+
+    # navegação (prev/next)
+    prev_month = (first_day.replace(day=1) - timedelta(days=1)).replace(day=1)
+    next_month = (last_day + timedelta(days=1)).replace(day=1)
+
+    context = {
+        'today': today,
+        'year': year,
+        'month': month,
+        'month_name': calendar.month_name[month],
+        'weeks': weeks,
+        'soon_events': soon_events,
+        'prev_year': prev_month.year,
+        'prev_month': prev_month.month,
+        'next_year': next_month.year,
+        'next_month': next_month.month,
+    }
+    return render(request, 'theme/deliveryCalendar.html', context)
+
 
 def deliveryCalendar(request):
     today = timezone.localdate()
