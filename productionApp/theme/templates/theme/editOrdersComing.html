@@ -46,6 +46,9 @@
     <label class="flex items-center space-x-2">
       <input type="checkbox" name="done" {% if oc.done %}checked{% endif %}>
       <span>Concluído</span>
+      {% if oc.done and oc.data_done %}
+      <span class="text-sm text-gray-500">(Concluído em {{ oc.data_done|date:"d/m/Y" }})</span>
+      {% endif %}
     </label>
   </div>
 

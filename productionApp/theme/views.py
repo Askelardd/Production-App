@@ -301,7 +301,9 @@ def edit_orders_coming(request, oc_id):
         orders_coming.preshipment = request.POST.get('preshipment') == 'on'
         orders_coming.mark = request.POST.get('mark') == 'on'
         orders_coming.urgent = request.POST.get('urgent') == 'on'
-        orders_coming.done = request.POST.get('done') == 'on'
+        orders_coming.done = request.POST.get('done') == 'on' 
+        if orders_coming.done and not orders_coming.data_done:
+            orders_coming.data_done = timezone.now()
         orders_coming.comment = request.POST.get('comment', '')
         orders_coming.save()
 
@@ -982,7 +984,6 @@ def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
     return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
 
-@login_required
 @login_required
 def create_caixa(request):
     if not request.user.groups.filter(name__in=['Q-Office', 'Administracao']).exists():

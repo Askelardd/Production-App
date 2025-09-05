@@ -304,6 +304,8 @@ class OrdersComing(models.Model):
     mark = models.BooleanField(default=False)
     urgent = models.BooleanField(default=False)
     done = models.BooleanField(default=False)
+    # add  data to done
+    data_done = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
 
     def __str__(self):
