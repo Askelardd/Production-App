@@ -39,11 +39,11 @@ class ProductDeleteLog(models.Model):
 
 class Jobs(models.Model):
     JOB_CHOICES = [
-        ('F', 'F'),
-        ('R', 'R'),
-        ('P', 'P'),
-        ('W', 'W'),
-        ('N', 'N'),    
+        ('F', 'Final(F)'),
+        ('R', 'Recondicionado(R)'),
+        ('P', 'Polir(P)'),
+        ('W', 'Com o mesmo diametro(W)'),
+        ('N', 'Novo(N)'),    
     ]
     
     job = models.CharField(max_length=1, choices=JOB_CHOICES, unique=True)
@@ -66,15 +66,15 @@ class Die(models.Model):
         return f"{self.get_die_type_display()}"
     
 class Tolerance(models.Model):
-    min = FlexibleDecimalField(max_digits=6, decimal_places=4)
-    max = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
 
     def __str__(self):
         return f"Tolerância: {self.min} - {self.max}"
 
 class Diameters(models.Model):
-    min = FlexibleDecimalField(max_digits=6, decimal_places=4)
-    max = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
 
     def __str__(self):
         return f"Diametro: {self.min} - {self.max}"
@@ -82,11 +82,10 @@ class Diameters(models.Model):
 class QRData(models.Model):
     customer = models.CharField(max_length=100)
     diameters = models.CharField(max_length=50)  # original diameter
-    customer_order_nr = models.CharField(max_length=50)  # customer order number
+    customer_order_nr = models.CharField(max_length=50, blank=True, null=True)  # customer order number
     toma_order_nr = models.CharField(max_length=50)
     toma_order_year = models.CharField(max_length=10)
     toma_order_full = models.CharField(max_length=20, unique=True, blank=True, null=True)  # novo campo único
-    tolerance = models.ForeignKey(Tolerance, on_delete=models.SET_NULL, null=True, blank=True)
     box_nr = models.IntegerField()
     qt = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
@@ -145,8 +144,9 @@ class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
     serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
     diameter_text = models.CharField(max_length=50, blank=True, null=True)  # <-- Novo campo
-    cone = models.CharField(max_length=10, blank=True, null=True)  # <-- Novo campo
-    bearing = models.CharField(max_length=10, blank=True, null=True)  # <-- Novo campo
+    cone = models.CharField(max_length=20)  
+    bearing = models.CharField(max_length=100)  
+    bearing_is_red = models.BooleanField(default=False)  
     diam_desbastado = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     diam_requerido = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
@@ -323,16 +323,20 @@ class Order(models.Model):
     plant_choices = [
         'P2',
         'P3',
-        'Toma'
+        'Toma',
+        'Spider Extrusion',
+        'Paganoni',
+        'Outros',
     ]
 
     tracking_number = models.CharField(max_length=20, unique=True)
     orders_coming = models.ManyToManyField(OrdersComing, related_name='orders', blank=True)
-    plant = models.CharField(max_length=6, choices=[(p, p) for p in plant_choices], blank=True, null=True)
+    plant = models.CharField(max_length=30, choices=[(p, p) for p in plant_choices], blank=True, null=True)
     courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
     shipping_date = models.DateField(null=True, blank=True)
     arriving_date = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
+    exportado = models.BooleanField(default=False)
 
 
     def __str__(self):
@@ -349,4 +353,45 @@ class OrderFile(models.Model):
         return f"{self.file.name}"
 
     
+
+class Tracking(models.Model):
+    finalidade_choices = [
+        ('Importacao', 'Importação'),
+        ('Exportacao', 'Exportação'),
+    ]
+    courier_choices = [
+        'DHL',
+        'UPS',
+        'FedEx',
+        'SCHENKER',
+        'TNT',
+        'NACEX',
+        'Outros',
+    ]
+
+    data = models.DateField()
+    finalidade = models.CharField(max_length=20, choices=finalidade_choices)
+    crm = models.CharField(max_length=100)
+    destinatario = models.CharField(max_length=100)
+    transportadora = models.CharField(max_length=20, choices=[(c, c) for c in courier_choices])
+    carta_de_porte = models.CharField(max_length=100, blank=True, null=True)
+    numero_recolha = models.CharField(max_length=100, blank=True, null=True)
+    recebido_por = models.CharField(max_length=100, blank=True, null=True) # recebido_por
+    data_entrega = models.DateField(blank=True, null=True)
+    remetente = models.CharField(max_length=100, blank=True, null=True) # passar para texto
+    # se finalidade = linha da tabela ou card = verde
+    email = models.CharField(max_length=100, blank=True, null=True) # passar para texto
+    observacoes = models.TextField(blank=True, null=True)
+    files = models.ManyToManyField('TrackingFile', related_name='trackings', blank=True)
+
+    def __str__(self):
+        return f"{self.data} - {self.finalidade} - {self.crm} - {self.destinatario} - {self.transportadora}"
+
+
+class TrackingFile(models.Model):
+    file = models.FileField(upload_to='tracking_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.file.name}"
 

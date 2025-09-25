@@ -1,0 +1,172 @@
+{% extends 'theme/base.html' %}
+{% block title %}Trackings{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold">Trackings</h1>
+  <div class="flex items-center gap-2">
+    <a href="?{% if current_query %} {{ current_query }}&{% endif %}view=cards"
+      class="px-3 py-2 border rounded hidden md:inline-block">Ver cards</a>
+    <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
+  </div>
+</div>
+
+<form method="GET" class="bg-white p-4 rounded shadow mb-6 grid grid-cols-1 md:grid-cols-6 gap-4">
+  <div class="md:col-span-2">
+    <label class="block text-sm">Pesquisa geral</label>
+    <input type="text" name="q" value="{{ q }}" placeholder="CRM, destinatário, nº recolha, email..."
+           class="border p-2 w-full">
+  </div>
+
+  <div>
+    <label class="block text-sm">Finalidade</label>
+    <select name="finalidade" class="border p-2 w-full">
+      <option value="">Todas</option>
+      {% for value, label in finalidades %}
+        <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-sm">Transportadora</label>
+    <select name="transportadora" class="border p-2 w-full">
+      <option value="">Todas</option>
+      {% for c in transportadoras %}
+        <option value="{{ c }}" {% if c == selected_transportadora %}selected{% endif %}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="block text-sm">Recebido Por</label>
+    <input type="text" name="recebido_por" value="{{ recebido_por }}" class="border p-2 w-full">
+  </div>
+
+  <div class="md:col-span-2">
+    <label class="block text-sm">De</label>
+    <input type="date" name="de" value="{{ de }}" class="border p-2 w-full">
+  </div>
+  <div class="md:col-span-2">
+    <label class="block text-sm">Até</label>
+    <input type="date" name="ate" value="{{ ate }}" class="border p-2 w-full">
+  </div>
+
+  <div class="md:col-span-2 flex items-end gap-2">
+    <button class="bg-gray-800 text-white px-4 py-2 rounded">Filtrar</button>
+    <a href="{% url 'listarTracking' %}" class="px-4 py-2 border rounded">Limpar</a>
+  </div>
+</form>
+
+<div class="relative">
+  <!-- Scrollbar superior -->
+  <div id="topScroller" class="overflow-x-auto h-4 mb-2">
+    <div id="topScrollerInner" class="h-1"></div>
+  </div>
+
+  <div id="tableScroller" class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+    <table id="ordersTable" class="min-w-full table-auto text-xs md:text-sm text-left">
+      <thead class="bg-gray-50">
+        <tr>
+          {% for col in columns %}
+            {% with field=col.0 label=col.1 %}
+              <th class="text-left px-4 py-3 whitespace-nowrap">
+                <a
+                  href="?{% if current_query %}{{ current_query }}&{% endif %}sort={% if sort == field %}-{{ field }}{% elif sort == '-'|add:field %}{{ field }}{% else %}{{ field }}{% endif %}"
+                  class="hover:underline"
+                >
+                  {{ label }}
+                  {% if sort == field %}▲{% elif sort == '-'|add:field %}▼{% endif %}
+                </a>
+              </th>
+            {% endwith %}
+          {% endfor %}
+          <th class="px-4 py-3">Ficheiros</th>
+          <th class="px-4 py-3">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for t in trackings %}
+        <tr class="border-t">
+          <td class="px-4 py-2 whitespace-nowrap">{{ t.data|date:"Y-m-d" }}</td>
+          <td class="px-4 py-2">{{ t.get_finalidade_display }}</td>
+          <td class="px-4 py-2">{{ t.crm }}</td>
+          <td class="px-4 py-2">{{ t.destinatario }}</td>
+          <td class="px-4 py-2">{{ t.transportadora }}</td>
+          <td class="px-4 py-2">{{ t.carta_de_porte }}</td>
+          <td class="px-4 py-2">{{ t.numero_recolha }}</td>
+          <td class="px-4 py-2">{{ t.recebido_por }}</td>
+          <td class="px-4 py-2">{{ t.data_entrega|date:"Y-m-d" }}</td>
+          <td class="px-4 py-2">{{ t.remetente }}</td>
+          <td class="px-4 py-2">{{ t.email }}</td>
+          <td class="px-4 py-2">{{ t.observacoes }}</td>
+          <td class="px-4 py-2">
+            {% with total=t.files.count %}
+              {% if total %}
+                {% for f in t.files.all|slice:":2" %}
+                  <a href="{{ f.file.url }}" class="text-blue-600 underline block" target="_blank" rel="noreferrer" download
+                    title="{{ f.file.name }}">
+                    {{ f.file.name|cut:"tracking_files/" }}
+                  </a>
+                {% endfor %}
+                {% if total > 2 %}
+                  <span class="text-xs text-gray-500">+{{ total|add:"-2" }} mais</span>
+                {% endif %}
+              {% else %}
+                —
+              {% endif %}
+            {% endwith %}
+          </td>
+
+
+          <td class="px-4 py-2">
+            <a href="{% url 'editarTracking' t.id %}" class="text-blue-600 underline">Editar</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10" class="px-4 py-6 text-center text-gray-500">Sem resultados.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="flex items-center justify-between mt-4 text-sm">
+  <div>
+    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} —
+    {{ page_obj.paginator.count }} registo(s)
+  </div>
+  <div class="space-x-2">
+    {% if page_obj.has_previous %}
+      <a class="px-3 py-1 border rounded"
+         href="?{% if current_query %}{{ current_query }}&{% endif %}page={{ page_obj.previous_page_number }}">Anterior</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a class="px-3 py-1 border rounded"
+         href="?{% if current_query %}{{ current_query }}&{% endif %}page={{ page_obj.next_page_number }}">Seguinte</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    // Scroll superior sincronizado
+  const tableScroller = document.getElementById('tableScroller');
+  const topScroller = document.getElementById('topScroller');
+  const topInner = document.getElementById('topScrollerInner');
+
+  function syncWidths() {
+    topInner.style.width = tableScroller.scrollWidth + 'px';
+  }
+
+  tableScroller.addEventListener('scroll', () => {
+    topScroller.scrollLeft = tableScroller.scrollLeft;
+  });
+
+  topScroller.addEventListener('scroll', () => {
+    tableScroller.scrollLeft = topScroller.scrollLeft;
+  });
+
+  window.addEventListener('load', syncWidths);
+</script>
+{% endblock %}

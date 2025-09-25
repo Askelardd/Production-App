@@ -79,7 +79,7 @@
                                         <p class="font-semibold">{{ die.serial_number }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-gray-600 text-xs">Diâmetro:</p>
+                                        <p class="text-gray-600 text-xs">Diâmetro Original:</p>
                                         <p class="font-semibold">{{ die.diameter_text }}</p>
                                     </div>
                                 </div>
@@ -99,11 +99,11 @@
                                 </div>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                                     <div>
-                                        <p class="text-gray-600 text-xs">Job:</p>
+                                        <p class="text-gray-600 text-xs">Trabalho:</p>
                                         <p>{{ die.job.get_job_display }}</p>
                                     </div>
                                     <div>
-                                        <p class="text-gray-600 text-xs">Tolerância:</p>
+                                        <p class="text-gray-600 text-xs">Tolerância: (min-max)</p>
                                         <p>
                                             {% if die.tolerance %}
                                                 {{ die.tolerance.min }} - {{ die.tolerance.max }}
@@ -115,6 +115,16 @@
                                     <div>
                                         <p class="text-gray-600 text-xs">Observações:</p>
                                         <p>{{ die.observations|default:"-" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Cone:</p>
+                                        <p>{{ die.cone }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 text-xs">Calibre:</p>
+                                        <p class="{% if die.bearing_is_red %}bg-red-100 text-red-900 ring-2 ring-red-300 rounded px-1{% endif %}">
+                                            {{ die.bearing }}
+                                        </p>
                                     </div>
                                 </div>
                                 <div class="flex justify-start gap-2 mt-2">

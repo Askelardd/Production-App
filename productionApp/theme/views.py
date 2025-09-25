@@ -1,34 +1,33 @@
 import calendar
-from datetime import date, timedelta
-import datetime
-import calendar
-from datetime import date, timedelta
 import datetime
 import json  # type: ignore
 import logging
+import re  # type: ignore
+from collections import Counter
+from datetime import date, timedelta
 from unicodedata import name
 from urllib import request  # type: ignore
-from django.conf import settings
-from django.http import JsonResponse  # type: ignore
-from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
-from django.contrib import messages  # type: ignore
-from django.contrib.auth.models import User  # type: ignore
-from django.contrib.auth import authenticate, login, logout # type: ignore
-from django.contrib.auth import authenticate, login, logout # type: ignore
-from django.contrib.auth.decorators import login_required  # type: ignore
-from django.views.decorators.http import require_http_methods  # type: ignore
-from django.views.decorators.csrf import csrf_exempt  # type: ignore
-from django.utils import timezone  # type: ignore
-from .models import *  # type: ignore
-import re  # type: ignore
+from django.db.models import Q, OuterRef, Exists
 import pandas as pd  # type: ignore
-from django.http import HttpResponse  # type: ignore
-from django.db.models import Count  # type: ignore
-from django.views.decorators.http import require_POST  # type: ignore
-from django.db import transaction # type: ignore
-from django.core.mail import send_mail # type: ignore
+from django.conf import settings
+from django.contrib import messages  # type: ignore
+from django.contrib.auth import authenticate, login, logout  # type: ignore
 from django.contrib.auth import logout as auth_logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required  # type: ignore
+from django.contrib.auth.models import User  # type: ignore
+from django.core.mail import send_mail  # type: ignore
+from django.core.paginator import Paginator
+from django.db import IntegrityError, transaction  # type: ignore
+from django.db.models import Count  # type: ignore
+from django.http import HttpResponse, JsonResponse  # type: ignore
+from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
+from django.utils import timezone  # type: ignore
+from django.utils.dateparse import parse_date
+from django.views.decorators.csrf import csrf_exempt  # type: ignore
+from django.views.decorators.http import require_http_methods, require_POST  # type: ignore
+
+from .models import *  # type: ignore
+
 
 
 def home(request):
@@ -153,17 +152,34 @@ def listar_orders(request):
     if not request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists():
         return permission_denied_view(request)
 
-    orders = Order.objects.prefetch_related('orders_coming', 'files') \
-                          .order_by('-shipping_date', '-id')
+    orders = (
+        Order.objects
+        .prefetch_related('orders_coming', 'files')
+        .annotate(
+            has_tasks=Exists(
+                OrdersComing.objects
+                .filter(orders=OuterRef('pk'))  
+                .filter(
+                    Q(inspectionMetrology=True) |
+                    Q(preshipment=True) |
+                    Q(mark=True) |
+                    Q(urgent=True)
+                )
+            )
+        )
+        .order_by('-shipping_date', '-id')
+    )
 
     ordersComing = OrdersComing.objects.all()
 
     is_admin = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
+    is_qOffice = request.user.groups.filter(name='Q-Office').exists()
 
     return render(request, 'theme/listarOrders.html', {
         'orders': orders,
         'is_admin': is_admin,
         'ordersComing': ordersComing,
+        'is_qOffice': is_qOffice,
     })
 
 
@@ -319,33 +335,38 @@ def exportOrderExcel(request, order_id):
     orders_coming = order.orders_coming.all()
     order_files = order.files.all()
 
-    # Criar lista com dados
+    # Criar dados
     data = []
-    for orders in orders_coming:
+    for oc in orders_coming:
         data.append({
             'Plant': order.plant or 'N/A',
             'Shipping Number': order.tracking_number or 'N/A',
-            'Order': orders.order,
-            'Inspection Metrology': 'Sim' if orders.inspectionMetrology else 'Não',
-            'Preshipment': 'Sim' if orders.preshipment else 'Não',
-            'Mark': 'Sim' if orders.mark else 'Não',
-            'Urgent': 'Sim' if orders.urgent else 'Não',
-            'Done': 'Sim' if orders.done else 'Não',
-            'Comment': orders.comment,
+            'Order': oc.order,
+            'Inspection Metrology': 'Sim' if oc.inspectionMetrology else '-',
+            'Preshipment': 'Sim' if oc.preshipment else '-',
+            'Mark': 'Sim' if oc.mark else '-',
+            'Urgent': 'Sim' if oc.urgent else '-',
+            'Done': 'Sim' if oc.done else '-',
+            'Comment': oc.comment,
         })
 
-    # Converter para DataFrame
     df = pd.DataFrame(data)
 
-    # Criar resposta HTTP
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename=Order_{order.tracking_number}_Details.xlsx'
 
-    # Gravar no Excel
+    # Gerar o Excel em memória
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Dados', index=False)
 
-    # Adiciona log na tabela globalLogs
+    # Se chegou aqui, a exportação foi gerada — marca como exportado
+    if not order.exportado:
+        order.exportado = True
+        order.save(update_fields=['exportado'])
+
+    # Log (mantém o teu)
     globalLogs.objects.create(
         user=request.user,
         action=f"{request.user.username} criou um exel da ordem {order.tracking_number}.",
@@ -354,7 +375,9 @@ def exportOrderExcel(request, order_id):
     return response
 
 def administrationMenu(request):
-    return render(request, 'theme/administrationMenu.html')
+    is_admin = request.user.groups.filter(name='Administracao').exists()
+    return render(request, 'theme/administrationMenu.html', {'is_admin': is_admin})
+
 
 @login_required
 def user_logout(request):
@@ -838,32 +861,15 @@ def adicionar_dies(request, qr_id):
     jobs = Jobs.objects.all()
 
     raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
-    raw_value = qr_code.diameters.strip() if qr_code.diameters else ""
     diameters_list = []
-
-    # Verifica se está no formato antigo (ex: "2 x 0,1243")
+    # Formato "2 x 0,1243"
     matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
-
     if matches:
         for qty, value in matches:
             qty = int(qty)
             value = value.replace(",", ".")
             diameters_list.extend([value] * qty)
     else:
-        # Caso não tenha "x", assume que é apenas o diâmetro
-        value = raw_value.replace(",", ".")
-        diameters_list = [value] * qr_code.qt
-
-    # Verifica se está no formato antigo (ex: "2 x 0,1243")
-    matches = re.findall(r"(\d+)\s*x\s*([\d,\.]+)", raw_value)
-
-    if matches:
-        for qty, value in matches:
-            qty = int(qty)
-            value = value.replace(",", ".")
-            diameters_list.extend([value] * qty)
-    else:
-        # Caso não tenha "x", assume que é apenas o diâmetro
         value = raw_value.replace(",", ".")
         diameters_list = [value] * qr_code.qt
 
@@ -872,74 +878,135 @@ def adicionar_dies(request, qr_id):
     if request.method == 'POST':
         total = int(request.POST.get('total', 0))
 
+        # ====== VALIDAÇÃO DE NÚMEROS DE SÉRIE DUPLICADOS ======
+        errors = []
+        posted_serials = []
         for i in range(1, total + 1):
-            serial = request.POST.get(f'serial_{i}')
-            diameter_value = request.POST.get(f'diameter_{i}')
-            diam_desbastado = request.POST.get(f'diam_desbastado_{i}')
-            diam_requerido = request.POST.get(f'diam_requerido_{i}')
-            die_id = request.POST.get(f'die_{i}')
-            job_id = request.POST.get(f'job_{i}')
-            tol_max = request.POST.get(f'tol_max_{i}')
-            tol_min = request.POST.get(f'tol_min_{i}')
-            observations = request.POST.get(f'observations_{i}')
-            cone = request.POST.get(f'cone_{i}')
-            bearing = request.POST.get(f'bearing_{i}')
+            s = (request.POST.get(f'serial_{i}') or '').strip()
+            posted_serials.append(s)
 
+        dup_in_form = [s for s, cnt in Counter([s for s in posted_serials if s]).items() if cnt > 1]
+        if dup_in_form:
+            errors.append(f"Números de série repetidos no formulário: {', '.join(dup_in_form)}.")
+
+        for i in range(1, total + 1):
+            s = (request.POST.get(f'serial_{i}') or '').strip()
+            if not s:
+                continue
             if i <= len(existing_dies):
-                # Atualizar existente
-                die_obj = existing_dies[i-1]
-                die_obj.serial_number = serial
-                die_obj.diameter_text = diameter_value
-                die_obj.diam_desbastado = diam_desbastado or None
-                die_obj.diam_requerido = diam_requerido or None
-                die_obj.die_id = die_id if die_id else None
-                die_obj.job_id = job_id if job_id else None
-                die_obj.observations = observations
-                die_obj.cone = cone
-                die_obj.bearing = bearing
-
-
-                if tol_max and tol_min:
-                    if die_obj.tolerance:
-                        die_obj.tolerance.max = tol_max
-                        die_obj.tolerance.min = tol_min
-                        die_obj.tolerance.save()
-                    else:
-                        tolerance_obj = Tolerance.objects.create(min=tol_min, max=tol_max)
-                        die_obj.tolerance = tolerance_obj
-
-                die_obj.save()
+                current_obj = existing_dies[i - 1]
+                if s != (current_obj.serial_number or '') and dieInstance.objects.filter(serial_number=s).exists():
+                    errors.append(f"O número de série '{s}' já existe.")
             else:
-                # Criar novo
-                tolerance = None
-                if tol_max and tol_min:
-                    tolerance = Tolerance.objects.create(min=tol_min, max=tol_max)
+                if dieInstance.objects.filter(serial_number=s).exists():
+                    errors.append(f"O número de série '{s}' já existe.")
 
-                dieInstance.objects.create(
-                    customer=qr_code,
-                    serial_number=serial,
-                    diameter_text=diameter_value,
-                    diam_desbastado=diam_desbastado or None,
-                    diam_requerido=diam_requerido or None,
-                    die_id=die_id if die_id else None,
-                    job_id=job_id if job_id else None,
-                    tolerance=tolerance,
-                    observations=observations,
-                    cone=cone,
-                    bearing=bearing
-                    
+        if errors:
+            for e in errors:
+                messages.error(request, e)
+
+            # Reconstrói prefill a partir do POST (inclui bearing_red)
+            prefilled_data = []
+            for i in range(1, total + 1):
+                prefilled_data.append({
+                    'serial': request.POST.get(f'serial_{i}', ''),
+                    'diameter': request.POST.get(f'diameter_{i}', ''),
+                    'diam_desbastado': request.POST.get(f'diam_desbastado_{i}', ''),
+                    'diam_requerido': request.POST.get(f'diam_requerido_{i}', ''),
+                    'die': request.POST.get(f'die_{i}', ''),
+                    'job': request.POST.get(f'job_{i}', ''),
+                    'tol_max': request.POST.get(f'tol_max_{i}', ''),
+                    'tol_min': request.POST.get(f'tol_min_{i}', ''),
+                    'observations': request.POST.get(f'observations_{i}', ''),
+                    'cone': request.POST.get(f'cone_{i}', ''),
+                    'bearing': request.POST.get(f'bearing_{i}', ''),
+                    'bearing_red': (request.POST.get(f'bearing_red_{i}') == 'on'),
+                })
+
+            return render(request, 'theme/adicionarDies.html', {
+                'qr_code': qr_code,
+                'dies': dies,
+                'jobs': jobs,
+                'prefilled_data': prefilled_data,
+            })
+        # ====== FIM VALIDAÇÃO ======
+
+        # ====== GRAVAÇÃO ======
+        try:
+            with transaction.atomic():
+                for i in range(1, total + 1):
+                    serial = request.POST.get(f'serial_{i}')
+                    diameter_value = request.POST.get(f'diameter_{i}')
+                    diam_desbastado = request.POST.get(f'diam_desbastado_{i}')
+                    diam_requerido = request.POST.get(f'diam_requerido_{i}')
+                    die_id = request.POST.get(f'die_{i}')
+                    job_id = request.POST.get(f'job_{i}')
+                    tol_max = request.POST.get(f'tol_max_{i}')
+                    tol_min = request.POST.get(f'tol_min_{i}')
+                    observations = request.POST.get(f'observations_{i}')
+                    cone = request.POST.get(f'cone_{i}')
+                    bearing = request.POST.get(f'bearing_{i}')
+                    bearing_red = (request.POST.get(f'bearing_red_{i}') == 'on')
+
+                    if i <= len(existing_dies):
+                        # Atualizar existente
+                        die_obj = existing_dies[i - 1]
+                        die_obj.serial_number = serial
+                        die_obj.diameter_text = diameter_value
+                        die_obj.diam_desbastado = diam_desbastado or None
+                        die_obj.diam_requerido = diam_requerido or None
+                        die_obj.die_id = die_id if die_id else None
+                        die_obj.job_id = job_id if job_id else None
+                        die_obj.observations = observations
+                        die_obj.cone = cone
+                        die_obj.bearing = bearing
+                        die_obj.bearing_is_red = bearing_red
+
+                        if tol_max and tol_min:
+                            if die_obj.tolerance:
+                                die_obj.tolerance.max = tol_max
+                                die_obj.tolerance.min = tol_min
+                                die_obj.tolerance.save()
+                            else:
+                                tolerance_obj = Tolerance.objects.create(min=tol_min, max=tol_max)
+                                die_obj.tolerance = tolerance_obj
+
+                        die_obj.save()
+                    else:
+                        # Criar novo
+                        tolerance = None
+                        if tol_max and tol_min:
+                            tolerance = Tolerance.objects.create(min=tol_min, max=tol_max)
+
+                        dieInstance.objects.create(
+                            customer=qr_code,
+                            serial_number=serial,
+                            diameter_text=diameter_value,
+                            diam_desbastado=diam_desbastado or None,
+                            diam_requerido=diam_requerido or None,
+                            die_id=die_id if die_id else None,
+                            job_id=job_id if job_id else None,
+                            tolerance=tolerance,
+                            observations=observations,
+                            cone=cone,
+                            bearing=bearing,
+                            bearing_is_red=bearing_red,  # <-- aqui é o booleano
+                        )
+
+                globalLogs.objects.create(
+                    user=request.user,
+                    action=f"{request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
                 )
 
-        globalLogs.objects.create(
-            user=request.user,
-            action=f"{request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
-        )
+            messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
+            return redirect('listQrcodes')
 
+        except IntegrityError:
+            messages.error(request, "Falha ao gravar: número de série duplicado.")
+            return redirect(request.path)
+        # ====== FIM GRAVAÇÃO ======
 
-        messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
-        return redirect('listQrcodes')
-
-    # Prepara os dados para exibição (pré-preenchimento)
+    # GET → Preenche formulário
     prefilled_data = []
     for i in range(qr_code.qt):
         if i < len(existing_dies):
@@ -955,7 +1022,8 @@ def adicionar_dies(request, qr_id):
                 'tol_min': getattr(die.tolerance, 'min', ''),
                 'observations': die.observations,
                 'cone': die.cone,
-                'bearing': die.bearing
+                'bearing': die.bearing,
+                'bearing_red': getattr(die, 'bearing_is_red', False),  # <-- reflete BD
             })
         else:
             prefilled_data.append({
@@ -969,16 +1037,66 @@ def adicionar_dies(request, qr_id):
                 'tol_min': '',
                 'observations': '',
                 'cone': '',
-                'bearing': ''
+                'bearing': '',
+                'bearing_red': False,
             })
 
-                # Adiciona log na tabela globalLogs
     return render(request, 'theme/adicionarDies.html', {
         'qr_code': qr_code,
         'dies': dies,
         'jobs': jobs,
         'prefilled_data': prefilled_data,
     })
+
+def listar_qrcodes_com_dies(request):
+    qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
+    return render(request, 'theme/listarDies.html', {'qrcodes': qrcodes})
+
+@login_required
+def create_caixa(request):
+    if not request.user.groups.filter(name__in=['Q-Office', 'Administracao']).exists():
+        messages.error(request, "Não tens permissão para criar caixas.")
+        return redirect('listarDies')
+    
+    if request.method == 'POST':
+        required_fields = ['customer', 'customer_order_nr', 'toma_order_nr', 'toma_order_year', 'box_nr', 'qt', 'diameters']
+
+        # Verifica se há campos obrigatórios vazios
+        for field in required_fields:
+            if not request.POST.get(field):
+                messages.error(request, f"Todos os campos obrigatórios devem ser preenchidos.")
+                return redirect('listarDies')
+
+        try:
+            box_nr = int(request.POST.get('box_nr'))
+            qt = int(request.POST.get('qt'))
+        except ValueError:
+            messages.error(request, "Os campos 'Caixa' e 'Quantidade' devem ser números válidos.")
+            return redirect('listarDies')
+
+        # Cria o objeto se tudo estiver válido
+        QRData.objects.create(
+            customer=request.POST.get('customer'),
+            customer_order_nr=request.POST.get('customer_order_nr'),
+            toma_order_nr=request.POST.get('toma_order_nr'),
+            toma_order_year=request.POST.get('toma_order_year', timezone.now().year),
+            box_nr=box_nr,
+            qt=qt,
+            diameters=request.POST.get('diameters'),
+            observations=request.POST.get('observations', ''),
+            created_at=timezone.now()
+        )
+
+        messages.success(request, "Caixa criada com sucesso!")
+
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} criou uma nova caixa com o número {box_nr}.",
+        )
+
+        return redirect('listarDies')
+
+    return redirect('listarDies')
 
 def listar_qrcodes_com_dies(request):
     qrcodes = QRData.objects.prefetch_related('die_instances').all().order_by('-created_at')
@@ -1419,3 +1537,180 @@ def deliveryCalendar(request):
         'next_month': next_month.month,
     }
     return render(request, 'theme/deliveryCalendar.html', context)
+
+def create_tracking(request):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                tracking = Tracking.objects.create(
+                    data=parse_date(request.POST.get('data')),
+                    finalidade=request.POST.get('finalidade') or None,
+                    crm=request.POST.get('crm') or '',
+                    destinatario=request.POST.get('destinatario') or '',
+                    transportadora=request.POST.get('transportadora') or None,
+                    carta_de_porte=request.POST.get('carta_de_porte') or '',
+                    numero_recolha=request.POST.get('numero_recolha') or '',
+                    recebido_por=request.POST.get('recebido_por') or '',
+                    email=request.POST.get('email') or None,
+                    observacoes=request.POST.get('observacoes') or '',
+                    data_entrega=parse_date(request.POST.get('data_entrega')),
+                    remetente=request.POST.get('remetente') or '',
+                )
+
+                # Adicionar múltiplos ficheiros
+                for f in request.FILES.getlist('files'):
+                    tf = TrackingFile.objects.create(file=f)
+                    tracking.files.add(tf)
+
+            messages.success(request, 'Tracking adicionado com sucesso!')
+            return redirect('listarTracking')
+        except Exception as e:
+            messages.error(request, f'Erro ao criar tracking: {e}')
+
+    context = {
+        'tracking': None,
+        'finalidades': Tracking._meta.get_field('finalidade').choices,
+        'transportadoras': Tracking.courier_choices,
+    }
+    return render(request, 'theme/adicionarTracking.html', context)
+
+
+def listar_trackings(request):
+    qs = Tracking.objects.all().prefetch_related('files')
+
+    # filtros
+    q = (request.GET.get('q') or '').strip()
+    finalidade = request.GET.get('finalidade') or ''
+    transportadora = request.GET.get('transportadora') or ''
+    recebido_por = (request.GET.get('recebido_por') or '').strip()
+    de = request.GET.get('de') or ''
+    ate = request.GET.get('ate') or ''
+
+    if q:
+        qs = qs.filter(
+            Q(crm__icontains=q) |
+            Q(destinatario__icontains=q) |
+            Q(numero_recolha__icontains=q) |
+            Q(carta_de_porte__icontains=q) |
+            Q(observacoes__icontains=q) |
+            Q(email__icontains=q)
+        )
+    if finalidade:
+        qs = qs.filter(finalidade=finalidade)
+    if transportadora:
+        qs = qs.filter(transportadora=transportadora)
+    if recebido_por:
+        qs = qs.filter(recebido_por__icontains=recebido_por)
+
+    de_date = parse_date(de) if de else None
+    ate_date = parse_date(ate) if ate else None
+    if de_date:
+        qs = qs.filter(data__gte=de_date)
+    if ate_date:
+        qs = qs.filter(data__lte=ate_date)
+
+    # ordenação
+    sort = request.GET.get('sort') or '-data'
+    allowed = {'data','finalidade','crm','destinatario','transportadora',
+               'carta_de_porte','numero_recolha','recebido_por','data_entrega','remetente','email','observacoes'}
+    qs = qs.order_by(sort, '-id') if sort.lstrip('-') in allowed else qs.order_by('-data','-id')
+
+    # paginação
+    paginator = Paginator(qs, 20)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    # querystring sem page
+    params = request.GET.copy(); params.pop('page', None)
+    current_query = params.urlencode()
+
+    columns = [
+        ('data', 'Data'),
+        ('finalidade', 'Finalidade'),
+        ('crm', 'CRM'),
+        ('destinatario', 'Destinatário'),
+        ('transportadora', 'Transportadora'),
+        ('carta_de_porte', 'Carta de Porte'),
+        ('numero_recolha', 'Nº Recolha'),
+        ('recebido_por', 'Recebido Por'),
+        ('data_entrega', 'Data Entrega'),
+        ('remetente', 'Remetente'),
+        ('email', 'Email'),
+        ('observacoes', 'Observações'),
+    ]
+
+    context = {
+        'trackings': page_obj.object_list,
+        'page_obj': page_obj,
+        'current_query': current_query,
+        'sort': sort,
+        'q': q,
+        'selected_finalidade': finalidade,
+        'selected_transportadora': transportadora,
+        'recebido_por': recebido_por,
+        'de': de,
+        'ate': ate,
+        'finalidades': Tracking._meta.get_field('finalidade').choices,
+        'transportadoras': Tracking.courier_choices,
+        'columns': columns,
+    }
+    template = 'theme/listarTrackings_cards.html' if (request.GET.get('view') or 'cards') == 'cards' else 'theme/trackingList.html'
+    return render(request, template, context)
+
+
+def edit_tracking(request, tracking_id):
+    tracking = get_object_or_404(Tracking.objects.prefetch_related('files'), id=tracking_id)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                tracking.data = parse_date(request.POST.get('data'))
+                tracking.finalidade = request.POST.get('finalidade') or None
+                tracking.crm = request.POST.get('crm') or ''
+                tracking.destinatario = request.POST.get('destinatario') or ''
+                tracking.transportadora = request.POST.get('transportadora') or None
+                tracking.carta_de_porte = request.POST.get('carta_de_porte') or ''
+                tracking.numero_recolha = request.POST.get('numero_recolha') or ''
+                tracking.recebido_por = request.POST.get('recebido_por') or ''
+                tracking.data_entrega = parse_date(request.POST.get('data_entrega'))
+                tracking.remetente = request.POST.get('remetente') or ''
+                tracking.email = request.POST.get('email') or None
+                tracking.observacoes = request.POST.get('observacoes') or ''
+
+                # anexar novos ficheiros sem remover os antigos
+                for f in request.FILES.getlist('files'):
+                    tf = TrackingFile.objects.create(file=f)
+                    tracking.files.add(tf)
+
+                tracking.save()
+
+                delete_ids = request.POST.getlist('delete_files')  # checkboxes
+                if delete_ids:
+                    to_remove = TrackingFile.objects.filter(id__in=delete_ids)
+                    removed, deleted = 0, 0
+                    for tf in to_remove:
+                        tracking.files.remove(tf)
+                        removed += 1
+                        # se não está ligado a mais nenhum tracking, apaga do disco e da DB
+                        if not tf.trackings.exists():
+                            tf.file.delete(save=False)  # apaga o ficheiro do storage
+                            tf.delete()
+                            deleted += 1
+                    if removed:
+                        messages.info(
+                            request,
+                            f'Removidos {removed} anexo(s). '
+                            + (f'Eliminados do servidor: {deleted}.' if deleted else '')
+                        )
+
+                tracking.save()
+
+            messages.success(request, 'Tracking atualizado com sucesso!')
+            return redirect('listarTracking')
+        except Exception as e:
+            messages.error(request, f'Erro ao atualizar tracking: {e}')
+
+    return render(request, 'theme/adicionarTracking.html', {
+        'tracking': tracking,
+        'finalidades': Tracking._meta.get_field('finalidade').choices,
+        'transportadoras': Tracking.courier_choices,
+    })

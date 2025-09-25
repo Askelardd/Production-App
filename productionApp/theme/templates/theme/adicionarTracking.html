@@ -1,0 +1,326 @@
+{% extends 'theme/base.html' %}
+{% block title %}{% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">
+  {% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}
+</h1>
+
+<form method="post" enctype="multipart/form-data" id="trackingForm">
+  {% csrf_token %}
+
+    <div class="space-y-4">
+        <div class="bg-white shadow p-4 rounded grid grid-cols-1 md:grid-cols-4 gap-4">
+
+            <div>
+                <label class="block text-sm">Data</label>
+                <input type="date" name="data" class="border p-2 w-full" required
+                       value="{% if tracking and tracking.data %}{{ tracking.data|date:'Y-m-d' }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Finalidade</label>
+                <select name="finalidade" class="border p-2 w-full" required>
+                    <option value="">Selecione</option>
+                    {% for value, label in finalidades %}
+                      <option value="{{ value }}" {% if tracking and tracking.finalidade == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm">CRM</label>
+                <input type="text" name="crm" class="border p-2 w-full" required
+                       value="{% if tracking %}{{ tracking.crm }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Destinatário</label>
+                <input type="text" name="destinatario" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.destinatario }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Transportadora</label>
+                <select name="transportadora" class="border p-2 w-full" required>
+                    <option value="">Selecione</option>
+                    {% for courier in transportadoras %}
+                      <option value="{{ courier }}" {% if tracking and tracking.transportadora == courier %}selected{% endif %}>{{ courier }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm">Carta de Porte</label>
+                <input type="text" name="carta_de_porte" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.carta_de_porte }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Número de Recolha</label>
+                <input type="text" name="numero_recolha" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.numero_recolha }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Recebido por</label>
+                <input type="text" name="recebido_por" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.recebido_por }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Data de Entrega</label>
+                <input type="date" name="data_entrega" class="border p-2 w-full"
+                       value="{% if tracking and tracking.data_entrega %}{{ tracking.data_entrega|date:'Y-m-d' }}{% endif %}">
+            </div>
+
+            <div id="remetenteField" style="display: none;">
+                <label class="block text-sm">Remetente</label>
+                <input type="text" name="remetente" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.remetente }}{% endif %}">
+            </div>
+
+            <div>
+                <label class="block text-sm">Email</label>
+                <input type="text" name="email" class="border p-2 w-full"
+                       value="{% if tracking %}{{ tracking.email }}{% endif %}">
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-sm">Observações</label>
+                <textarea name="observacoes" class="border p-2 w-full" rows="3">{% if tracking %}{{ tracking.observacoes }}{% endif %}</textarea>
+            </div>
+            
+            <div>
+                <label class="block text-sm mb-1">Ficheiros (arraste/solte ou clique)</label>
+                <div id="dropzone"
+                    class="relative border-dashed border-2 border-gray-300 p-4 text-center cursor-pointer rounded">
+                    Arraste e solte aqui ou clique para selecionar.
+                    <input id="fileInput" name="files" type="file" multiple
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        aria-label="Selecionar ficheiros">
+                </div>
+                <ul id="filesPreview" class="mt-2 text-sm text-gray-700 space-y-1"></ul>
+            </div>
+
+                {% if tracking %}
+                <div class="mt-3 text-sm">
+                    <div class="text-gray-500 mb-1">Anexos atuais:</div>
+                    <ul class="space-y-1">
+                    {% for file in tracking.files.all %}
+                        <li class="flex items-center gap-3">
+                        <a href="{{ file.file.url }}" class="text-blue-600 underline" target="_blank" rel="noreferrer" download
+                            title="{{ file.file.name }}">
+                            {{ file.file.name|cut:"tracking_files/" }}
+                        </a>
+                        <span class="text-gray-400">· {{ file.uploaded_at|date:"Y-m-d H:i" }}</span>
+                        <label class="ml-auto inline-flex items-center gap-2">
+                            <input type="checkbox" name="delete_files" value="{{ file.id }}" class="h-4 w-4">
+                            <span class="text-red-600">Remover</span>
+                        </label>
+                        </li>
+                    {% empty %}
+                        <li class="text-gray-500">Sem ficheiros</li>
+                    {% endfor %}
+                    </ul>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Os ficheiros marcados como “Remover” serão desassociados deste tracking e,
+                            se não estiverem ligados a mais nenhum, serão eliminados do servidor.
+                        </p>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 flex items-center gap-2">
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
+            {% if tracking %}Guardar alterações{% else %}Salvar{% endif %}
+        </button>
+        <a href="{% url 'listarTracking' %}" class="px-4 py-2 border rounded">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    const form     = document.getElementById('trackingForm');
+    const dropzone = document.getElementById('dropzone');
+    const fileInput= document.getElementById('fileInput');
+    const preview  = document.getElementById('filesPreview');
+    const clearAllBtn = document.getElementById('clearAll');
+
+    // usar "let" para podermos recriar o cesto quando removemos
+    let dt = new DataTransfer();
+
+    // impedir que largar fora da dropzone abra o ficheiro no browser
+    ['dragover','drop'].forEach(evt =>
+        window.addEventListener(evt, e => e.preventDefault())
+    );
+
+    function injectToInput(filesDT) {
+        try { fileInput.files = filesDT.files; } catch(e) { /* Safari pode falhar */ }
+    }
+
+    function refreshPreview() {
+        preview.innerHTML = Array.from(dt.files).map((f, i) => `
+        <li class="flex items-center justify-between gap-2">
+            <span class="truncate">• ${f.name} (${Math.ceil(f.size/1024)} KB)</span>
+            <button type="button" class="rm-file text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                    data-index="${i}">Remover</button>
+        </li>
+        `).join('');
+    }
+
+    function addFiles(fileList) {
+        if (!fileList) return;
+        for (const f of fileList) {
+        const dup = Array.from(dt.files)
+            .some(x => x.name === f.name && x.size === f.size && x.lastModified === f.lastModified);
+        if (!dup) dt.items.add(f);
+        }
+        injectToInput(dt);
+        refreshPreview();
+    }
+
+    function removeByIndex(idx) {
+        const newDT = new DataTransfer();
+        Array.from(dt.files).forEach((f, i) => { if (i !== idx) newDT.items.add(f); });
+        dt = newDT;                 // substitui o “cesto”
+        injectToInput(dt);          // atualiza o input para refletir remoção
+        refreshPreview();
+    }
+
+    // seleção por clique
+    fileInput.addEventListener('change', () => {
+        addFiles(fileInput.files);
+        fileInput.value = ''; // permite nova seleção imediata
+    });
+
+    // drag visuals
+    ['dragenter','dragover'].forEach(evt =>
+        dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        dropzone.classList.add('bg-gray-100');
+        })
+    );
+    ['dragleave','dragend','drop'].forEach(evt =>
+        dropzone.addEventListener(evt, e => {
+        e.preventDefault(); e.stopPropagation();
+        if (evt !== 'drop') dropzone.classList.remove('bg-gray-100');
+        })
+    );
+
+    // drop para adicionar (acumula)
+    dropzone.addEventListener('drop', e => {
+        dropzone.classList.remove('bg-gray-100');
+        const items = e.dataTransfer.items;
+        const dropped = [];
+        if (items && items.length) {
+        for (const it of items) {
+            if (it.kind === 'file') {
+            const f = it.getAsFile();
+            if (f) dropped.push(f);
+            }
+        }
+        } else {
+        for (const f of e.dataTransfer.files) dropped.push(f);
+        }
+        addFiles(dropped);
+    });
+
+    // remover 1 ficheiro (event delegation)
+    preview.addEventListener('click', (e) => {
+        const btn = e.target.closest('.rm-file');
+        if (!btn) return;
+        const idx = parseInt(btn.dataset.index, 10);
+        removeByIndex(idx);
+    });
+
+    // remover todos
+    clearAllBtn.addEventListener('click', () => {
+        dt = new DataTransfer();
+        injectToInput(dt);
+        refreshPreview();
+    });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const finalidadeField = document.querySelector('select[name="finalidade"]');
+        const remetenteField = document.getElementById('remetenteField');
+
+        function toggleRemetenteField() {
+            if (finalidadeField.value === 'Importacao') {
+                remetenteField.style.display = 'block';
+            } else {
+                remetenteField.style.display = 'none';
+            }
+        }
+
+        finalidadeField.addEventListener('change', toggleRemetenteField);
+        toggleRemetenteField(); // Initialize on page load
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('trackingForm');
+
+    // Lista de campos obrigatórios (name -> label para mostrar no popup)
+    const requiredFields = [
+        { name: 'data',           label: 'Data' },
+        { name: 'finalidade',     label: 'Finalidade' },
+        { name: 'crm',            label: 'CRM' },
+        { name: 'destinatario',   label: 'Destinatário' },
+        { name: 'transportadora', label: 'Transportadora' },
+    ];
+
+    form.addEventListener('submit', function (e) {
+        const missing = [];
+        // limpar estados prévios
+        requiredFields.forEach(f => {
+        const el = form.querySelector(`[name="${f.name}"]`);
+        el && el.classList.remove('ring-2','ring-red-400');
+        });
+
+        // validar obrigatórios
+        requiredFields.forEach(f => {
+        const el = form.querySelector(`[name="${f.name}"]`);
+        if (!el) return;
+        const val = (el.value || '').trim();
+        if (!val) {
+            missing.push(f.label);
+            el.classList.add('ring-2','ring-red-400'); // destaque visual
+        }
+        });
+
+        if (missing.length > 0) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos obrigatórios em falta',
+            html: `
+            <p>Por favor, preencha os seguintes campos:</p>
+            <ul class="text-left mt-2">
+                ${missing.map(m => `<li>• ${m}</li>`).join('')}
+            </ul>
+            `,
+            confirmButtonText: 'OK',
+            heightAuto: false
+        }).then(() => {
+            // focar o primeiro campo em falta
+            const first = form.querySelector('.ring-red-400');
+            first && first.focus();
+        });
+        return;
+        }
+
+        // (Opcional) usar validação nativa também
+        if (!form.checkValidity && !form.reportValidity) return; // browsers antigos
+        if (form.reportValidity && !form.reportValidity()) {
+        e.preventDefault();
+        }
+    });
+    });
+</script>
+{% endblock %}

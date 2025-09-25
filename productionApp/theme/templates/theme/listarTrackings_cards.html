@@ -1,0 +1,216 @@
+{% extends 'theme/base.html' %}
+{% block title %}Trackings{% endblock %}
+
+{% block content %}
+
+<!-- Header + Ações -->
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold">Trackings</h1>
+  <div class="flex items-center gap-2">
+    <!-- alternador de vista opcional (cards/tabela) -->
+    <a href="?{% if current_query %}{{ current_query }}&{% endif %}view=table"
+       class="px-3 py-2 border rounded hidden md:inline-block">Ver tabela</a>
+    <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
+  </div>
+</div>
+
+<!-- Toolbar sticky com filtros -->
+<div class="sticky top-0 z-20 bg-white/90 backdrop-blur supports-backdrop-blur:backdrop-blur mb-4 border-b">
+  <form method="GET" class="p-3 grid grid-cols-1 md:grid-cols-6 gap-3">
+    <input type="hidden" name="view" value="cards">
+    <div class="md:col-span-2">
+      <label class="block text-xs text-gray-500">Pesquisa</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="CRM, destinatário, nº, email..."
+             class="border p-2 w-full rounded">
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Finalidade</label>
+      <select name="finalidade" class="border p-2 w-full rounded">
+        <option value="">Todas</option>
+        {% for value, label in finalidades %}
+          <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Transportadora</label>
+      <select name="transportadora" class="border p-2 w-full rounded">
+        <option value="">Todas</option>
+        {% for c in transportadoras %}
+          <option value="{{ c }}" {% if c == selected_transportadora %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Recebido Por</label>
+      <input type="text" name="recebido_por" value="{{ recebido_por }}" class="border p-2 w-full rounded">
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Data de Entrega</label>
+      <input type="date" name="data_entrega" value="{{ data_entrega }}" class="border p-2 w-full rounded">
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Remetente</label>
+      <input type="text" name="remetente" value="{{ remetente }}" class="border p-2 w-full rounded">
+    </div>
+
+    <div class="md:col-span-2 grid grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs text-gray-500">De</label>
+        <input type="date" name="de" value="{{ de }}" class="border p-2 w-full rounded">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500">Até</label>
+        <input type="date" name="ate" value="{{ ate }}" class="border p-2 w-full rounded">
+      </div>
+    </div>
+
+    <div class="md:col-span-2 flex items-end gap-2">
+      <button class="bg-gray-800 text-white px-4 py-2 rounded">Filtrar</button>
+      <a href="{% url 'listarTracking' %}?view=cards" class="px-4 py-2 border rounded">Limpar</a>
+    </div>
+
+    <!-- Paginação no topo para evitar scroll até ao fim -->
+    <div class="md:col-span-4 flex items-center justify-end gap-2 text-sm">
+      {% if page_obj.has_previous %}
+        <a class="px-3 py-1 border rounded"
+           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Anterior</a>
+      {% endif %}
+      <span> Página {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} registos </span>
+      {% if page_obj.has_next %}
+        <a class="px-3 py-1 border rounded"
+           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Seguinte</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+<!-- Lista em cartões -->
+{% if trackings %}
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for t in trackings %}
+      <article class="bg-white rounded-xl shadow p-4 flex flex-col gap-3 border">
+        <header class="flex items-start justify-between">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-gray-500">{{ t.get_finalidade_display }}</div>
+            <div class="text-base font-semibold">CRM {{ t.crm }}</div>
+            <div class="text-sm text-gray-600">{{ t.destinatario }}</div>
+          </div>
+          <span class="px-2 py-1 text-xs rounded-full bg-gray-100 border">{{ t.transportadora }}</span>
+        </header>
+
+        <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <div>
+            <span class="text-gray-500">Data:</span>
+            <span class="font-medium">{{ t.data|date:"Y-m-d" }}</span>
+          </div>
+          <div>
+            <span class="text-gray-500">Recebido Por:</span>
+            <span class="font-medium">{{ t.recebido_por|default:"—" }}</span><br>
+            <span class="text-gray-500">Data Entrega:</span>
+            <span class="font-medium">{{ t.data_entrega|date:"Y-m-d"|default:"—" }}</span>
+          </div>
+          <div>
+            {% if t.finalidade == 'Importacao' %}
+              <span class="text-gray-500">Remetente:</span>
+              {% if t.remetente %}
+              <span class="font-medium select-all">{{ t.remetente }}</span><br>
+              {% else %}
+              <span>—</span>
+              {% endif %}
+            {% endif %} 
+          </div>
+
+          <div class="col-span-2">
+            <span class="text-gray-500">Carta de Porte:</span>
+            {% if t.carta_de_porte %}
+              <span class="font-medium select-all">{{ t.carta_de_porte }}</span>
+              
+            {% else %}
+              <span>—</span>
+            {% endif %}
+          </div>
+          <div>
+            <span class="text-gray-500">Nº Recolha:</span>
+            <span class="font-medium">{{ t.numero_recolha|default:"—" }}</span>
+          </div>
+            <div>
+            <span class="text-gray-500">Email:</span>
+            {% if t.email %}
+              <span>{{ t.email }}</span>
+            {% else %}
+              —
+            {% endif %}
+            </div>
+          </div>
+
+        {% if t.observacoes %}
+          <p class="text-sm text-gray-700 border-t pt-2 overflow-hidden text-ellipsis" style="-webkit-line-clamp:2; display:-webkit-box; -webkit-box-orient:vertical;">
+            {{ t.observacoes }}
+          </p>
+        {% endif %}
+
+        <footer class="pt-2 flex items-center gap-2 flex-wrap">
+          {% with total=t.files.count %}
+            {% if total %}
+              {% for f in t.files.all|slice:":3" %}
+                <a href="{{ f.file.url }}" class="px-2 py-1 text-xs rounded border hover:bg-gray-50"
+                  target="_blank" rel="noreferrer" download title="{{ f.file.name }}">
+                  {{ f.file.name|cut:"tracking_files/" }}
+                </a>
+              {% endfor %}
+              {% if total > 3 %}
+                <span class="px-2 py-1 text-xs rounded bg-gray-100 border">+{{ total|add:"-3" }} mais</span>
+              {% endif %}
+            {% else %}
+              <span class="text-gray-400 text-sm">Sem ficheiros</span>
+            {% endif %}
+          {% endwith %}
+
+          <a href="{% url 'editarTracking' t.id %}" class="ml-auto px-3 py-1.5 text-sm rounded border hover:bg-gray-50">
+            Editar
+          </a>
+        </footer>
+
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white rounded-xl border p-8 text-center text-gray-500">Sem resultados.</div>
+{% endif %}
+
+<!-- Paginação (opcional também em baixo) -->
+<div class="flex items-center justify-between mt-6 text-sm">
+  <div>
+    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} registo(s)
+  </div>
+  <div class="space-x-2">
+    {% if page_obj.has_previous %}
+      <a class="px-3 py-1 border rounded"
+         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Anterior</a>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a class="px-3 py-1 border rounded"
+         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Seguinte</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- script simples para "copiar" -->
+<script>
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    const text = btn.getAttribute('data-copy') || '';
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar', 1200);
+    });
+  });
+</script>
+
+{% endblock %}

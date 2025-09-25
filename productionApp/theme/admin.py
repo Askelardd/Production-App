@@ -17,7 +17,9 @@ from .models import (
     DeliveryEntity,
     DeliveryType,
     OrderFile,
-    OrdersComing
+    OrdersComing,
+    Tracking,
+    TrackingFile
     
 )
 
@@ -66,9 +68,9 @@ class QRDataAdmin(admin.ModelAdmin):
 # -------------------
 @admin.register(dieInstance)
 class DieInstanceAdmin(admin.ModelAdmin):
-    list_display = ['serial_number', 'customer', 'die', 'job', 'created_at']
-    search_fields = ['serial_number', 'customer__customer', 'die__die_type']
-    list_filter = ['job', 'die', 'created_at']
+    list_display = ['serial_number', 'customer', 'die', 'job', 'diameter_text', 'tolerance', 'created_at']
+    search_fields = ['serial_number', 'customer__customer', 'die__die_type', 'job__descricao']
+    list_filter = ['job', 'die', 'tolerance', 'created_at']
     list_per_page = 20
 
 
@@ -268,4 +270,36 @@ class OrderFileAdmin(admin.ModelAdmin):
     list_display = ['order', 'file', 'uploaded_at', 'restricted']
     search_fields = ['order__tracking_number', 'order__courier']
     list_filter = ['order__courier', 'order__shipping_date', 'restricted']
+    list_per_page = 20
+
+# -------------------
+# Tracking
+# -------------------
+@admin.register(Tracking)
+class TrackingAdmin(admin.ModelAdmin):
+    list_display = [
+        'data', 'finalidade', 'crm', 'destinatario', 'transportadora', 
+        'carta_de_porte', 'numero_recolha', 'recebido_por', 'data_entrega', 
+        'remetente', 'email'
+    ]
+    search_fields = [
+        'crm', 'destinatario', 'transportadora', 'carta_de_porte', 
+        'numero_recolha', 'recebido_por', 'remetente', 'email', 'observacoes'
+    ]
+    list_filter = ['finalidade', 'transportadora', 'data', 'data_entrega']
+    list_per_page = 20
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.prefetch_related('files')
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)
+        form.instance.files.set(form.cleaned_data.get('files', []))
+
+
+@admin.register(TrackingFile)
+class TrackingFileAdmin(admin.ModelAdmin):
+    list_display = ['file', 'uploaded_at']
+    readonly_fields = ['uploaded_at']
     list_per_page = 20

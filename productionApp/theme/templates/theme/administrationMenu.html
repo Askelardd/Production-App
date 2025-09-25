@@ -19,6 +19,22 @@
             </button>
         </a>
 
+        {% if is_admin %}
+
+        <a href="{% url 'adicionarTracking' %}" class="w-full">
+            <button class="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 px-6 rounded shadow transition">
+            Adicionar Tracking
+            </button>
+        </a>
+
+        <a href="{% url 'listarTracking' %}" class="w-full">
+            <button class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded shadow transition">
+            Listar e Editar Trackings
+            </button>
+        </a>
+
+        {% endif %}
+
     </div>
 </div>
 {% endblock %}

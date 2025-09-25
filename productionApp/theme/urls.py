@@ -48,6 +48,9 @@ urlpatterns = [
     path('orders/coming/<int:oc_id>/edit/', views.edit_orders_coming, name='editOrdersComing'),
     path('administrationMenu/', views.administrationMenu, name='administrationMenu'),
     path('orders/<int:order_id>/export-excel/', views.exportOrderExcel, name='exportOrderExcel'),
+    path('adicionarTracking/', views.create_tracking, name='adicionarTracking'),
+    path('listarTracking/', views.listar_trackings, name='listarTracking'),
+    path('editarTracking/<int:tracking_id>/', views.edit_tracking, name='editarTracking'),
 
 ]
 
