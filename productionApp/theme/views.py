@@ -1538,57 +1538,111 @@ def deliveryCalendar(request):
     }
     return render(request, 'theme/deliveryCalendar.html', context)
 
-def create_tracking(request):
+
+def create_tracking(request, pk=None):
+    tracking = get_object_or_404(Tracking, pk=pk) if pk else None
+
     if request.method == 'POST':
-        try:
-            with transaction.atomic():
+        # 1) ler campos
+        data             = parse_date(request.POST.get('data') or '')
+        finalidade       = (request.POST.get('finalidade') or '').strip()   # "Importacao" | "Exportacao"
+        crm              = request.POST.get('crm') or ''
+        transportadora   = request.POST.get('transportadora') or ''
+        carta_de_porte   = request.POST.get('carta_de_porte') or None
+        numero_recolha   = request.POST.get('numero_recolha') or None
+        recebido_por     = request.POST.get('recebido_por') or None
+        data_entrega     = parse_date(request.POST.get('data_entrega') or '') if request.POST.get('data_entrega') else None
+        remetente_in     = request.POST.get('remetente') or None
+        destinatario_in  = request.POST.get('destinatario') or ''
+        email            = request.POST.get('email') or None
+        observacoes      = request.POST.get('observacoes') or None
+
+        # regra: só um dos dois campos
+        if finalidade == 'Importacao':
+            remetente = remetente_in
+            destinatario = ''
+        elif finalidade == 'Exportacao':
+            remetente = None
+            destinatario = destinatario_in
+        else:
+            remetente = None
+            destinatario = ''
+
+        with transaction.atomic():
+            if tracking is None:
                 tracking = Tracking.objects.create(
-                    data=parse_date(request.POST.get('data')),
-                    finalidade=request.POST.get('finalidade') or None,
-                    crm=request.POST.get('crm') or '',
-                    destinatario=request.POST.get('destinatario') or '',
-                    transportadora=request.POST.get('transportadora') or None,
-                    carta_de_porte=request.POST.get('carta_de_porte') or '',
-                    numero_recolha=request.POST.get('numero_recolha') or '',
-                    recebido_por=request.POST.get('recebido_por') or '',
-                    email=request.POST.get('email') or None,
-                    observacoes=request.POST.get('observacoes') or '',
-                    data_entrega=parse_date(request.POST.get('data_entrega')),
-                    remetente=request.POST.get('remetente') or '',
+                    data=data,
+                    finalidade=finalidade,
+                    crm=crm,
+                    transportadora=transportadora,
+                    carta_de_porte=carta_de_porte,
+                    numero_recolha=numero_recolha,
+                    recebido_por=recebido_por,
+                    data_entrega=data_entrega,
+                    remetente=remetente,
+                    destinatario=destinatario,
+                    email=email,
+                    observacoes=observacoes,
                 )
+            else:
+                tracking.data = data
+                tracking.finalidade = finalidade
+                tracking.crm = crm
+                tracking.transportadora = transportadora
+                tracking.carta_de_porte = carta_de_porte
+                tracking.numero_recolha = numero_recolha
+                tracking.recebido_por = recebido_por
+                tracking.data_entrega = data_entrega
+                tracking.remetente = remetente
+                tracking.destinatario = destinatario
+                tracking.email = email
+                tracking.observacoes = observacoes
+                tracking.save()
 
-                # Adicionar múltiplos ficheiros
-                for f in request.FILES.getlist('files'):
-                    tf = TrackingFile.objects.create(file=f)
-                    tracking.files.add(tf)
+            # 3) remover anexos marcados
+            ids_a_remover = request.POST.getlist('delete_files')
+            if ids_a_remover:
+                for tf in TrackingFile.objects.filter(id__in=ids_a_remover):
+                    tracking.files.remove(tf)
+                    if tf.trackings.count() == 0:
+                        tf.file.delete(save=False)
+                        tf.delete()
 
-            messages.success(request, 'Tracking adicionado com sucesso!')
-            return redirect('listarTracking')
-        except Exception as e:
-            messages.error(request, f'Erro ao criar tracking: {e}')
+            # 4) upload de novos ficheiros
+            for f in request.FILES.getlist('files'):
+                tf = TrackingFile.objects.create(file=f)
+                tracking.files.add(tf)
 
+        return redirect('listarTracking')
+
+    # GET – render do form (mesmo template para add/edit)
     context = {
-        'tracking': None,
+        'tracking': tracking,
         'finalidades': Tracking._meta.get_field('finalidade').choices,
         'transportadoras': Tracking.courier_choices,
     }
     return render(request, 'theme/adicionarTracking.html', context)
 
 
+
 def listar_trackings(request):
     qs = Tracking.objects.all().prefetch_related('files')
 
     # filtros
-    q = (request.GET.get('q') or '').strip()
-    finalidade = request.GET.get('finalidade') or ''
-    transportadora = request.GET.get('transportadora') or ''
-    recebido_por = (request.GET.get('recebido_por') or '').strip()
-    de = request.GET.get('de') or ''
-    ate = request.GET.get('ate') or ''
+    q                = (request.GET.get('q') or '').strip()
+    finalidade       = request.GET.get('finalidade') or ''
+    transportadora   = request.GET.get('transportadora') or ''
+    recebido_por     = (request.GET.get('recebido_por') or '').strip()
+    de               = request.GET.get('de') or ''
+    ate              = request.GET.get('ate') or ''
+    # NOVOS filtros dedicados:
+    remetente_q      = (request.GET.get('remetente') or '').strip()
+    destinatario_q   = (request.GET.get('destinatario') or '').strip()
 
     if q:
         qs = qs.filter(
             Q(crm__icontains=q) |
+            Q(remetente__icontains=q) |
             Q(destinatario__icontains=q) |
             Q(numero_recolha__icontains=q) |
             Q(carta_de_porte__icontains=q) |
@@ -1602,6 +1656,12 @@ def listar_trackings(request):
     if recebido_por:
         qs = qs.filter(recebido_por__icontains=recebido_por)
 
+    # NOVO: filtros específicos
+    if remetente_q:
+        qs = qs.filter(remetente__icontains=remetente_q)
+    if destinatario_q:
+        qs = qs.filter(destinatario__icontains=destinatario_q)
+
     de_date = parse_date(de) if de else None
     ate_date = parse_date(ate) if ate else None
     if de_date:
@@ -1612,7 +1672,8 @@ def listar_trackings(request):
     # ordenação
     sort = request.GET.get('sort') or '-data'
     allowed = {'data','finalidade','crm','destinatario','transportadora',
-               'carta_de_porte','numero_recolha','recebido_por','data_entrega','remetente','email','observacoes'}
+               'carta_de_porte','numero_recolha','recebido_por','data_entrega',
+               'remetente','email','observacoes'}
     qs = qs.order_by(sort, '-id') if sort.lstrip('-') in allowed else qs.order_by('-data','-id')
 
     # paginação
@@ -1627,13 +1688,13 @@ def listar_trackings(request):
         ('data', 'Data'),
         ('finalidade', 'Finalidade'),
         ('crm', 'CRM'),
-        ('destinatario', 'Destinatário'),
+        ('destinatario', 'Destinatário'),  # mantemos (opcional)
+        ('remetente', 'Remetente'),        # nesta vamos mostrar "um ou outro"
         ('transportadora', 'Transportadora'),
         ('carta_de_porte', 'Carta de Porte'),
         ('numero_recolha', 'Nº Recolha'),
         ('recebido_por', 'Recebido Por'),
         ('data_entrega', 'Data Entrega'),
-        ('remetente', 'Remetente'),
         ('email', 'Email'),
         ('observacoes', 'Observações'),
     ]
@@ -1649,6 +1710,10 @@ def listar_trackings(request):
         'recebido_por': recebido_por,
         'de': de,
         'ate': ate,
+        # NOVOS valores para manter no form:
+        'remetente': remetente_q,
+        'destinatario': destinatario_q,
+
         'finalidades': Tracking._meta.get_field('finalidade').choices,
         'transportadoras': Tracking.courier_choices,
         'columns': columns,
@@ -1656,33 +1721,43 @@ def listar_trackings(request):
     template = 'theme/listarTrackings_cards.html' if (request.GET.get('view') or 'cards') == 'cards' else 'theme/trackingList.html'
     return render(request, template, context)
 
-
 def edit_tracking(request, tracking_id):
     tracking = get_object_or_404(Tracking.objects.prefetch_related('files'), id=tracking_id)
 
     if request.method == 'POST':
         try:
             with transaction.atomic():
-                tracking.data = parse_date(request.POST.get('data'))
-                tracking.finalidade = request.POST.get('finalidade') or None
+                # campos base
+                tracking.data = parse_date(request.POST.get('data') or '')
+                tracking.finalidade = (request.POST.get('finalidade') or '').strip()  # "Importacao" | "Exportacao"
                 tracking.crm = request.POST.get('crm') or ''
-                tracking.destinatario = request.POST.get('destinatario') or ''
                 tracking.transportadora = request.POST.get('transportadora') or None
                 tracking.carta_de_porte = request.POST.get('carta_de_porte') or ''
                 tracking.numero_recolha = request.POST.get('numero_recolha') or ''
                 tracking.recebido_por = request.POST.get('recebido_por') or ''
-                tracking.data_entrega = parse_date(request.POST.get('data_entrega'))
-                tracking.remetente = request.POST.get('remetente') or ''
+                tracking.data_entrega = parse_date(request.POST.get('data_entrega') or '')
                 tracking.email = request.POST.get('email') or None
                 tracking.observacoes = request.POST.get('observacoes') or ''
 
-                # anexar novos ficheiros sem remover os antigos
+                # aplicar regra remetente/destinatario
+                if tracking.finalidade == 'Importacao':
+                    tracking.remetente = request.POST.get('remetente') or None
+                    tracking.destinatario = ''
+                elif tracking.finalidade == 'Exportacao':
+                    tracking.remetente = None
+                    tracking.destinatario = request.POST.get('destinatario') or ''
+                else:
+                    tracking.remetente = None
+                    tracking.destinatario = ''
+
+                # anexar novos ficheiros (não remove os antigos aqui)
                 for f in request.FILES.getlist('files'):
                     tf = TrackingFile.objects.create(file=f)
                     tracking.files.add(tf)
 
                 tracking.save()
 
+                # remoção de anexos marcados
                 delete_ids = request.POST.getlist('delete_files')  # checkboxes
                 if delete_ids:
                     to_remove = TrackingFile.objects.filter(id__in=delete_ids)
@@ -1690,19 +1765,16 @@ def edit_tracking(request, tracking_id):
                     for tf in to_remove:
                         tracking.files.remove(tf)
                         removed += 1
-                        # se não está ligado a mais nenhum tracking, apaga do disco e da DB
                         if not tf.trackings.exists():
-                            tf.file.delete(save=False)  # apaga o ficheiro do storage
+                            tf.file.delete(save=False)
                             tf.delete()
                             deleted += 1
                     if removed:
                         messages.info(
                             request,
-                            f'Removidos {removed} anexo(s). '
-                            + (f'Eliminados do servidor: {deleted}.' if deleted else '')
+                            f'Removidos {removed} anexo(s). ' +
+                            (f'Eliminados do servidor: {deleted}.' if deleted else '')
                         )
-
-                tracking.save()
 
             messages.success(request, 'Tracking atualizado com sucesso!')
             return redirect('listarTracking')

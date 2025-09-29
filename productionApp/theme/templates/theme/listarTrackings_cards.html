@@ -7,7 +7,6 @@
 <div class="flex items-center justify-between mb-4">
   <h1 class="text-2xl font-bold">Trackings</h1>
   <div class="flex items-center gap-2">
-    <!-- alternador de vista opcional (cards/tabela) -->
     <a href="?{% if current_query %}{{ current_query }}&{% endif %}view=table"
        class="px-3 py-2 border rounded hidden md:inline-block">Ver tabela</a>
     <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
@@ -18,9 +17,10 @@
 <div class="sticky top-0 z-20 bg-white/90 backdrop-blur supports-backdrop-blur:backdrop-blur mb-4 border-b">
   <form method="GET" class="p-3 grid grid-cols-1 md:grid-cols-6 gap-3">
     <input type="hidden" name="view" value="cards">
+
     <div class="md:col-span-2">
       <label class="block text-xs text-gray-500">Pesquisa</label>
-      <input type="text" name="q" value="{{ q }}" placeholder="CRM, destinatário, nº, email..."
+      <input type="text" name="q" value="{{ q }}" placeholder="CRM, remetente, destinatário, nº, email..."
              class="border p-2 w-full rounded">
     </div>
 
@@ -59,6 +59,12 @@
       <input type="text" name="remetente" value="{{ remetente }}" class="border p-2 w-full rounded">
     </div>
 
+    <!-- NOVO: filtro Destinatário -->
+    <div>
+      <label class="block text-xs text-gray-500">Destinatário</label>
+      <input type="text" name="destinatario" value="{{ destinatario }}" class="border p-2 w-full rounded">
+    </div>
+
     <div class="md:col-span-2 grid grid-cols-2 gap-3">
       <div>
         <label class="block text-xs text-gray-500">De</label>
@@ -75,7 +81,7 @@
       <a href="{% url 'listarTracking' %}?view=cards" class="px-4 py-2 border rounded">Limpar</a>
     </div>
 
-    <!-- Paginação no topo para evitar scroll até ao fim -->
+    <!-- Paginação no topo -->
     <div class="md:col-span-4 flex items-center justify-end gap-2 text-sm">
       {% if page_obj.has_previous %}
         <a class="px-3 py-1 border rounded"
@@ -89,6 +95,7 @@
     </div>
   </form>
 </div>
+
 <!-- Lista em cartões -->
 {% if trackings %}
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -98,8 +105,21 @@
           <div>
             <div class="text-xs uppercase tracking-wide text-gray-500">{{ t.get_finalidade_display }}</div>
             <div class="text-base font-semibold">CRM {{ t.crm }}</div>
-            <div class="text-sm text-gray-600">{{ t.destinatario }}</div>
+
+            <!-- MOSTRA um campo só: Remetente (Importacao) OU Destinatário (Exportacao) -->
+            <div class="mt-1">
+              {% if t.finalidade == 'Importacao' %}
+                <span class="text-gray-500">Remetente:</span>
+                <span class="font-medium select-all">{{ t.remetente|default:"—" }}</span>
+              {% elif t.finalidade == 'Exportacao' %}
+                <span class="text-gray-500">Destinatário:</span>
+                <span class="font-medium select-all">{{ t.destinatario|default:"—" }}</span>
+              {% else %}
+                <span class="text-gray-500">Parte:</span> —
+              {% endif %}
+            </div>
           </div>
+
           <span class="px-2 py-1 text-xs rounded-full bg-gray-100 border">{{ t.transportadora }}</span>
         </header>
 
@@ -114,39 +134,26 @@
             <span class="text-gray-500">Data Entrega:</span>
             <span class="font-medium">{{ t.data_entrega|date:"Y-m-d"|default:"—" }}</span>
           </div>
-          <div>
-            {% if t.finalidade == 'Importacao' %}
-              <span class="text-gray-500">Remetente:</span>
-              {% if t.remetente %}
-              <span class="font-medium select-all">{{ t.remetente }}</span><br>
-              {% else %}
-              <span>—</span>
-              {% endif %}
-            {% endif %} 
-          </div>
 
           <div class="col-span-2">
             <span class="text-gray-500">Carta de Porte:</span>
             {% if t.carta_de_porte %}
               <span class="font-medium select-all">{{ t.carta_de_porte }}</span>
-              
             {% else %}
               <span>—</span>
             {% endif %}
           </div>
+
           <div>
             <span class="text-gray-500">Nº Recolha:</span>
             <span class="font-medium">{{ t.numero_recolha|default:"—" }}</span>
           </div>
-            <div>
+
+          <div>
             <span class="text-gray-500">Email:</span>
-            {% if t.email %}
-              <span>{{ t.email }}</span>
-            {% else %}
-              —
-            {% endif %}
-            </div>
+            <span class="font-medium">{{ t.email|default:"—" }}</span>
           </div>
+        </div>
 
         {% if t.observacoes %}
           <p class="text-sm text-gray-700 border-t pt-2 overflow-hidden text-ellipsis" style="-webkit-line-clamp:2; display:-webkit-box; -webkit-box-orient:vertical;">
@@ -159,7 +166,7 @@
             {% if total %}
               {% for f in t.files.all|slice:":3" %}
                 <a href="{{ f.file.url }}" class="px-2 py-1 text-xs rounded border hover:bg-gray-50"
-                  target="_blank" rel="noreferrer" download title="{{ f.file.name }}">
+                   target="_blank" rel="noreferrer" download title="{{ f.file.name }}">
                   {{ f.file.name|cut:"tracking_files/" }}
                 </a>
               {% endfor %}
@@ -175,7 +182,6 @@
             Editar
           </a>
         </footer>
-
       </article>
     {% endfor %}
   </div>
@@ -183,7 +189,7 @@
   <div class="bg-white rounded-xl border p-8 text-center text-gray-500">Sem resultados.</div>
 {% endif %}
 
-<!-- Paginação (opcional também em baixo) -->
+<!-- Paginação (base) -->
 <div class="flex items-center justify-between mt-6 text-sm">
   <div>
     Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} registo(s)
@@ -200,7 +206,7 @@
   </div>
 </div>
 
-<!-- script simples para "copiar" -->
+<!-- copiar -->
 <script>
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-copy]');

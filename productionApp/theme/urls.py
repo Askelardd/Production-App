@@ -50,7 +50,7 @@ urlpatterns = [
     path('orders/<int:order_id>/export-excel/', views.exportOrderExcel, name='exportOrderExcel'),
     path('adicionarTracking/', views.create_tracking, name='adicionarTracking'),
     path('listarTracking/', views.listar_trackings, name='listarTracking'),
-    path('editarTracking/<int:tracking_id>/', views.edit_tracking, name='editarTracking'),
+    path('editarTracking/<int:pk>/', views.create_tracking, name='editarTracking'),
 
 ]
 

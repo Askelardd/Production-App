@@ -278,12 +278,12 @@ class OrderFileAdmin(admin.ModelAdmin):
 @admin.register(Tracking)
 class TrackingAdmin(admin.ModelAdmin):
     list_display = [
-        'data', 'finalidade', 'crm', 'destinatario', 'transportadora', 
+        'data', 'finalidade', 'crm', 'transportadora', 
         'carta_de_porte', 'numero_recolha', 'recebido_por', 'data_entrega', 
         'remetente', 'email'
     ]
     search_fields = [
-        'crm', 'destinatario', 'transportadora', 'carta_de_porte', 
+        'crm', 'transportadora', 'carta_de_porte', 
         'numero_recolha', 'recebido_por', 'remetente', 'email', 'observacoes'
     ]
     list_filter = ['finalidade', 'transportadora', 'data', 'data_entrega']

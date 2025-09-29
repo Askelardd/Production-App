@@ -91,15 +91,33 @@
           <td class="px-4 py-2 whitespace-nowrap">{{ t.data|date:"Y-m-d" }}</td>
           <td class="px-4 py-2">{{ t.get_finalidade_display }}</td>
           <td class="px-4 py-2">{{ t.crm }}</td>
-          <td class="px-4 py-2">{{ t.destinatario }}</td>
+
+          {# Destinatário só em Exportação #}
+          <td class="px-4 py-2">
+            {% if t.finalidade == 'Exportacao' and t.destinatario %}
+              {{ t.destinatario }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          {# Remetente só em Importação #}
+          <td class="px-4 py-2">
+            {% if t.finalidade == 'Importacao' and t.remetente %}
+              {{ t.remetente }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
           <td class="px-4 py-2">{{ t.transportadora }}</td>
           <td class="px-4 py-2">{{ t.carta_de_porte }}</td>
           <td class="px-4 py-2">{{ t.numero_recolha }}</td>
           <td class="px-4 py-2">{{ t.recebido_por }}</td>
           <td class="px-4 py-2">{{ t.data_entrega|date:"Y-m-d" }}</td>
-          <td class="px-4 py-2">{{ t.remetente }}</td>
           <td class="px-4 py-2">{{ t.email }}</td>
           <td class="px-4 py-2">{{ t.observacoes }}</td>
+
           <td class="px-4 py-2">
             {% with total=t.files.count %}
               {% if total %}
@@ -117,7 +135,6 @@
               {% endif %}
             {% endwith %}
           </td>
-
 
           <td class="px-4 py-2">
             <a href="{% url 'editarTracking' t.id %}" class="text-blue-600 underline">Editar</a>
@@ -150,23 +167,25 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-    // Scroll superior sincronizado
   const tableScroller = document.getElementById('tableScroller');
-  const topScroller = document.getElementById('topScroller');
-  const topInner = document.getElementById('topScrollerInner');
+  const topScroller   = document.getElementById('topScroller');
+  const topInner      = document.getElementById('topScrollerInner');
 
   function syncWidths() {
-    topInner.style.width = tableScroller.scrollWidth + 'px';
+    // aguarda um microtask para garantir layout estável
+    requestAnimationFrame(() => {
+      topInner.style.width = tableScroller.scrollWidth + 'px';
+    });
   }
 
-  tableScroller.addEventListener('scroll', () => {
-    topScroller.scrollLeft = tableScroller.scrollLeft;
-  });
+  function syncScroll(from, to) {
+    to.scrollLeft = from.scrollLeft;
+  }
 
-  topScroller.addEventListener('scroll', () => {
-    tableScroller.scrollLeft = topScroller.scrollLeft;
-  });
-
+  tableScroller.addEventListener('scroll', () => syncScroll(tableScroller, topScroller));
+  topScroller.addEventListener('scroll', () => syncScroll(topScroller, tableScroller));
   window.addEventListener('load', syncWidths);
+  window.addEventListener('resize', syncWidths);
 </script>
 {% endblock %}
+
