@@ -372,19 +372,18 @@ class Tracking(models.Model):
     data = models.DateField()
     finalidade = models.CharField(max_length=20, choices=finalidade_choices)
     crm = models.CharField(max_length=100)
-    destinatario = models.CharField(max_length=100, blank=True, null=True) # destinatario
     transportadora = models.CharField(max_length=20, choices=[(c, c) for c in courier_choices])
     carta_de_porte = models.CharField(max_length=100, blank=True, null=True)
     numero_recolha = models.CharField(max_length=100, blank=True, null=True)
     recebido_por = models.CharField(max_length=100, blank=True, null=True) # recebido_por
     data_entrega = models.DateField(blank=True, null=True)
-    remetente = models.CharField(max_length=100, blank=True, null=True) # passar para texto
+    cliente = models.CharField(max_length=100, blank=True, null=True) # passar para texto
     email = models.CharField(max_length=100, blank=True, null=True) # passar para texto
     observacoes = models.TextField(blank=True, null=True)
     files = models.ManyToManyField('TrackingFile', related_name='trackings', blank=True)
 
     def __str__(self):
-        return f"{self.data} - {self.finalidade} - {self.crm} - {self.remetente} - {self.transportadora}"
+        return f"{self.data} - {self.finalidade} - {self.crm} - {self.cliente} - {self.transportadora}"
 
 
 class TrackingFile(models.Model):

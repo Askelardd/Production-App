@@ -1212,14 +1212,22 @@ def create_die_work(request, die_id):
         DieWork.objects.create(
             die=die,
             work_type=tipo_trabalho,
-            subtype=subtipo)
+            subtype=subtipo
+        )
 
         messages.success(request, f"Trabalho '{tipo_trabalho}' adicionado com sucesso ao Die {die.serial_number}.")
-                    # Adiciona log na tabela globalLogs
+        
+        # Adiciona log na tabela globalLogs
         globalLogs.objects.create(
             user=request.user,
             action=f"{request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
         )
+
+        # Verifica se o usuário quer adicionar outro trabalho
+        if 'add_another' in request.POST:
+            return redirect('create_die_work', die_id=die.id)
+
+
         return redirect('die_details', die_id=die.id)
 
     return render(request, 'theme/create_die_work.html', {'die': die})
@@ -1552,21 +1560,10 @@ def create_tracking(request, pk=None):
         numero_recolha   = request.POST.get('numero_recolha') or None
         recebido_por     = request.POST.get('recebido_por') or None
         data_entrega     = parse_date(request.POST.get('data_entrega') or '') if request.POST.get('data_entrega') else None
-        remetente_in     = request.POST.get('remetente') or None
-        destinatario_in  = request.POST.get('destinatario') or ''
+        cliente          = request.POST.get('cliente') or None
         email            = request.POST.get('email') or None
         observacoes      = request.POST.get('observacoes') or None
 
-        # regra: só um dos dois campos
-        if finalidade == 'Importacao':
-            remetente = remetente_in
-            destinatario = ''
-        elif finalidade == 'Exportacao':
-            remetente = None
-            destinatario = destinatario_in
-        else:
-            remetente = None
-            destinatario = ''
 
         with transaction.atomic():
             if tracking is None:
@@ -1579,8 +1576,7 @@ def create_tracking(request, pk=None):
                     numero_recolha=numero_recolha,
                     recebido_por=recebido_por,
                     data_entrega=data_entrega,
-                    remetente=remetente,
-                    destinatario=destinatario,
+                    cliente=cliente,
                     email=email,
                     observacoes=observacoes,
                 )
@@ -1593,8 +1589,7 @@ def create_tracking(request, pk=None):
                 tracking.numero_recolha = numero_recolha
                 tracking.recebido_por = recebido_por
                 tracking.data_entrega = data_entrega
-                tracking.remetente = remetente
-                tracking.destinatario = destinatario
+                tracking.cliente = cliente
                 tracking.email = email
                 tracking.observacoes = observacoes
                 tracking.save()
@@ -1636,14 +1631,12 @@ def listar_trackings(request):
     de               = request.GET.get('de') or ''
     ate              = request.GET.get('ate') or ''
     # NOVOS filtros dedicados:
-    remetente_q      = (request.GET.get('remetente') or '').strip()
-    destinatario_q   = (request.GET.get('destinatario') or '').strip()
+    cliente_q       = (request.GET.get('cliente') or '').strip()
 
     if q:
         qs = qs.filter(
             Q(crm__icontains=q) |
-            Q(remetente__icontains=q) |
-            Q(destinatario__icontains=q) |
+            Q(cliente__icontains=q) |
             Q(numero_recolha__icontains=q) |
             Q(carta_de_porte__icontains=q) |
             Q(observacoes__icontains=q) |
@@ -1657,10 +1650,9 @@ def listar_trackings(request):
         qs = qs.filter(recebido_por__icontains=recebido_por)
 
     # NOVO: filtros específicos
-    if remetente_q:
-        qs = qs.filter(remetente__icontains=remetente_q)
-    if destinatario_q:
-        qs = qs.filter(destinatario__icontains=destinatario_q)
+    if cliente_q:
+        qs = qs.filter(cliente__icontains=cliente_q)
+
 
     de_date = parse_date(de) if de else None
     ate_date = parse_date(ate) if ate else None
@@ -1671,9 +1663,9 @@ def listar_trackings(request):
 
     # ordenação
     sort = request.GET.get('sort') or '-data'
-    allowed = {'data','finalidade','crm','destinatario','transportadora',
+    allowed = {'data','finalidade','crm','cliente','transportadora',
                'carta_de_porte','numero_recolha','recebido_por','data_entrega',
-               'remetente','email','observacoes'}
+               'email','observacoes'}
     qs = qs.order_by(sort, '-id') if sort.lstrip('-') in allowed else qs.order_by('-data','-id')
 
     # paginação
@@ -1688,8 +1680,7 @@ def listar_trackings(request):
         ('data', 'Data'),
         ('finalidade', 'Finalidade'),
         ('crm', 'CRM'),
-        ('destinatario', 'Destinatário'),  # mantemos (opcional)
-        ('remetente', 'Remetente'),        # nesta vamos mostrar "um ou outro"
+        ('cliente', 'Cliente'),        # nesta vamos mostrar "um ou outro"
         ('transportadora', 'Transportadora'),
         ('carta_de_porte', 'Carta de Porte'),
         ('numero_recolha', 'Nº Recolha'),
@@ -1710,10 +1701,7 @@ def listar_trackings(request):
         'recebido_por': recebido_por,
         'de': de,
         'ate': ate,
-        # NOVOS valores para manter no form:
-        'remetente': remetente_q,
-        'destinatario': destinatario_q,
-
+        'cliente': cliente_q,
         'finalidades': Tracking._meta.get_field('finalidade').choices,
         'transportadoras': Tracking.courier_choices,
         'columns': columns,
@@ -1738,17 +1726,7 @@ def edit_tracking(request, tracking_id):
                 tracking.data_entrega = parse_date(request.POST.get('data_entrega') or '')
                 tracking.email = request.POST.get('email') or None
                 tracking.observacoes = request.POST.get('observacoes') or ''
-
-                # aplicar regra remetente/destinatario
-                if tracking.finalidade == 'Importacao':
-                    tracking.remetente = request.POST.get('remetente') or None
-                    tracking.destinatario = ''
-                elif tracking.finalidade == 'Exportacao':
-                    tracking.remetente = None
-                    tracking.destinatario = request.POST.get('destinatario') or ''
-                else:
-                    tracking.remetente = None
-                    tracking.destinatario = ''
+                tracking.cliente = request.POST.get('cliente') or ''
 
                 # anexar novos ficheiros (não remove os antigos aqui)
                 for f in request.FILES.getlist('files'):

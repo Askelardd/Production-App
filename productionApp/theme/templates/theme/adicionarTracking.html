@@ -34,19 +34,14 @@
                value="{% if tracking %}{{ tracking.crm }}{% endif %}">
       </div>
 
-      <!-- Remetente (só Importacao) -->
-      <div id="remetenteField" style="display:none;">
-        <label class="block text-sm">Remetente</label>
-        <input type="text" name="remetente" class="border p-2 w-full"
-               value="{% if tracking %}{{ tracking.remetente }}{% endif %}">
+   
+      <div>
+        <label class="block text-sm">Cliente</label>
+        <input type="text" name="cliente" class="border p-2 w-full"
+              value="{% if tracking %}{{ tracking.cliente }}{% endif %}">
       </div>
 
-      <!-- Destinatário (só Exportacao) -->
-      <div id="destinatarioField" style="display:none;">
-        <label class="block text-sm">Destinatário</label>
-        <input type="text" name="destinatario" class="border p-2 w-full"
-               value="{% if tracking %}{{ tracking.destinatario }}{% endif %}">
-      </div>
+
 
       <div>
         <label class="block text-sm">Transportadora</label>
@@ -145,80 +140,88 @@
 
 {% block extra_js %}
 <script>
-
   document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput');
     const filesPreview = document.getElementById('filesPreview');
     const clearAllButton = document.getElementById('clearAll');
 
-    fileInput.addEventListener('change', () => {
+    // Acumulador de ficheiros selecionados ao longo de várias operações
+    let dt = new DataTransfer();
+
+    function fileKey(f) {
+      // evita duplicados simples (podes ajustar a lógica)
+      return `${f.name}-${f.size}-${f.lastModified}`;
+    }
+
+    function renderList() {
       filesPreview.innerHTML = '';
-      Array.from(fileInput.files).forEach(file => {
+      Array.from(dt.files).forEach((file, idx) => {
         const li = document.createElement('li');
-        li.textContent = file.name;
+        li.className = 'flex items-center gap-2';
+        li.innerHTML = `
+          <span>${file.name}</span>
+          <button type="button" data-idx="${idx}" class="text-red-600 text-sm underline ml-auto">remover</button>
+        `;
         filesPreview.appendChild(li);
       });
-    });
 
-    clearAllButton.addEventListener('click', () => {
+      // Remover item
+      filesPreview.querySelectorAll('button[data-idx]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const i = Number(e.currentTarget.dataset.idx);
+          dt.items.remove(i);
+          fileInput.files = dt.files;      // reflete no input
+          renderList();
+        });
+      });
+    }
+
+    // Ao selecionar novos ficheiros, acrescenta ao acumulador
+    fileInput.addEventListener('change', () => {
+      const existing = new Set(Array.from(dt.files).map(fileKey));
+
+      for (const f of fileInput.files) {
+        const key = fileKey(f);
+        if (!existing.has(key)) {
+          dt.items.add(f);
+          existing.add(key);
+        }
+      }
+
+      // Limpa o input para permitir nova seleção sem substituir
       fileInput.value = '';
-      filesPreview.innerHTML = '';
+
+      // Atualiza o input com o conjunto acumulado
+      fileInput.files = dt.files;
+
+      renderList();
     });
-  });
-  document.addEventListener('DOMContentLoaded', () => {
-    const finalidadeField   = document.querySelector('select[name="finalidade"]');
-    const remetenteWrap     = document.getElementById('remetenteField');
-    const destinatarioWrap  = document.getElementById('destinatarioField');
-    const remetenteInput    = document.querySelector('input[name="remetente"]');
-    const destinatarioInput = document.querySelector('input[name="destinatario"]');
 
-    function toggleFields() {
-      const val = finalidadeField ? finalidadeField.value : '';
-      if (val === 'Importacao') {
-        // Importação: mostrar Remetente
-        remetenteWrap.style.display = 'block';
-        destinatarioWrap.style.display = 'none';
-        // required
-        remetenteInput && remetenteInput.setAttribute('required','required');
-        destinatarioInput && destinatarioInput.removeAttribute('required');
-        // limpar o oculto
-        if (destinatarioInput) destinatarioInput.value = '';
-      } else if (val === 'Exportacao') {
-        // Exportação: mostrar Destinatário
-        remetenteWrap.style.display = 'none';
-        destinatarioWrap.style.display = 'block';
-        destinatarioInput && destinatarioInput.setAttribute('required','required');
-        remetenteInput && remetenteInput.removeAttribute('required');
-        if (remetenteInput) remetenteInput.value = '';
-      } else {
-        // Nenhuma selecionada
-        remetenteWrap.style.display = 'none';
-        destinatarioWrap.style.display = 'none';
-        remetenteInput && remetenteInput.removeAttribute('required');
-        destinatarioInput && destinatarioInput.removeAttribute('required');
-      }
-    }
+    // Botão "Limpar seleção"
+    clearAllButton.addEventListener('click', () => {
+      dt = new DataTransfer();
+      fileInput.value = '';
+      fileInput.files = dt.files;
+      renderList();
+    });
 
-    if (finalidadeField) {
-      finalidadeField.addEventListener('change', toggleFields);
-      toggleFields(); // estado inicial (útil ao editar)
-    }
-
-    // --- opcional: impedir submit sem o condicional correto (extra robustez) ---
-    const form = document.getElementById('trackingForm');
-    form && form.addEventListener('submit', (e) => {
-      const val = finalidadeField ? finalidadeField.value : '';
-      if (val === 'Importacao' && remetenteInput && !remetenteInput.value.trim()) {
-        e.preventDefault();
-        remetenteInput.focus();
-        alert('Preencha o Remetente (Finalidade: Importação).');
+    // (Opcional) Suporte a drag & drop – útil para arrastar de várias pastas
+    const dropZone = fileInput.closest('div'); // ou cria uma zona própria
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const existing = new Set(Array.from(dt.files).map(fileKey));
+      for (const f of e.dataTransfer.files) {
+        const key = fileKey(f);
+        if (!existing.has(key)) {
+          dt.items.add(f);
+          existing.add(key);
+        }
       }
-      if (val === 'Exportacao' && destinatarioInput && !destinatarioInput.value.trim()) {
-        e.preventDefault();
-        destinatarioInput.focus();
-        alert('Preencha o Destinatário (Finalidade: Exportação).');
-      }
+      fileInput.files = dt.files;
+      renderList();
     });
   });
 </script>
+
 {% endblock %}

@@ -4,8 +4,10 @@
 {% block content %}
 <h1 class="text-xl font-bold mb-4">Adicionar Trabalho para Die {{ die.serial_number }}</h1>
 
-<form method="POST">
+<form method="POST" id="workForm">
   {% csrf_token %}
+  <input type="hidden" name="add_another" id="add_another" value="">
+
 
   <label class="block mb-2 font-medium">Tipo de Trabalho:</label>
   <select name="tipo_trabalho" id="tipo_trabalho" required class="border rounded p-2 mb-4 w-full">
@@ -24,41 +26,64 @@
   <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" disabled>
     Criar Trabalho
   </button>
-  <a href="{% url 'listarDies' %}" class="inline-block bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 ml-2">
+  <a href="{% url 'die_details' die.id %}" class="inline-block bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 ml-2">
     Sair
   </a>
 </form>
 
+<div id="popup" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded shadow-lg text-center">
+    <p class="text-lg mb-4">Pretende adicionar outro trabalho?</p>
+    <button id="addAnotherBtn" type="button" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mr-2">
+      Sim
+    </button>
+    <button id="onlyThisBtn" type="button" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+      Não
+    </button>
+  </div>
+</div>
+
+
 <script>
-  const subtipoMap = {
-    polimento: [
-      ["entrada", "Entrada"],
-      ["saida", "Saída"],
-      ["cone", "Cone"]
-    ],
-    desbaste_agulha: [
-      ["entrada", "Entrada"],
-      ["saida", "Saída"],
-      ["cone", "Cone"]
-    ],
-    desbaste_calibre: [
-      ["polimento_de_calibre", "Polimento de Calibre"],
-      ["desbaste_de_calibre", "Desbaste de Calibre"]
-    ],
-    afinacao: [
-      ["calibre", "Calibre"],
-      ["afinacao", "Afinação"]
-    ]
-  };
+  const form = document.getElementById('workForm');
+  const popup = document.getElementById('popup');
+  const addAnotherBtn = document.getElementById('addAnotherBtn');
+  const onlyThisBtn = document.getElementById('onlyThisBtn');
+  const addAnotherInput = document.getElementById('add_another');
 
   const tipoSelect = document.getElementById('tipo_trabalho');
   const subtipoSelect = document.getElementById('subtipo');
   const submitBtn = document.getElementById('submitBtn');
 
+  // abre popup em vez de enviar diretamente
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    popup.classList.remove('hidden');
+  });
+
+  // Sim: enviar e voltar para o mesmo form
+  addAnotherBtn.addEventListener('click', () => {
+    addAnotherInput.value = '1';
+    form.submit();
+  });
+
+  // Não: enviar e ir aos detalhes (o view já redireciona)
+  onlyThisBtn.addEventListener('click', () => {
+    addAnotherInput.value = '';
+    form.submit();
+  });
+
+  // map de subtipos e habilitar botão
+  const subtipoMap = {
+    polimento: [["entrada","Entrada"],["saida","Saída"],["cone","Cone"]],
+    desbaste_agulha: [["entrada","Entrada"],["saida","Saída"],["cone","Cone"]],
+    desbaste_calibre: [["polimento_de_calibre","Polimento de Calibre"],["desbaste_de_calibre","Desbaste de Calibre"]],
+    afinacao: [["calibre","Calibre"],["afinacao","Afinação"]]
+  };
+
   tipoSelect.addEventListener('change', () => {
     const tipo = tipoSelect.value;
     subtipoSelect.innerHTML = '<option value="">-- Escolher --</option>';
-
     if (subtipoMap[tipo]) {
       subtipoMap[tipo].forEach(([value, label]) => {
         const opt = document.createElement('option');
@@ -71,9 +96,9 @@
   });
 
   subtipoSelect.addEventListener('change', checkForm);
-
   function checkForm() {
     submitBtn.disabled = tipoSelect.value === "" || subtipoSelect.value === "";
   }
 </script>
+
 {% endblock %}

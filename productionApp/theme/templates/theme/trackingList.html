@@ -92,24 +92,7 @@
           <td class="px-4 py-2">{{ t.get_finalidade_display }}</td>
           <td class="px-4 py-2">{{ t.crm }}</td>
 
-          {# Destinatário só em Exportação #}
-          <td class="px-4 py-2">
-            {% if t.finalidade == 'Exportacao' and t.destinatario %}
-              {{ t.destinatario }}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-
-          {# Remetente só em Importação #}
-          <td class="px-4 py-2">
-            {% if t.finalidade == 'Importacao' and t.remetente %}
-              {{ t.remetente }}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-
+          <td class="px-4 py-2">{{ t.cliente }}</td>
           <td class="px-4 py-2">{{ t.transportadora }}</td>
           <td class="px-4 py-2">{{ t.carta_de_porte }}</td>
           <td class="px-4 py-2">{{ t.numero_recolha }}</td>

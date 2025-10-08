@@ -280,11 +280,11 @@ class TrackingAdmin(admin.ModelAdmin):
     list_display = [
         'data', 'finalidade', 'crm', 'transportadora', 
         'carta_de_porte', 'numero_recolha', 'recebido_por', 'data_entrega', 
-        'remetente', 'email'
+        'cliente', 'email'
     ]
     search_fields = [
         'crm', 'transportadora', 'carta_de_porte', 
-        'numero_recolha', 'recebido_por', 'remetente', 'email', 'observacoes'
+        'numero_recolha', 'recebido_por', 'cliente', 'email', 'observacoes'
     ]
     list_filter = ['finalidade', 'transportadora', 'data', 'data_entrega']
     list_per_page = 20
