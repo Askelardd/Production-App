@@ -1,0 +1,83 @@
+{% extends 'theme/base.html' %}
+{% block title %}Enviar Fieira{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-bold text-black mb-6 text-center">Enviar Fieira</h1>
+
+<div class="max-w-lg mx-auto bg-white shadow-lg rounded-lg p-6">
+    <h2 class="text-xl font-semibold mb-4">
+        Fieira: <span class="text-blue-600">{{ die.serial_number }}</span>
+    </h2>
+    
+    <div class="space-y-2 mb-6">
+        <p><strong>Cliente:</strong> {{ die.customer.customer }}</p>
+        <p><strong>Tipo:</strong> {{ die.die.get_die_type_display }}</p>
+        <p><strong>Trabalho:</strong> {{ die.job.get_job_display }}</p>
+        <p><strong>Diâmetro:</strong> {{ die.diameter_text|default:"N/A" }}</p>
+        
+        <p><strong>Local atual:</strong>
+            {% if current_location %}
+                <span class="px-2 py-1 bg-green-100 text-green-700 rounded">
+                    {{ current_location.get_where_display }}
+                </span>
+            {% else %}
+                <span class="px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                    Não definido
+                </span>
+            {% endif %}
+        </p>
+
+        {% comment %} Histórico de locais {% endcomment %}
+        {% if die.locations.all %}
+        <div class="mt-4">
+            <strong>Histórico de locais:</strong>
+            <ul class="list-disc pl-6 mt-2 space-y-1">
+                {% for loc in die.locations.all|dictsortreversed:"updated_at" %}
+                    <li>
+                        {{ loc.get_where_display }} - {{ loc.updated_at|date:"Y-m-d H:i" }}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+        
+        <div>
+            <label for="where" class="block font-medium text-gray-700 mb-2">
+                Enviar para:
+            </label>
+            <select name="where" id="where" 
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                    required>
+                <option value="">-- Selecione o destino --</option>
+                {% for key, value in choices %}
+                    <option value="{{ key }}">{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="flex justify-between pt-4">
+            <a href="{% url 'listarDies' %}" 
+               class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                Enviar
+            </button>
+        </div>
+    </form>
+    
+    {% if messages %}
+        <div class="mt-4 space-y-2">
+            {% for message in messages %}
+                <div class="{% if message.tags == 'success' %}bg-green-100 border-green-400 text-green-700{% else %}bg-red-100 border-red-400 text-red-700{% endif %} px-4 py-3 rounded border">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% extends 'theme/base.html' %}
+{% block title %}Trabalhos Nas Fieiras{% endblock %}
+{% load static %}
+
+{% block content %}
+
+<!-- 1. Receber os dados E as datas dinâmicas da view -->
+{{ chart_data|json_script:"users-data-json" }}
+{{ chart_dates|json_script:"dates-data-json" }}
+
+<!--- para deixar pequeno max-w-sm --->
+
+<div class="w-full bg-neutral-primary-soft border border-default rounded-base shadow-xs p-4 md:p-6">
+  <div class="flex justify-between">
+    <div>
+      <!-- Título dinâmico que mostra quantos dias estão a ser vistos -->
+      <h5 class="text-2xl font-bold text-heading">Trabalho realizado nas fieiras ({{ current_range|default:"7" }} dias)</h5>
+      <p class="text-body">Trabalhos Nas Fieiras</p>
+    </div>
+    
+  </div>
+  
+  <div id="data-labels-chart" class="py-4 md:py-6"></div>
+  
+  <div class="grid grid-cols-1 items-center border-light border-t justify-between">
+    <div class="flex justify-between items-center pt-4 md:pt-6">
+      
+      <!-- WRAPPER RELATIVO: Mantém o botão e o menu juntos -->
+      <div class="relative">
+        <!-- Button -->
+        <button id="dropdownLastDays13Button" class="text-sm font-medium text-body hover:text-heading text-center inline-flex items-center" type="button">
+            Last {{ current_range|default:"7" }} days
+            <svg class="w-4 h-4 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/></svg>
+        </button>
+        
+        <!-- Dropdown menu -->
+        <!-- Adicionado: 'absolute top-full mt-2' para flutuar corretamente -->
+        <div id="LastDays13dropdown" class="absolute top-full left-0 mt-2 z-10 hidden bg-neutral-primary-medium border border-default-medium rounded-base shadow-lg w-44">
+            <ul class="p-2 text-sm text-body font-medium">
+              <li>
+                <a href="?days=7" class="inline-flex items-center w-full p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded {% if current_range == 7 %}bg-neutral-secondary-medium text-heading{% endif %}">
+                  Last 7 days
+                </a>
+              </li>
+              <li>
+                <a href="?days=30" class="inline-flex items-center w-full p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded {% if current_range == 30 %}bg-neutral-secondary-medium text-heading{% endif %}">
+                  Last 30 days
+                </a>
+              </li>
+              <li>
+                <a href="?days=90" class="inline-flex items-center w-full p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded {% if current_range == 90 %}bg-neutral-secondary-medium text-heading{% endif %}">
+                  Last 90 days
+                </a>
+              </li>
+              <li>
+                <a href="?days=365" class="inline-flex items-center w-full p-2 hover:bg-neutral-tertiary-medium hover:text-heading rounded {% if current_range == 365 %}bg-neutral-secondary-medium text-heading{% endif %}">
+                  Last 365 days
+                </a>
+              </li>
+            </ul>
+        </div>
+      </div>
+      
+      <a href="#" class="inline-flex items-center text-fg-brand bg-transparent box-border border border-transparent hover:bg-neutral-secondary-medium focus:ring-4 focus:ring-neutral-tertiary font-medium leading-5 rounded-base text-sm px-3 py-2 focus:outline-none">
+        Relatório Completo
+        <svg class="w-4 h-4 ms-1.5 -me-0.5 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"/></svg>
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+
+<script>
+  // --- LÓGICA DO DROPDOWN ---
+  const dropdownBtn = document.getElementById('dropdownLastDays13Button');
+  const dropdownMenu = document.getElementById('LastDays13dropdown');
+
+  if (dropdownBtn && dropdownMenu) {
+    // Alternar visibilidade ao clicar no botão
+    dropdownBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Impede que o clique feche imediatamente o menu
+        dropdownMenu.classList.toggle('hidden');
+    });
+
+    // Fechar o menu se clicar fora dele
+    document.addEventListener('click', (e) => {
+        if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.add('hidden');
+        }
+    });
+  }
+
+  // --- LÓGICA DO GRÁFICO ---
+  const getBrandColor = () => {
+    const computedStyle = getComputedStyle(document.documentElement);
+    return computedStyle.getPropertyValue('--color-fg-brand').trim() || "#e81d1dff";
+  };
+
+  const brandColor = getBrandColor();
+  
+  // 2. RECUPERAR OS DADOS E AS DATAS
+  const djangoData = JSON.parse(document.getElementById('users-data-json').textContent);
+  const djangoDates = JSON.parse(document.getElementById('dates-data-json').textContent);
+
+  const options = {
+    dataLabels: {
+      enabled: true,
+      style: {
+        cssClass: 'text-xs text-white font-medium'
+      },
+    },
+    grid: {
+      show: false,
+      strokeDashArray:4 ,
+      padding: {
+        left: 16,
+        right: 16,
+        top: -2,
+      },
+    },
+    // DADOS DOS UTILIZADORES (Quantidade gasta)
+    series: djangoData,
+    chart: {
+      height: "100%",
+      maxWidth: "100%",
+      type: "area",
+      fontFamily: "Inter, sans-serif",
+            
+      states: {
+          active: {
+              filter: {
+                  type: 'none',
+                  // >>> ALTERADO AQUI: Menor valor para maior dimming (mais contraste) <<<
+                  value: 0.001, 
+              }
+          }
+      },
+
+      dropShadow: {
+        enabled: false,
+      },
+      toolbar: {
+        show: false,
+      },
+    },
+    tooltip: {
+      enabled: true,
+      x: {
+        show: true,
+      },
+      y: {
+        formatter: function (value) {
+          if (value != 0) {
+            return value + " unid."; // Ou 'g', 'kg', conforme a tua unidade
+          }
+
+        }
+      }
+    },
+    legend: {
+      show: true // Onde mostra os nomes
+    },
+    fill: {
+      type: "gradient",
+      gradient: {
+        opacityFrom: 0.45,
+        opacityTo: 0,
+        shade: brandColor,
+        gradientToColors: [brandColor],
+        
+      },
+    },
+    stroke: {
+      width: 6, // Espessura da linha
+    },
+    xaxis: {
+      // 3. DATAS DINÂMICAS DO PYTHON
+      categories: djangoDates,
+      labels: {
+        show: true, // Mudei para true para veres as datas
+        style: {
+            fontFamily: "Inter, sans-serif",
+            cssClass: 'text-xs font-normal fill-gray-500 dark:fill-gray-400'
+        }
+      },
+      axisBorder: {
+        show: false,
+      },
+      axisTicks: {
+        show: false,
+      },
+    },
+    yaxis: {
+      show: false,
+    },
+  }
+
+  if (document.getElementById("data-labels-chart") && typeof ApexCharts !== 'undefined') {
+    const chart = new ApexCharts(document.getElementById("data-labels-chart"), options);
+    chart.render();
+  }
+</script>
+{% endblock %}

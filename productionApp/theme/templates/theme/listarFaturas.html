@@ -1,0 +1,326 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Invoices{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-black mb-8">Invoices</h1>
+
+
+<div class="mb-4 flex justify-between items-center">
+  <input type="text" id="searchInput" placeholder="Search all fields..."
+    class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+
+    <div class="flex space-x-2">
+    <a href="{% url 'criarFatura' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">
+      Add Invoice
+    </a>
+  </div>
+</div>
+
+<form method="GET" action="{% url 'listarFaturas' %}">
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+        <div class="md:col-span-2 grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-xs text-gray-500">From</label>
+            <input type="date" name="de" value="{{ de }}" class="border p-2 w-full rounded">
+        </div>
+        <div>
+            <label class="block text-xs text-gray-500">To</label>
+            <input type="date" name="ate" value="{{ ate }}" class="border p-2 w-full rounded">
+        </div>
+        </div>
+        
+        <div class="md:col-span-2 flex items-end gap-2">
+        <button class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button>
+        <a href="{% url 'listarFaturas' %}" class="px-4 py-2 border rounded">Clear</a>
+        </div>
+
+        <div class="md:col-span-2 text-right text-base text-gray-500">
+            <p class="mb-1">DD -> Direct Debit</p>
+            <p class="mb-1">PP -> Pre Payment</p>
+        </div>
+    </div>
+</form>
+<div class="overflow-x-auto">
+  <table id="faturasTable" class="min-w-full bg-white border border-gray-200">
+    <thead>
+      <tr>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Supplier</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice Number</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
+        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="faturasTableBody">
+      {% for fatura in invoice_qs %}
+      <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors 
+               {% if fatura.is_urgent %}piscar-urgente{% endif %}">
+
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.fornecedor.name }}</td>
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.numero_fatura }}</td>
+
+        {% if fatura.fornecedor.debito_direto %}
+            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 italic text-gray-400"></td>
+        {% else %}
+            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_fatura }}</td>
+        {% endif %}
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_emissao }}</td>
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.valor }} €</td>
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.descricao }}</td>
+        {% if fatura.fornecedor.debito_direto %}
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-blue-600 font-bold">
+           DD/PP
+        </td>
+        {% else %}
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">
+            Paid:
+            <input id="pago_{{ fatura.id }}" type="checkbox" name="pago_{{ fatura.id }}" 
+                  {% if fatura.pago %}checked{% endif %} 
+                  class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300">
+        </td>
+        {% endif %}
+
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
+            id="dropzone-{{ fatura.id }}"
+            ondragover="handleDragOver(event, '{{ fatura.id }}')"
+            ondragleave="handleDragLeave(event, '{{ fatura.id }}')"
+            ondrop="handleDrop(event, '{{ fatura.id }}')">
+
+            <div id="overlay-{{ fatura.id }}" class="absolute inset-0 bg-blue-100 bg-opacity-90 border-2 border-dashed border-blue-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
+                <svg class="w-6 h-6 text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <span class="text-blue-700 font-bold text-xs">Drop here</span>
+            </div>
+
+            <div id="list-{{ fatura.id }}" class="space-y-1">
+                {% for ficheiro in fatura.ficheiros.all %}
+                    <div class="flex items-center group">
+                        <svg class="w-3 h-3 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                            {{ ficheiro.file.name|cut:"faturas_files/" }}
+                        </a>
+                    </div>
+                {% empty %}
+                    <span class="text-gray-400 text-xs italic empty-msg">Drag files...</span>
+                {% endfor %}
+            </div>
+        </td>
+
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
+            id="dropzone-pago-{{ fatura.id }}"
+            ondragover="handleDragOver(event, '{{ fatura.id }}', 'pago')"
+            ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'pago')"
+            ondrop="handleDrop(event, '{{ fatura.id }}', 'pago')">
+
+            <div id="overlay-pago-{{ fatura.id }}" class="absolute inset-0 bg-green-100 bg-opacity-90 border-2 border-dashed border-green-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
+                <span class="text-green-700 font-bold text-xs">Add Payment</span>
+            </div>
+
+            <div id="list-pago-{{ fatura.id }}" class="space-y-1">
+                {% for ficheiro in fatura.ficheiros_pago.all %}
+                    <div class="flex items-center">
+                        <svg class="w-3 h-3 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                            {{ ficheiro.file.name|cut:"faturas_files_pago/" }}
+                        </a>
+                    </div>
+                {% empty %}
+                    <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500">
+                        Drag proof of pay.
+                    </span>
+                {% endfor %}
+            </div>
+        </td>
+
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200 
+          {% if fatura.fornecedor.estrangeiro and not fatura.ficheiros_estrangeiro.all %}bg-red-100 border-l-4 border-l-red-500{% endif %}"
+            {% if fatura.fornecedor.estrangeiro %}
+                id="dropzone-estrangeiro-{{ fatura.id }}"
+                ondragover="handleDragOver(event, '{{ fatura.id }}', 'estrangeiro')"
+                ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'estrangeiro')"
+                ondrop="handleDrop(event, '{{ fatura.id }}', 'estrangeiro')">
+
+                    <div id="overlay-estrangeiro-{{ fatura.id }}" class="absolute inset-0 bg-yellow-100 bg-opacity-90 border-2 border-dashed border-yellow-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
+                        <span class="text-yellow-700 font-bold text-xs">Foreign Doc.</span>
+                    </div>
+
+                    <div id="list-estrangeiro-{{ fatura.id }}" class="space-y-1">
+                        {% for ficheiro in fatura.ficheiros_estrangeiro.all %}
+                            <div class="flex items-center">
+                                <svg class="w-3 h-3 text-yellow-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path></svg>
+                                <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                                    {{ ficheiro.file.name|cut:"faturas_files_estrangeiro/" }}
+                                </a>
+                            </div>
+                        {% empty %}
+                            <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500">
+                                Drag Foreign doc.
+                            </span>
+                        {% endfor %}
+                    </div>
+            {% else %}
+                <div class="text-gray-400 italic text-sm"></div>
+            {% endif %}
+
+        </td>
+
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">
+          <a href="{% url 'editarFatura' fatura.id %}" class="text-indigo-600 hover:underline mr-4">Edit</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="11" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+
+<style>
+    /* Define a animação de piscar o fundo */
+    @keyframes blink-alert {
+        0% { background-color: #fee2e2; } /* Vermelho claro (Tailwind red-100) */
+        50% { background-color: #ffffff; } /* Branco */
+        100% { background-color: #fee2e2; }
+    }
+
+    /* A classe que vamos usar */
+    .piscar-urgente {
+        animation: blink-alert 2s infinite; /* Pisca a cada 2 segundos */
+        border-left: 4px solid #ef4444 !important; /* Barra lateral vermelha fixa */
+    }
+</style>
+
+<script>
+    // Aceitam o argumento 'tipo' (pode ser 'geral', 'pago', 'estrangeiro')
+    
+    function handleDragOver(e, id, tipo = 'geral') {
+        e.preventDefault();
+        e.stopPropagation();
+        // Constrói o ID do overlay baseado no tipo
+        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
+        const overlay = document.getElementById(overlayId);
+        if(overlay) overlay.classList.remove('hidden');
+    }
+
+    function handleDragLeave(e, id, tipo = 'geral') {
+        e.preventDefault();
+        e.stopPropagation();
+        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
+        const overlay = document.getElementById(overlayId);
+        if(overlay) overlay.classList.add('hidden');
+    }
+
+    function handleDrop(e, id, tipo = 'geral') {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
+        document.getElementById(overlayId).classList.add('hidden');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            uploadFiles(files, id, tipo);
+        }
+    }
+
+    function uploadFiles(files, faturaId, tipo) {
+        // Identifica a lista correta para adicionar o HTML depois
+        const listId = tipo === 'geral' ? `list-${faturaId}` : `list-${tipo}-${faturaId}`;
+        const listDiv = document.getElementById(listId);
+        
+        // Remove msg vazio
+        const emptyMsg = listDiv.querySelector('.empty-msg');
+        if(emptyMsg) emptyMsg.remove();
+
+        Array.from(files).forEach(file => {
+            const formData = new FormData();
+            formData.append('ficheiro', file);
+            formData.append('fatura_id', faturaId);
+            formData.append('tipo', tipo); // Envia o tipo para o Django
+
+            fetch("{% url 'api_upload_fatura' %}", {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+
+                  if (tipo === 'pago') {
+                        const checkboxPago = document.getElementById(`pago_${faturaId}`);
+                        if (checkboxPago) {
+                            checkboxPago.checked = true;
+                            
+                            // Opcional: Efeito visual para o utilizador perceber que mudou
+                            checkboxPago.parentElement.classList.add('text-green-600', 'font-bold');
+                        }
+                    }
+
+                  if (tipo === 'estrangeiro') {
+                    const cell = document.getElementById(`dropzone-estrangeiro-${faturaId}`);
+                    // Remove o fundo vermelho e a borda de aviso
+                    if (cell) {
+                        cell.classList.remove('bg-red-100', 'border-l-4', 'border-l-red-500');
+                        // Opcional: Adiciona um fundo verde subtil temporário para dar feedback positivo
+                        cell.classList.add('bg-green-50');
+                        setTimeout(() => cell.classList.remove('bg-green-50'), 2000);
+                    }
+                }
+                    // Ícone diferente dependendo do tipo
+                    let iconColor = 'text-blue-500';
+                    if (tipo === 'pago') iconColor = 'text-green-500';
+                    if (tipo === 'estrangeiro') iconColor = 'text-yellow-500';
+
+                    const newLink = `
+                        <div class="flex items-center animate-pulse">
+                            <svg class="w-3 h-3 ${iconColor} mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <a href="${data.url}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="${data.name}">
+                                ${data.name}
+                            </a>
+                        </div>
+                    `;
+                    listDiv.insertAdjacentHTML('beforeend', newLink);
+                } else {
+                    alert('Erro: ' + data.message);
+                }
+            })
+            .catch(error => console.error('Erro:', error));
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchInput');
+        const table = document.getElementById('faturasTable').getElementsByTagName('tbody')[0];
+
+        searchInput.addEventListener('keyup', function () {
+            const filter = searchInput.value.toLowerCase();
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                let found = false;
+
+                for (let j = 0; j < cells.length - 1; j++) {
+                    if (cells[j].textContent.toLowerCase().includes(filter)) {
+                        found = true;
+                        break;
+                    }
+                }
+                rows[i].style.display = found ? '' : 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'theme/base.html' %}
+{% block title %}Trackings{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+  <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">Trackings</h1>
+      <p class="text-sm text-gray-500 mt-1">Gerencie e visualize o estado das encomendas</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="?{% if current_query %} {{ current_query }}&{% endif %}view=cards"
+        class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors hidden md:inline-block shadow-sm">
+        <i class="fa-solid fa-grip mr-2"></i>Ver Cards
+      </a>
+      <a href="{% url 'adicionarTracking' %}" 
+         class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow-md transition-all flex items-center">
+         <i class="fa-solid fa-plus mr-2"></i> Adicionar
+      </a>
+    </div>
+  </div>
+
+  <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+    <form method="GET" class="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <div class="md:col-span-4">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pesquisa geral</label>
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                <i class="fa-solid fa-search"></i>
+            </span>
+            <input type="text" name="q" value="{{ q }}" placeholder="CRM, destinatário, recolha..."
+                   class="pl-10 border-gray-300 focus:ring-blue-500 focus:border-blue-500 block w-full rounded-lg sm:text-sm py-2.5">
+        </div>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Finalidade</label>
+        <select name="finalidade" class="border-gray-300 focus:ring-blue-500 focus:border-blue-500 block w-full rounded-lg sm:text-sm py-2.5">
+          <option value="">Todas</option>
+          {% for value, label in finalidades %}
+            <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Transportadora</label>
+        <select name="transportadora" class="border-gray-300 focus:ring-blue-500 focus:border-blue-500 block w-full rounded-lg sm:text-sm py-2.5">
+          <option value="">Todas</option>
+          {% for c in transportadoras %}
+            <option value="{{ c }}" {% if c == selected_transportadora %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">De</label>
+        <input type="date" name="de" value="{{ de }}" class="border-gray-300 focus:ring-blue-500 focus:border-blue-500 block w-full rounded-lg sm:text-sm py-2.5 text-gray-600">
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Até</label>
+        <input type="date" name="ate" value="{{ ate }}" class="border-gray-300 focus:ring-blue-500 focus:border-blue-500 block w-full rounded-lg sm:text-sm py-2.5 text-gray-600">
+      </div>
+
+      <div class="md:col-span-12 flex justify-end items-center gap-3 pt-2 border-t border-gray-100 mt-2">
+        <a href="{% url 'listarTracking' %}" class="text-sm text-gray-500 hover:text-gray-700 underline px-3">Limpar Filtros</a>
+        <button class="bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg shadow transition-colors text-sm font-medium">
+            Aplicar Filtros
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+    
+    <div class="bg-blue-50 px-4 py-2 text-xs text-blue-700 flex items-center justify-center md:hidden">
+        <i class="fa-solid fa-arrows-left-right mr-2"></i> Deslize horizontalmente para ver mais
+    </div>
+
+    <div class="relative">
+      <div id="topScroller" class="overflow-x-auto h-4 w-full">
+        <div id="topScrollerInner" class="h-1"></div>
+      </div>
+
+      <div id="tableScroller" class="overflow-x-auto w-full">    
+        <table id="ordersTable" class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              {% for col in columns %}
+                {% with field=col.0 label=col.1 %}
+                  <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    <a href="?{% if current_query %}{{ current_query }}&{% endif %}sort={% if sort == field %}-{{ field }}{% elif sort == '-'|add:field %}{{ field }}{% else %}{{ field }}{% endif %}"
+                       class="group inline-flex items-center hover:text-gray-700 transition-colors">
+                      {{ label }}
+                      <span class="ml-2 flex-none rounded text-gray-400 group-hover:visible group-focus:visible">
+                        {% if sort == field %}
+                            <i class="fa-solid fa-chevron-up text-blue-500"></i>
+                        {% elif sort == '-'|add:field %}
+                            <i class="fa-solid fa-chevron-down text-blue-500"></i>
+                        {% else %}
+                            <i class="fa-solid fa-sort opacity-20 group-hover:opacity-100"></i>
+                        {% endif %}
+                      </span>
+                    </a>
+                  </th>
+                {% endwith %}
+              {% endfor %}
+              <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Ficheiros</th>
+              <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+          {% for t in trackings %}
+            <tr class="hover:bg-gray-50 transition-colors duration-150">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                {{ t.data|date:"d/m/Y" }}
+              </td>
+              
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {{ t.get_finalidade_display }}
+                </span>
+              </td>
+
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.crm }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{{ t.cliente }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.transportadora }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ t.carta_de_porte }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{{ t.numero_recolha }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{{ t.recebido_por }}</td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {% if t.data_entrega %}
+                  {{ t.data_entrega|date:"d/m/Y" }}
+                {% else %}
+                  <span class="text-gray-300">-</span>
+                {% endif %}
+              </td>
+              
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ t.email }}</td>
+              
+              <td class="px-6 py-4 whitespace-nowrap">
+                {% if t.enviado %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    <span class="w-2 h-2 mr-1.5 bg-green-400 rounded-full"></span> Sim
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span class="w-2 h-2 mr-1.5 bg-red-400 rounded-full"></span> Não
+                  </span>
+                {% endif %}
+              </td>
+              
+              <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title="{{ t.observacoes }}">
+                {{ t.observacoes|default:"-" }}
+              </td>
+
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                {% with total=t.files.count %}
+                  {% if total %}
+                    <div class="flex flex-col gap-1">
+                    {% for f in t.files.all|slice:":2" %}
+                      <a href="{{ f.file.url }}" class="text-blue-600 hover:text-blue-800 flex items-center gap-1" target="_blank" download title="{{ f.file.name }}">
+                        <i class="fa-regular fa-file"></i> {{ f.file.name|cut:"tracking_files/"|truncatechars:15 }}
+                      </a>
+                    {% endfor %}
+                    {% if total > 2 %}
+                      <span class="text-xs text-gray-400 pl-4">+{{ total|add:"-2" }} outros</span>
+                    {% endif %}
+                    </div>
+                  {% else %}
+                    <span class="text-gray-300">—</span>
+                  {% endif %}
+                {% endwith %}
+              </td>
+
+              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <a href="{% url 'editarTracking' t.id %}?view=table" class="text-indigo-600 hover:text-indigo-900 font-bold bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors">
+                  Editar
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="14" class="px-6 py-12 text-center text-gray-500 italic">Nenhum registo encontrado com estes filtros.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between mt-6 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
+    <div class="text-sm text-gray-700">
+      A mostrar página <span class="font-bold">{{ page_obj.number }}</span> de <span class="font-bold">{{ page_obj.paginator.num_pages }}</span> 
+      <span class="text-gray-400 mx-2">|</span> Total: {{ page_obj.paginator.count }} registos
+    </div>
+    <div class="flex gap-2">
+      {% if page_obj.has_previous %}
+        <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+           href="?{% if current_query %}{{ current_query }}&{% endif %}page={{ page_obj.previous_page_number }}">
+           <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
+        </a>
+      {% endif %}
+      {% if page_obj.has_next %}
+        <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+           href="?{% if current_query %}{{ current_query }}&{% endif %}page={{ page_obj.next_page_number }}">
+           Seguinte <i class="fa-solid fa-chevron-right ml-1"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const tableScroller = document.getElementById('tableScroller');
+  const topScroller   = document.getElementById('topScroller');
+  const topInner      = document.getElementById('topScrollerInner');
+
+  function syncWidths() {
+    requestAnimationFrame(() => {
+      topInner.style.width = tableScroller.scrollWidth + 'px';
+    });
+  }
+
+  function syncScroll(from, to) {
+    to.scrollLeft = from.scrollLeft;
+  }
+
+  tableScroller.addEventListener('scroll', () => syncScroll(tableScroller, topScroller));
+  topScroller.addEventListener('scroll', () => syncScroll(topScroller, tableScroller));
+  window.addEventListener('load', syncWidths);
+  window.addEventListener('resize', syncWidths);
+</script>
+{% endblock %}

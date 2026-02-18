@@ -1,0 +1,183 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Registos Medidas{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-black mb-6">Registos Medidas</h1>
+<div class="flex justify-between items-center mb-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar Máquinas..."
+           class="w-full max-w-md rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm" />
+    <button type="button" id="openAddFieiraButton"
+            class="bg-green-500 hover:bg-green-600 text-white font-semibold px-3 py-1 rounded shadow text-sm">
+        Adicionar Nova Fieira
+    </button>
+</div>
+
+<div id="machineList">
+{% for medida, medicoes in dados_completos.items %}
+<div class="machine-item bg-white rounded-xl shadow-lg p-6 mb-8">
+    <h2 class="text-xl font-bold text-gray-800 mb-2">
+        Fieira {{ medida.serie_number }}
+    </h2>
+
+    {% if medicoes %}
+        {% for medicao in medicoes %}
+            <h3 class="text-lg font-semibold text-gray-700 mt-4">
+                Máquina: {{ medicao.machine.machine_name }}
+            </h3>
+            <ul class="list-disc pl-6 text-sm text-gray-600">
+                {% if medicao.detalhes.all %}
+                    {% for detalhe in medicao.detalhes.all %}
+                        <li>
+                            Leitura {{ detalhe.read_number }} → 
+                            Diâmetro: {{ detalhe.diameter }} | 
+                            Bearing: {{ detalhe.bearing|default:"N/A" }} | 
+                            Ovalidade: {{ detalhe.ovality|default:"N/A" }} | 
+                            {% if detalhe.toleranciaMin or detalhe.toleranciaMax != null %}
+                            Tolerância Mínima: {{ detalhe.toleranciaMin | default:"N/A" }} | 
+                            Tolerância Máxima: {{ detalhe.toleranciaMax | default:"N/A" }}
+                            {% endif %}
+
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li>Sem leituras ainda</li>
+                {% endif %}
+            </ul>
+            <button type="button"
+                    class="openPopup bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow text-sm"
+                    data-medicao-id="{{ medicao.id }}">
+                Adicionar Leitura
+            </button>
+        {% endfor %}
+    {% else %}
+        <!-- Não há medições ainda: botão cria a primeira Medicao + Detalhe -->
+        <p>Sem medições ainda.</p>
+        <button type="button"
+                class="openPopup bg-blue-500 hover:bg-blue-600 text-white font-semibold px-3 py-1 rounded shadow text-sm"
+                data-fieira-id="{{ medida.id }}">
+            Adicionar Leitura
+        </button>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<div id="addFieiraModal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+        <form method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" id="form_type" name="form_type" value="adicionar_leitura">
+            <div>
+                <label for="serie_number" class="block text-sm font-medium text-gray-700">Número de Série</label>
+                <input type="text" id="serie_number" name="serie_number" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+            </div>
+
+            <div>
+                <label for="diametro" class="block text-sm font-medium text-gray-700 mt-4">Diâmetro</label>
+                <input id="diametro" name="diametro" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+            </div>
+            <div class="flex justify-end mt-6">
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow">Salvar</button>
+                <button type="button" id="closeAddFieiraModal" class="ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded shadow">Fechar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div id="hiddenForm" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <form method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" id="form_type" name="form_type" value="adicionar_leitura">
+            <input type="hidden" id="edit_id" name="edit_id" value="">
+            <input type="hidden" id="fieira_id" name="fieira_id" value="">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="diameter" class="block text-sm font-medium text-gray-700">Diametro</label>
+                    <input type="text" id="diameter" name="diameter" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="bearing" class="block text-sm font-medium text-gray-700">Bearing</label>
+                    <input type="text" id="bearing" name="bearing" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="ovality" class="block text-sm font-medium text-gray-700">Ovalidade</label>
+                    <input type="text" id="ovality" name="ovality" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="toleranciaMin" class="block text-sm font-medium text-gray-700">Tolerância Mínima</label>
+                    <input type="text" id="toleranciaMin" name="toleranciaMin" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="toleranciaMax" class="block text-sm font-medium text-gray-700">Tolerância Máxima</label>
+                    <input type="text" id="toleranciaMax" name="toleranciaMax" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                </div>
+                <div>
+                    <label for="maquina" class="block text-sm font-medium text-gray-700">Máquina</label>
+                    <select id="maquina" name="maquina" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                        <option value="" disabled selected>Selecione uma máquina</option>
+                        {% for maquina in maquina %}
+                            <option value="{{ maquina.id }}">{{ maquina.machine_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end mt-6">
+                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow">Salvar</button>
+                <button type="button" id="closePopup" class="ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded shadow">Fechar</button>
+            </div>
+
+
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+console.log("✅ Script carregado!");
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const machines = document.querySelectorAll('.machine-item');
+
+    searchInput.addEventListener('input', function() {
+        const filter = searchInput.value.toLowerCase();
+        machines.forEach(machine => {
+            const text = machine.textContent.toLowerCase();
+            machine.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+
+    document.querySelectorAll('.openPopup').forEach(button => {
+    button.addEventListener('click', function() {
+        const medicaoId = this.dataset.medicaoId || '';
+        const fieiraId = this.dataset.fieiraId || '';
+
+        document.getElementById('edit_id').value = medicaoId;
+        document.getElementById('fieira_id').value = fieiraId;
+        document.getElementById('form_type').value = 'adicionar_leitura';
+
+        document.getElementById('hiddenForm').classList.remove('hidden');
+    });
+});
+
+    document.getElementById('closePopup').addEventListener('click', function() {
+        document.getElementById('hiddenForm').classList.add('hidden');
+    });
+
+    // Modal de adicionar nova fieira
+    document.getElementById('openAddFieiraButton').addEventListener('click', function() {
+        document.getElementById('addFieiraModal').classList.remove('hidden');
+        document.getElementById('form_type').value = 'adicionar_fieira';
+    });
+    document.getElementById('closeAddFieiraModal').addEventListener('click', function() {
+        document.getElementById('addFieiraModal').classList.add('hidden');
+    });
+
+});
+</script>
+{% endblock %}

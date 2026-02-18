@@ -1,0 +1,101 @@
+{% extends 'theme/base.html' %}
+{% block title %}Detalhes do QR Code{% endblock %}
+
+{% block content %}
+<h2 class = "text-2xl font-bold mb-6">Detalhes do QR Code (ID {{ qr.id }})</h2>
+
+<!-- Informações principais -->
+<div class = "bg-white p-6 rounded-lg shadow mb-6">
+                      <p><strong>Cliente   : </strong> {{ qr.customer }}</p>
+    <p><strong>Ordem  Cliente              : </strong> {{ qr.customer_order_nr }}</p>
+    <p><strong>Toma   Ordem                : </strong> {{ qr.toma_order_nr }}</p>
+                      <p><strong>Quantidade: </strong> {{ qr.qt }}</p>
+    <p><strong>Criado em                   : </strong> {{ qr.created_at|date:"d/m/Y H:i" }}</p>
+</div>
+
+<!-- Diâmetro Máx/Mín
+<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6">
+<h3  class = "text-lg font-semibold mb-2">Diâmetro Máx/Mín (para todos os Dies)</h3>
+    {% if qr.die_instances.exists %}
+        {% with first_die=qr.die_instances.first %}
+            <p><strong>Mínimo: </strong> {{ first_die.diam_max_min.min|default:"-" }}</p>
+            <p><strong>Máximo: </strong> {{ first_die.diam_max_min.max|default:"-" }}</p>
+        {% endwith %}
+    {% else %}
+        <p class = "text-gray-500 italic">Nenhum Die associado.</p>
+    {% endif %}
+</div>
+}-->
+
+<hr class = "my-6">
+
+<h2    class = "text-xl font-bold mb-4">Resumo por Trabalhador (Fieiras Únicas)</h2>
+<table class = "w-full border border-gray-300 text-sm">
+    <thead>
+        <tr class = "bg-gray-200">
+        <th class = "p-2 text-left">Trabalhador</th>
+        <th class = "p-2 text-center">Fieiras Trabalhadas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for stat in workers_stats %}
+        <tr class = "border-b">
+        <td class = "p-2">{{ stat.name }} ({{ stat.username }})</td>
+        <td class = "p-2 text-center font-semibold">{{ stat.total_dies }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan = "2" class = "text-center text-gray-500 p-2">Nenhum trabalhador associado a esta Fieiras.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+<!-- Pedidos de Diâmetro -->
+<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6 mt-6">
+<h3  class = "text-lg font-semibold mb-2">Pedidos de Diâmetro</h3>
+    {% if pedidos %}
+        <ul class = "list-disc ml-6">
+            {% for pedido in pedidos %}
+                <li>
+                    {{ pedido.numero_fieiras }} fieiras para {{ pedido.diametro }}
+                    <small class = "text-gray-500">({{ pedido.created_at|date:"d/m/Y H:i" }})</small>
+                    <p     class = "text-gray-600"> Numero Fieira: {{ pedido.serie_dies|default:"-" }}</p>
+                    <p     class = "text-gray-600"> Observações: {{ pedido.observations|default:"-" }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class = "text-gray-500 italic">Nenhum pedido de diâmetro registrado.</p>
+    {% endif %}
+</div>
+
+<!-- Partidos -->
+<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6">
+<h3  class = "text-lg font-semibold mb-2">Partidos</h3>
+    {% if partidos %}
+        <ul class = "list-disc ml-6">
+            {% for partido in partidos %}
+                <li>
+                    {{ partido.partido }} fieiras
+                    <small class = "text-gray-500">({{ partido.created_at|date:"d/m/Y H:i" }})</small>
+                    <p     class = "text-gray-600">Número Fieira: {{ partido.serie_dies_partidos|default:"-" }}</p>
+                    <p     class = "text-gray-600">Observações: {{ partido.observations|default:"-" }}</p>
+                    {% for die in partido.dies_partidos.all %}
+                        <span class = "inline-block bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-mono mr-1 mb-1">{{ die.serial_number }}</span>
+                    {% endfor %}
+
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class = "text-gray-500 italic">Nenhum partido registrado.</p>
+    {% endif %}
+</div>
+
+<!-- Botão Voltar -->
+<a href = "{% url 'listarDies' %}" class = "inline-block bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
+    Voltar à lista
+</a>
+{% endblock %}

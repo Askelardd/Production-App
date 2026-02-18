@@ -1,0 +1,93 @@
+{% extends 'theme/base.html' %}
+{% block title %}Detalhes da Fieira{% endblock %}
+
+{% block content %}
+<h2 class="text-2xl font-bold mb-6">Histórico da Fieira {{ serial_number }}</h2>
+
+<!-- Tabela de registros -->
+<table class="min-w-full divide-y divide-gray-200 mb-6">
+    <thead class="bg-gray-50">
+        <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Diâmetro</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Ângulo</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">PO</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tempo</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observações</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Utilizador</th>
+        </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+        {% for info in registros %}
+        <tr>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.quando|date:"Y-m-d H:i" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.diametro_atual|default:"-" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.angulo|default:"-" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.po|default:"-" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.tempo|default:"-" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.observacoes|default:"-" }}</td>
+            <td class="px-4 py-2 text-sm text-gray-700">{{ info.utilizador.username|default:"-" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" class="text-center text-gray-500 py-4">Nenhum registro encontrado.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Botão para abrir popup -->
+<div class="flex justify-end mb-4">
+    <button type="button" onclick="document.getElementById('popupForm').classList.remove('hidden')"
+            class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700">
+        Adicionar Novo Registro
+    </button>
+</div>
+
+<!-- Popup Form -->
+<div id="popupForm" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-2xl">
+        <h3 class="text-lg font-bold mb-4">Novo Registro - Fieira {{ serial_number }}</h3>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Diâmetro Atual</label>
+                <input type="number" step="0.0001" name="diametro_atual" class="mt-1 block w-full border-gray-300 rounded-md">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Ângulo</label>
+                <input type="text" name="angulo" class="mt-1 block w-full border-gray-300 rounded-md">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">PO</label>
+                <input type="text" name="po" class="mt-1 block w-full border-gray-300 rounded-md">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Tempo</label>
+                <input type="text" name="tempo" class="mt-1 block w-full border-gray-300 rounded-md">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700">Observações</label>
+                <textarea name="observacoes" rows="3" class="mt-1 block w-full border-gray-300 rounded-md"></textarea>
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Salvar</button>
+                <button type="button" onclick="document.getElementById('popupForm').classList.add('hidden')"
+                        class="ml-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Botão Voltar -->
+<div class="flex justify-end mt-4">
+    <a href="{% url 'listarDies' %}" class="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700">
+        Voltar
+    </a>
+</div>
+{% endblock %}
