@@ -1,0 +1,257 @@
+{% extends 'theme/base.html' %}
+{% block title %}{% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">
+  {% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}
+</h1>
+
+<form id="trackingForm" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="space-y-4">
+    <div class="bg-white shadow p-4 rounded grid grid-cols-1 md:grid-cols-4 gap-4">
+
+      <div>
+        <label class="block text-sm">Data</label>
+        <input type="date" name="data" class="border p-2 w-full" required
+               value="{% if tracking and tracking.data %}{{ tracking.data|date:'Y-m-d' }}{% endif %}">
+      </div>
+
+      <div>
+        <label class="block text-sm">Finalidade</label>
+        <select name="finalidade" class="border p-2 w-full" required>
+          <option value="">Selecione</option>
+          {% for value, label in finalidades %}
+            <option value="{{ value }}" {% if tracking and tracking.finalidade == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm">CRM</label>
+        <input type="text" name="crm" class="border p-2 w-full" required
+               value="{% if tracking %}{{ tracking.crm }}{% endif %}">
+      </div>
+
+   
+      <div>
+        <label class="block text-sm">Cliente</label>
+        <input type="text" name="cliente" class="border p-2 w-full"
+              value="{% if tracking %}{{ tracking.cliente }}{% endif %}">
+      </div>
+
+
+
+      <div>
+        <label class="block text-sm">Transportadora</label>
+        <select name="transportadora" class="border p-2 w-full" required>
+          <option value="">Selecione</option>
+          {% for courier in transportadoras %}
+            <option value="{{ courier }}" {% if tracking and tracking.transportadora == courier %}selected{% endif %}>{{ courier }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm">Carta de Porte</label>
+        <input type="text" name="carta_de_porte" class="border p-2 w-full"
+               value="{% if tracking %}{{ tracking.carta_de_porte }}{% endif %}">
+      </div>
+
+      <div>
+        <label class="block text-sm">Número de Recolha</label>
+        <input type="text" name="numero_recolha" class="border p-2 w-full"
+               value="{% if tracking %}{{ tracking.numero_recolha }}{% endif %}">
+      </div>
+
+      <div>
+        <label class="block text-sm">Recebido por</label>
+        <input type="text" name="recebido_por" class="border p-2 w-full"
+               value="{% if tracking %}{{ tracking.recebido_por }}{% endif %}">
+      </div>
+
+      <div>
+        <label class="block text-sm">Data de Entrega</label>
+        <input type="date" name="data_entrega" class="border p-2 w-full"
+               value="{% if tracking and tracking.data_entrega %}{{ tracking.data_entrega|date:'Y-m-d' }}{% endif %}">
+      </div>
+
+      <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm">Email</label>
+          <input type="text" name="email" class="border p-2 w-full"
+            value="{% if tracking %}{{ tracking.email }}{% endif %}">
+        </div>
+        
+        <div class="flex items-end"> 
+          <label class="flex items-center space-x-2 bg-gray-50 border border-black  p-2 hover:bg-blue-50 hover:border-blue-500 transition w-full cursor-pointer">
+            <input type="checkbox" 
+              name="enviado" 
+              id="enviado" 
+              value="1"
+              class="accent-blue-500 focus:ring-blue-400"
+              {% if tracking.enviado %}checked{% endif %}>
+            <span class="text-gray-800 font-medium">Enviado</span>
+          </label>
+        </div>
+      </div>
+
+      <style>
+        .toggle-checkbox:checked {
+          border-color: black;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+          background-color: black;
+        }
+        .toggle-checkbox:not(:checked) + .toggle-label {
+          background-color: white;
+        }
+      </style>
+
+      <div class="md:col-span-2">
+        <label class="block text-sm">Observações</label>
+        <textarea name="observacoes" class="border p-2 w-full" rows="3">{% if tracking %}{{ tracking.observacoes }}{% endif %}</textarea>
+      </div>
+
+      <div class="md:col-span-2">
+        <label class="block text-sm mb-1">Ficheiros (arraste/solte ou clique)</label>
+        <div id="dropzone"
+             class="relative border-dashed border-2 border-gray-300 p-4 text-center cursor-pointer rounded">
+          Arraste e solte aqui ou clique para selecionar.
+          <input id="fileInput" name="files" type="file" multiple
+                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                 aria-label="Selecionar ficheiros">
+        </div>
+        <div class="flex items-center justify-between mt-2">
+          <ul id="filesPreview" class="text-sm text-gray-700 space-y-1 flex-1"></ul>
+          <button id="clearAll" type="button" class="ml-4 text-xs px-2 py-1 border rounded hover:bg-gray-50">Limpar todos</button>
+        </div>
+      </div>
+
+      {% if tracking %}
+      <div class="md:col-span-4 mt-3 text-sm">
+        <div class="text-gray-500 mb-1">Anexos atuais:</div>
+        <ul class="space-y-1">
+          {% for file in tracking.files.all %}
+            <li class="flex items-center gap-3">
+              <a href="{{ file.file.url }}" class="text-blue-600 underline" target="_blank" rel="noreferrer" download
+                 title="{{ file.file.name }}">
+                {{ file.file.name|cut:"tracking_files/" }}
+              </a>
+              <span class="text-gray-400">· {{ file.uploaded_at|date:"Y-m-d H:i" }}</span>
+              <label class="ml-auto inline-flex items-center gap-2">
+                <input type="checkbox" name="delete_files" value="{{ file.id }}" class="h-4 w-4">
+                <span class="text-red-600">Remover</span>
+              </label>
+            </li>
+          {% empty %}
+            <li class="text-gray-500">Sem ficheiros</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="mt-6 flex items-center gap-2">
+    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
+      {% if tracking %}Guardar alterações{% else %}Salvar{% endif %}
+    </button>
+    
+    <a href="{% url 'listarTracking' %}?view={{ request.GET.view|default:'cards' }}" 
+       class="px-4 py-2 border rounded">
+       Cancelar
+    </a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const fileInput = document.getElementById('fileInput');
+    const filesPreview = document.getElementById('filesPreview');
+    const clearAllButton = document.getElementById('clearAll');
+
+    // Acumulador de ficheiros selecionados ao longo de várias operações
+    let dt = new DataTransfer();
+
+    function fileKey(f) {
+      // evita duplicados simples (podes ajustar a lógica)
+      return `${f.name}-${f.size}-${f.lastModified}`;
+    }
+
+    function renderList() {
+      filesPreview.innerHTML = '';
+      Array.from(dt.files).forEach((file, idx) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-2';
+        li.innerHTML = `
+          <span>${file.name}</span>
+          <button type="button" data-idx="${idx}" class="text-red-600 text-sm underline ml-auto">remover</button>
+        `;
+        filesPreview.appendChild(li);
+      });
+
+      // Remover item
+      filesPreview.querySelectorAll('button[data-idx]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const i = Number(e.currentTarget.dataset.idx);
+          dt.items.remove(i);
+          fileInput.files = dt.files;      // reflete no input
+          renderList();
+        });
+      });
+    }
+
+    // Ao selecionar novos ficheiros, acrescenta ao acumulador
+    fileInput.addEventListener('change', () => {
+      const existing = new Set(Array.from(dt.files).map(fileKey));
+
+      for (const f of fileInput.files) {
+        const key = fileKey(f);
+        if (!existing.has(key)) {
+          dt.items.add(f);
+          existing.add(key);
+        }
+      }
+
+      // Limpa o input para permitir nova seleção sem substituir
+      fileInput.value = '';
+
+      // Atualiza o input com o conjunto acumulado
+      fileInput.files = dt.files;
+
+      renderList();
+    });
+
+    // Botão "Limpar seleção"
+    clearAllButton.addEventListener('click', () => {
+      dt = new DataTransfer();
+      fileInput.value = '';
+      fileInput.files = dt.files;
+      renderList();
+    });
+
+    // (Opcional) Suporte a drag & drop – útil para arrastar de várias pastas
+    const dropZone = fileInput.closest('div'); // ou cria uma zona própria
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const existing = new Set(Array.from(dt.files).map(fileKey));
+      for (const f of e.dataTransfer.files) {
+        const key = fileKey(f);
+        if (!existing.has(key)) {
+          dt.items.add(f);
+          existing.add(key);
+        }
+      }
+      fileInput.files = dt.files;
+      renderList();
+    });
+  });
+</script>
+
+{% endblock %}

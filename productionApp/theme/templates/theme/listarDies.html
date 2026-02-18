@@ -1,0 +1,280 @@
+{% extends 'theme/base.html' %}
+{% block title %}Pedidos em Produção{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 p-6">
+
+    <div class="max-w-7xl mx-auto mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
+                <p class="text-sm text-gray-500 mt-1">Gestão agrupada por Toma de Produção</p>
+            </div>
+            
+            <div class="relative w-full md:w-96">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" placeholder="Pesquisar cliente, encomenda, toma..."
+                    class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="w-10 px-4 py-4"></th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nr. Encomenda</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Toma</th>
+                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
+                        <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total Peças</th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Caixas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white" id="mainTableBody">
+                    {% for group in grouped_qrcodes %}
+                    
+                    <tr class="hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-200" 
+                        onclick="toggleGroup('group-{{ forloop.counter }}', this)">
+                        <td class="px-4 py-4 text-center text-blue-500">
+                            <i class="fa-solid fa-chevron-right transition-transform duration-200"></i>
+                        </td>
+                        <td class="px-6 py-4 font-medium text-gray-900">{{ group.customer }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ group.customer_order_nr }}</td>
+                        <td class="px-6 py-4 font-mono text-blue-700 font-bold text-italic">{{ group.toma_order_nr }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ group.toma_order_year }}</td>
+                        <td class="px-6 py-4 font-bold text-green-600 text-right">{{ group.total_qt }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="bg-gray-100 text-gray-600 py-1 px-3 rounded-full text-xs font-bold shadow-sm border">
+                                {{ group.boxes|length }}
+                            </span>
+                        </td>
+                    </tr>
+
+                    <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50 shadow-inner">
+                        <td colspan="7" class="p-4 md:p-6">
+                            
+                            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden ml-4 md:ml-10">
+                                <div class="bg-blue-50/50 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
+                                    <i class="fa-solid fa-boxes-stacked text-blue-500"></i>
+                                    <span class="text-xs font-bold text-blue-800 uppercase">Lista de Caixas - Toma {{ group.toma_order_nr }}</span>
+                                </div>
+                                
+                                <table class="min-w-full divide-y divide-gray-100 text-xs md:text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Caixa</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Qtd</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Produção</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Envio</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Localização</th>
+                                            <th class="px-4 py-3 text-left font-medium text-gray-500 w-1/3">Observações</th>
+                                            <th class="px-4 py-3 text-center font-medium text-gray-500">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-50">
+                                        {% for qr in group.boxes %}
+                                        
+                                        <tr class="hover:bg-yellow-50 transition-colors" data-search-text="{{ group.customer }} {{ group.customer_order_nr }} {{ qr.box_nr }} {{ group.toma_order_nr }}">
+                                            <td class="px-4 py-3 font-bold text-gray-700">#{{ qr.box_nr }}</td>
+                                            <td class="px-4 py-3 font-bold text-blue-600">{{ qr.qt }}</td>
+                                            <td class="px-4 py-3 text-gray-500">{{ qr.production_start|date:"d/m/y" }}</td>
+                                            <td class="px-4 py-3 text-gray-500">{{ qr.envio|date:"d/m/y" }}</td>
+                                            <td class="px-4 py-3">
+                                                {% with local=qr.where_boxes.last %}
+                                                    {% if local %}
+                                                        <span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 border border-blue-200">
+                                                            {{ local.get_where_display }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-gray-400 italic">--</span>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            </td>
+                                            <td class="px-4 py-3 text-gray-600 truncate max-w-xs" title="{{ qr.observations }}">
+                                                {{ qr.observations|default:"-" }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <button onclick="toggleDies('dies-{{ qr.id }}', this)" 
+                                                        class="flex items-center gap-1 bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition shadow-sm text-xs font-medium text-gray-700">
+                                                        <span>Fieiras</span>
+                                                        <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-200"></i>
+                                                    </button>
+                                                    
+                                                    <div class="flex gap-1">
+                                                        <a href="{% url 'diametroMenu' qr.toma_order_full %}" title="Pedido Diametro" class="p-1.5 text-green-500 hover:bg-green-50 rounded"><i class="fa-solid fa-plus"></i></a>
+                                                        <a href="{% url 'partidosMenu' qr.toma_order_full %}" title="Partidos" class="p-1.5 text-red-500 hover:bg-red-50 rounded"><i class="fa-solid fa-heart-crack"></i></a>
+                                                        <a href="{% url 'enviar_caixa' qr.id %}" title="Enviar Caixa" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded"><i class="fa-solid fa-truck-fast"></i></a>
+                                                        <a href="{% url 'showDetails' qr.id %}" title="Ver Detalhes" class="p-1.5 text-gray-500 hover:bg-gray-50 rounded"><i class="fa-solid fa-eye"></i></a>
+                                                        
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+
+                                        <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50/80 border-t border-b border-gray-200 shadow-inner">
+                                            <td colspan="8" class="p-6">
+                                                <div class="max-w-6xl mx-auto">
+                                                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                        <i class="fa-solid fa-layer-group"></i> Fieiras Associadas
+                                                    </h3>
+
+                                                    {% if qr.die_instances.all %}
+                                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                            {% for die in qr.die_instances.all %}
+                                                            <div class="bg-{{ die.partida|yesno:'orange-100,white' }} rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                                                                <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                                                                    <span class="font-bold text-gray-800">#{{ die.serial_number }}</span>
+                                                                    {% if die.partida %}
+                                                                    <span class="text-xs font-bold text-orange-800 uppercase bg-orange-100 px-2 py-0.5 rounded">Partida</span>
+                                                                    {% endif %}
+                                                                    <span class="text-xs font-mono bg-white border px-2 py-0.5 rounded text-gray-600">{{ die.diameter_text }}</span>
+                                                                </div>
+                                                                
+                                                                <div class="p-4 text-xs space-y-2">
+                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
+                                                                        <span class="text-gray-500"> Requerido:</span>
+                                                                        <span class="font-medium">{{ die.diam_requerido }}</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
+                                                                        <span class="text-gray-500">Tipo / Trabalho:</span>
+                                                                        <span class="font-medium text-blue-600">{{ die.die.get_die_type_display }} / {{ die.job.get_job_display }}</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
+                                                                        <span class="text-gray-500">Tolerância:</span>
+                                                                        <span>{{ die.tolerance.min|default:"-" }} a {{ die.tolerance.max|default:"-" }}</span>
+                                                                    </div>
+                                                                    <div class="flex justify-between items-center border-b border-gray-50 pb-1">
+                                                                        <span class="text-gray-500">Calibre:</span>
+                                                                        <span class="{% if die.bearing_is_red %}bg-red-100 text-red-800 px-1.5 rounded font-bold{% endif %}">
+                                                                            {{ die.bearing }}
+                                                                        </span>
+                                                                    </div>
+                                                                    {% if die.new_diameter %}
+                                                                    <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
+                                                                        <i class="fa-solid fa-circle-info mr-1 font-bold text-black-800"></i> Novo Diâmetro: 
+                                                                        <span class="font-medium {% if die.new_diameter and die.new_diameter|floatformat:4 > die.diam_requerido|floatformat:4 %}text-red-600 font-bold{% endif %}">
+                                                                            {{ die.new_diameter|default:"-" }}
+                                                                        </span>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if die.observations %}
+                                                                    <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
+                                                                        <i class="fa-solid fa-circle-info mr-1"></i> {{ die.observations }}
+                                                                    </div>
+                                                                    {% endif %}
+                                                                </div>
+
+                                                                <div class="bg-gray-50 px-4 py-2 flex justify-between gap-2 border-t border-gray-100">
+                                                                    <a href="{% url 'die_details' die.id %}" class="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-1 rounded hover:bg-gray-50 text-xs font-medium transition-colors">Trabalhos</a>
+                                                                    <a href="{% url 'enviar_fieira' die.id %}" class="flex-1 text-center bg-blue-50 border border-blue-200 text-blue-700 py-1 rounded hover:bg-blue-100 text-xs font-medium transition-colors">Enviar</a>
+                                                                    <a href="{% url 'infoFieira' die.id %}" class="flex-1 text-center bg-purple-50 border border-purple-200 text-purple-700 py-1 rounded hover:bg-purple-100 text-xs font-medium transition-colors">Tempo</a>
+                                                                </div>
+                                                            </div>
+                                                            {% endfor %}
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="flex flex-col items-center justify-center py-8 text-gray-400 bg-white rounded border border-dashed border-gray-300">
+                                                            <i class="fa-regular fa-folder-open text-3xl mb-2"></i>
+                                                            <p>Nenhuma fieira associada a este pedido.</p>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">Nenhum pedido encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. Função para abrir o GRUPO (Nível 1)
+    window.toggleGroup = function(rowId, btnElement) {
+        const detailRow = document.getElementById(rowId);
+        const icon = btnElement.querySelector('.fa-chevron-right');
+
+        if (detailRow.classList.contains('hidden')) {
+            detailRow.classList.remove('hidden');
+            icon.classList.add('rotate-90');
+        } else {
+            detailRow.classList.add('hidden');
+            icon.classList.remove('rotate-90');
+        }
+    };
+
+    // 2. Função para abrir as FIEIRAS (Nível 2)
+    window.toggleDies = function(id, btnElement) {
+        if(event) event.stopPropagation();
+
+        const row = document.getElementById(id);
+        if (!row) return;
+
+        row.classList.toggle('hidden');
+        
+        const icon = btnElement.querySelector('.fa-chevron-down');
+        if(icon) {
+            if(row.classList.contains('hidden')) {
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                icon.style.transform = 'rotate(180deg)';
+            }
+        }
+    };
+
+    // 3. Pesquisa (CORRIGIDA)
+    const searchInput = document.getElementById('searchInput');
+    
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function () {
+            const filter = this.value.toLowerCase();
+            const mainBody = document.getElementById('mainTableBody');
+            
+            const rows = mainBody.children;
+            
+            for (let i = 0; i < rows.length; i += 2) {
+                const headerRow = rows[i];     // Linha do resumo (pai)
+                const contentRow = rows[i+1];  // Linha com as caixas (filho)
+                
+                if (!headerRow || !contentRow) continue;
+
+                const text = headerRow.textContent.toLowerCase() + contentRow.textContent.toLowerCase();
+                
+                if (text.includes(filter)) {
+                    // SE ENCONTRAR:
+                    headerRow.style.display = ''; 
+                    
+                    // --- AQUI ESTAVA O ERRO ---
+                    // Tens de limpar o 'display: none' do conteúdo também, 
+                    // senão ele fica preso como invisível mesmo que cliques no botão.
+                    contentRow.style.display = ''; 
+                    
+                } else {
+                    // SE NÃO ENCONTRAR:
+                    headerRow.style.display = 'none';
+                    contentRow.style.display = 'none';
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

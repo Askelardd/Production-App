@@ -1,0 +1,84 @@
+productionApp/dados.json
+productionApp/media/
+productionApp/staticfiles/
+productionApp/nginx.conf
+productionApp/env
+productionApp/productionApp/settings.py
+productionApp/visualFofoDoListarDies.txt
+productionApp/listar_dies.txt
+
+productionApp/fornecedores.json
+productionApp/productionApp/settings.py
+productionApp/dados.json
+productionApp/media/
+productionApp/staticfiles/
+productionApp/nginx.conf
+productionApp/env
+productionApp/productionApp/settings.py
+productionApp/visualFofoDoListarDies.txt
+productionApp/listar_dies.txt
+
+productionApp/fornecedores.json
+productionApp/productionApp/settings.py
+estudos_Js_Tsx/node_modules/typescript/lib/lib.esnext.float16.d.ts
+estudos_Js_Tsx/node_modules/.bin/tsc.cmd
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+# database
+productionApp/db.sqlite3
+db.sqlite3
+/media/order_files/
+/media
+
+# Logs
+logs/
+*.log
+
+# Build output
+dist/
+build/
+out/
+
+# Environment files
+.env
+.env.*
+/estudos_Js_Tsx/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Misc
+coverage/
+*.tgz
+
+# Ignorar o cofre de segredos (CRÍTICO)
+.env
+.env.local
+
+# Ignorar lixo do Python (que querias apagar)
+__pycache__/
+*.pyc
+
+# Ignorar base de dados local (se usares sqlite nalgum momento)
+db.sqlite3
+
+# Ignorar pastas de uploads locais
+media/
+
+db.sqlite3
+productionApp/productionApp/settings.py
+

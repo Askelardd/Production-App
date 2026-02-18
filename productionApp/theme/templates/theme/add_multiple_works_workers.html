@@ -1,0 +1,96 @@
+{% extends 'theme/base.html' %}
+{% block title %}Novo trabalho e trabalhadores{% endblock %}
+
+{% block content %}
+<h1 class="text-xl font-bold mb-4">Adicionar múltiplos trabalhos para a Caixa {{ qr_id }}</h1>
+
+<form method="POST" id="workForm">
+  {% csrf_token %}
+  <input type="hidden" name="add_another" id="add_another" value="">
+
+  <label class="block mb-2 font-medium">Tipo de Trabalho:</label>
+  <select name="tipo_trabalho" id="tipo_trabalho" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher --</option>
+    <option value="polimento">Polimento</option>
+    <option value="desbaste_agulha">Desbaste Agulha</option>
+    <option value="desbaste_calibre">Desbaste Calibre</option>
+    <option value="afinacao">Afinação</option>
+  </select>
+
+  <label class="block mb-2 font-medium">Subtipo:</label>
+  <select name="subtipo" id="subtipo" required class="border rounded p-2 mb-4 w-full">
+    <option value="">-- Escolher o tipo primeiro --</option>
+  </select>
+
+  <label for="workers" class="block mb-2 font-semibold">Trabalhadores:</label>
+  <select name="workers" id="workers" multiple required class="border rounded p-2 mb-4 w-full">
+    {% for user in users|dictsort:"username" %}
+      <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+    {% endfor %}
+  </select>
+  <p class="text-sm text-gray-500">Segure a tecla Ctrl (ou Control) para selecionar vários trabalhadores.</p>
+
+  <label class="block mb-2 font-semibold text-gray-700">Selecione os Números de Série das Fieiras:</label>
+  <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+      {% for die in dies %}
+          <label class="flex items-center space-x-2 bg-gray-50 rounded-lg p-2 hover:bg-blue-50 transition">
+          <input type="checkbox" name="serieDies" value="{{ die.id }}"
+                class="accent-blue-500 focus:ring-blue-400">
+          <span class="text-gray-800">{{ die.serial_number }}</span>
+          </label>
+      {% empty %}
+          <p class="text-gray-500 col-span-full">Nenhum die registrado para este QR code.</p>
+      {% endfor %}
+  </div>
+
+  <button type="submit" id="add_workers" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+    Adicionar Trabalhos
+  </button>
+
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('workForm');
+  const tipoSelect = document.getElementById('tipo_trabalho');
+  const subtipoSelect = document.getElementById('subtipo');
+
+  // Mapa de subtipos
+  const subtipoMap = {
+    polimento: [
+      ["entrada", "Entrada"],
+      ["saida", "Saída"],
+      ["cone", "Cone"]
+    ],
+    desbaste_agulha: [
+      ["entrada", "Entrada"],
+      ["saida", "Saída"],
+      ["cone", "Cone"]
+    ],
+    desbaste_calibre: [
+      ["polimento_de_calibre", "Polimento de Calibre"],
+      ["desbaste_de_calibre", "Desbaste de Calibre"]
+    ],
+    afinacao: [
+      ["calibre", "Calibre"],
+      ["afinacao", "Afinação"]
+    ]
+  };
+
+  // Atualiza o subtipo quando o tipo mudar
+  tipoSelect.addEventListener('change', () => {
+    const tipo = tipoSelect.value;
+    subtipoSelect.innerHTML = '<option value="">-- Escolher --</option>';
+    
+    if (subtipoMap[tipo]) {
+      subtipoMap[tipo].forEach(([value, label]) => {
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = label;
+        subtipoSelect.appendChild(opt);
+      });
+    }
+  });
+});
+</script>
+{% endblock %}

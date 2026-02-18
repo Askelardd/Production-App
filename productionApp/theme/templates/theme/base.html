@@ -1,0 +1,133 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Toma Tools{% endblock %}</title>
+
+    <link rel="preload" as="image" href="{% static 'theme/media/logo.jpg' %}">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <link rel="icon" href="{% static 'theme/media/favicon.ico' %}?v=2">
+
+    <style>
+        body {
+            font-family: 'Calibri', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen relative" style="background: white; overflow-x: hidden;">
+
+    <div class="absolute inset-0 z-0 pointer-events-none">
+        <div class="absolute top-10 left-10 w-72 h-72 bg-black/10 rounded-full blur-xl"></div>
+        <div class="absolute top-1/2 right-20 w-96 h-96 bg-black/5 rounded-full blur-2xl"></div>
+        <div class="absolute bottom-20 left-1/3 w-80 h-80 bg-black/15 rounded-full blur-xl"></div>
+        <div class="absolute top-1/4 right-1/4 w-32 h-32 bg-black/10 rotate-45 rounded-lg"></div>
+        <div class="absolute bottom-1/3 left-1/4 w-24 h-24 bg-black/20 rotate-12 rounded-lg"></div>
+    </div>
+
+    <nav class="bg-white text-black shadow-md relative z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'mainMenu' request.user.id %}">
+                    {% else %}
+                        <a href="{% url 'login' 0 %}">
+                    {% endif %}
+                        <img src="{% static 'theme/media/logo.jpg' %}" 
+                             alt="Logo" 
+                             class="h-16 w-auto rounded border-1 border-black shadow-lg"
+                             fetchpriority="high">
+                    </a>
+                </div>
+
+                <div class="hidden md:flex space-x-6">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url 'mainMenu' request.user.id %}" class="hover:text-blue-500 transition">Menus</a>
+                        <a href="{% url 'logout' %}" class="ml-4 px-1 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
+                    {% else %}
+                        <a href="{% url 'login' 0 %}" class="hover:text-blue-500 transition">Login</a>
+                    {% endif %}
+                </div>
+
+                <div class="md:hidden">
+                    <button id="menu-btn" class="text-black hover:text-blue-500 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-200 px-4 pb-4">
+            {% if request.user.is_authenticated %}
+                <a href="{% url 'mainMenu' request.user.id %}" class="block py-2 hover:text-blue-500 transition">Menus</a>
+                <a href="{% url 'listQrcodes' %}" class="block py-2 hover:text-blue-500 transition">Inserir Caixa</a>
+                <a href="{% url 'listarDies' %}" class="block py-2 hover:text-blue-500 transition">Trabalhar Fieiras</a>
+                <a href="{% url 'deliveryCalendar' %}" class="block py-2 hover:text-blue-500 transition">Calendário de Entregas</a>
+                <a href="{% url 'logout' %}" class="inline-block mt-2 px-3 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
+            {% else %}
+                <a href="{% url 'login' 0 %}" class="block py-2 hover:text-blue-500 transition">Login</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="relative z-10 max-w-7xl mx-auto p-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+
+    <script>
+        const menuBtn = document.getElementById('menu-btn');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        if (menuBtn && mobileMenu) {
+            menuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
+
+    {% if messages %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end', // Mudei para top-end (padrão mais comum), mas podes por 'center'
+                showConfirmButton: false,
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer)
+                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+                }
+            });
+
+            {% for message in messages %}
+                let tempo = 3000;
+                {% if 'error' in message.tags %} tempo = 4000; {% endif %}
+
+                Toast.fire({
+                    icon: "{% if 'success' in message.tags %}success{% elif 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}",
+                    title: "{{ message|escapejs }}",
+                    timer: tempo
+                });
+            {% endfor %}
+        });
+    </script>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+</html>

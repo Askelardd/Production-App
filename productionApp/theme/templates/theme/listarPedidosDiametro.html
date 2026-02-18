@@ -1,0 +1,265 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Pedidos por Diâmetro{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos por Diâmetro</h1>
+                <p class="text-sm text-gray-500 mt-1">Gestão de requisições de alteração de diâmetro</p>
+            </div>
+            
+            <div class="relative w-full md:w-96">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-search text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" placeholder="Pesquisar serial, diâmetro..."
+                    class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="pedidoTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Serial Fieiras</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Original</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Atual</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Trabalhado</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Requerido</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Descrição</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Minimo</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Novo</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Box Nr.</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Data</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Feito</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for item in pedidos_com_box %}
+                        <tr class="hover:bg-blue-50 transition-colors group" id="row-{{ item.pedido.id }}">
+                            
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                {{ item.pedido.serie_dies }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-pre-line">
+                                {{ item.original_dim }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                {{ item.pedido.diametro }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm">
+                                {% if item.pedido.trabalhado %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Sim</span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">Não</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-blue-600 font-mono whitespace-pre-line">
+                                {{ item.requerido_dim_str }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ item.pedido.get_observations_display }}
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                <span class="view-mode">{{ item.pedido.diametro_min }}</span>
+                                <input type="text" form="form-{{ item.pedido.id }}" name="diametro_min" value="{{ item.pedido.diametro_min }}" 
+                                    class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            </td>
+
+                            <td class="px-6 py-4 text-sm font-bold text-gray-900">
+                                <span class="view-mode">{{ item.pedido.novo_diametro }}</span>
+                                <input type="text" form="form-{{ item.pedido.id }}" name="novo_diametro" value="{{ item.pedido.novo_diametro }}" 
+                                    class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            </td>
+
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {{ item.box_nr|default:"-" }}
+                            </td>
+
+                            <td class="px-6 py-4 text-xs text-gray-500">
+                                <div>{{ item.pedido.created_at|date:"d/m/Y" }}</div>
+                                <div class="text-gray-400">{{ item.pedido.pedido_por }}</div>
+                            </td>
+                            {% if request.user.groups.all.0.name in "Q-Office Administracao" %}
+                            <td class="px-6 py-4 text-center">
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500 js-toggle-feito"
+                                        data-url="{% url 'toggle_pedido_diametro_feito_ajax' item.pedido.id %}"
+                                        {% if item.pedido.checkbox %}checked{% endif %} />
+                                </label>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-center">
+                                <div class="flex items-center justify-center gap-3">
+                                    <form id="form-{{ item.pedido.id }}" method="POST" action="{% url 'editar_pedido_inline' item.pedido.id %}">
+                                        {% csrf_token %}
+                                        
+                                        <div class="view-mode flex items-center gap-2">
+                                            <button type="button" onclick="enableEdit('{{ item.pedido.id }}')" 
+                                                class="text-gray-400 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-blue-50" title="Editar">
+                                                <i class="fa-solid fa-pen-to-square fa-lg"></i>
+                                            </button>
+                                            
+                                            <a href="{% url 'exportar_pedido_excel' item.pedido.id %}" 
+                                            class="text-gray-400 hover:text-green-600 transition-colors p-1.5 rounded-full hover:bg-green-50" title="Baixar Excel">
+                                                <i class="fa-solid fa-file-excel fa-lg"></i>
+                                            </a>
+                                        </div>
+
+                                        <div class="edit-mode hidden flex items-center gap-2">
+                                            <button type="submit" class="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm" title="Guardar">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                            <button type="button" onclick="disableEdit('{{ item.pedido.id }}')" class="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Cancelar">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                            {% else %}
+                            <td class="px-6 py-4 text-center">
+                                <p> Sem autorização </p>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="12" class="px-6 py-10 text-center text-gray-500 italic bg-gray-50">
+                                <div class="flex flex-col items-center">
+                                    <i class="fa-solid fa-folder-open text-3xl mb-2 text-gray-300"></i>
+                                    <span>Nenhum pedido encontrado.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // --- FUNÇÕES DE EDIÇÃO INLINE ---
+    function enableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if(!row) return;
+
+        // Estilo visual da linha em edição
+        row.classList.add('bg-blue-50', 'border-blue-200');
+        
+        // Esconde view-mode e mostra edit-mode
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
+    }
+
+    function disableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if(!row) return;
+
+        // Remove estilo
+        row.classList.remove('bg-blue-50', 'border-blue-200');
+        
+        // Reverte visibilidade
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
+    }
+
+    // --- LÓGICA DO CHECKBOX FEITO (AJAX) ---
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    document.addEventListener('change', async (e) => {
+        const input = e.target.closest('.js-toggle-feito');
+        if (!input) return;
+
+        const url = input.getAttribute('data-url');
+        if (!url) return;
+
+        // Desabilita temporariamente para evitar cliques duplos
+        input.disabled = true;
+        input.classList.add('opacity-50');
+
+        try {
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ checked: input.checked })
+            });
+
+            if (!resp.ok) throw new Error('Erro servidor');
+            
+            // Sucesso visual (opcional)
+            // console.log('Atualizado com sucesso');
+
+        } catch (err) {
+            console.error(err);
+            input.checked = !input.checked; // Reverte
+            alert('Erro ao atualizar estado.');
+        } finally {
+            input.disabled = false;
+            input.classList.remove('opacity-50');
+        }
+    });
+
+    // --- PESQUISA NA TABELA ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchInput');
+        const tableBody = document.querySelector('#pedidoTable tbody');
+
+        if (searchInput && tableBody) {
+            searchInput.addEventListener('keyup', function () {
+                const filter = searchInput.value.toLowerCase();
+                const rows = tableBody.getElementsByTagName('tr');
+
+                for (let i = 0; i < rows.length; i++) {
+                    // Ignora linhas de cabeçalho ou mensagens de vazio se houver
+                    if(rows[i].getElementsByTagName('td').length > 1) {
+                        const cells = rows[i].getElementsByTagName('td');
+                        let found = false;
+                        
+                        // Procura em todas as células da linha
+                        for (let j = 0; j < cells.length; j++) {
+                            if (cells[j].textContent.toLowerCase().includes(filter)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        rows[i].style.display = found ? '' : 'none';
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

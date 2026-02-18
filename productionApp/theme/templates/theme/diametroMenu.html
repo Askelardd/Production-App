@@ -1,0 +1,109 @@
+{% extends 'theme/base.html' %}
+{% block title %}Diametro Menu{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10">
+  <h1 class="text-3xl font-extrabold text-blue-700 mb-6 text-center">Novo Diâmetro</h1>
+  
+  <form id="diametroForm" method="POST" action="{% url 'diametroMenu' qr_code.toma_order_full %}">
+    {% csrf_token %}
+
+    <div class="mb-4">
+      <input id="numeroAlterar" name="numeroAlterar" type="number" step="1" min="1"
+        class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
+        placeholder="Número de fieiras a alterar" required />
+    </div>
+
+    <div class="mb-4">
+      <input id="diametroAtual" name="diametroAtual" type="number" step="0.0001"
+        class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
+        placeholder="Diâmetro atual" required />
+    </div>
+
+
+    <div class="mb-4">
+      <input id="diametroMin" name="diametroMin" type="number" step="0.0001"
+        class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
+        placeholder="Diâmetro mínimo possível" required />
+    </div>
+
+    <div class="mb-4">
+      <input id="pedidoPor" name="pedidoPor" type="text"
+        class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"
+        placeholder="Pedido feito por" required />
+    </div>
+
+    <label class="block mb-2 font-semibold text-gray-700">Observações:</label>
+    <div class="mb-4">
+      <select id="observations" name="observations"
+              class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400">
+        <option value="" selected>-- Selecionar Observação --</option>
+        {% for key, value in choices %}
+          <option value="{{ key }}">{{ value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <label class="block mb-2 font-semibold text-gray-700">Fieira Trabalhada:</label>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-3 border rounded-lg bg-gray-50">
+        <label class="flex items-center space-x-2 bg-white rounded-lg p-2 border hover:border-blue-400 transition cursor-pointer">
+            <input type="radio" name="fieiraTrabalhada" value="True" class="accent-blue-500" required>
+            <span class="text-gray-800">Sim</span>
+        </label>
+        <label class="flex items-center space-x-2 bg-white rounded-lg p-2 border hover:border-blue-400 transition cursor-pointer">
+            <input type="radio" name="fieiraTrabalhada" value="False" class="accent-blue-500" required>
+            <span class="text-gray-800">Não</span>
+        </label>
+    </div>
+
+    <label class="block mb-2 font-semibold text-gray-700">Selecione as Fieiras (Pelo menos uma):</label>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 p-3 border rounded-lg bg-gray-50">
+        {% for die in dies_existentes %}
+            <label class="flex items-center space-x-2 bg-white rounded-lg p-2 border hover:border-blue-400 transition cursor-pointer">
+                <input type="checkbox" name="serieDies" value="{{ die.serial_number }}" class="die-checkbox accent-blue-500">
+                <span class="text-gray-800">{{ die.serial_number }}</span>
+            </label>
+        {% empty %}
+            <p class="text-gray-500 col-span-full italic">Nenhuma fieira disponível.</p>
+        {% endfor %}
+    </div>
+
+    <div id="error-msg" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4"></div>
+
+    <div class="flex justify-between items-center mt-6">
+      <button type="submit" class="bg-blue-600 text-white px-8 py-2 rounded-lg font-bold shadow hover:bg-blue-700">
+        Submeter
+      </button>
+      <a href="{% url 'listarDies' %}" class="bg-gray-400 text-white px-8 py-2 rounded-lg font-semibold hover:bg-gray-500">
+        Sair
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+  document.getElementById('diametroForm').addEventListener('submit', function (e) {
+    const errorMsg = document.getElementById('error-msg');
+    const checkboxes = document.querySelectorAll('input[name="serieDies"]:checked');
+    
+    // Resetar erro
+    errorMsg.classList.add('hidden');
+    errorMsg.innerHTML = '';
+
+    let errors = [];
+
+    // 1. Validação de Checkboxes (Negócio)
+    if (checkboxes.length === 0) {
+      errors.push('Selecione pelo menos uma <b>fieira</b> da lista.');
+    }
+
+    // Se houver erros, cancela o envio e mostra a lista
+    if (errors.length > 0) {
+      e.preventDefault();
+      errorMsg.innerHTML = errors.join('<br>');
+      errorMsg.classList.remove('hidden');
+      window.scrollTo(0, document.body.scrollHeight); // Rola para ver o erro
+    }
+  });
+</script>
+{% endblock %}

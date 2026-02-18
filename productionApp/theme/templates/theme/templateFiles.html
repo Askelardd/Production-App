@@ -1,0 +1,224 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-8 text-center">Files/Templates</h1>
+
+<div class="flex justify-end mb-4">
+    <a href="{% url 'criarTemplate' %}" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 transition">
+        <i class="fa-solid fa-plus mr-2"></i> Create New Template
+    </a>
+</div>
+
+<div class="overflow-x-auto w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+    <table id="templateTable" class="min-w-full table-auto text-xs md:text-sm text-left">
+        <thead class="bg-custom-blue text-black">
+            <tr>
+                <th class="px-4 py-2">Name</th>
+                <th class="px-4 py-2">Description</th>
+                <th class="px-4 py-2">Department</th>
+                <th class="px-4 py-2">Created At</th>
+                <th class="px-4 py-2">Last Updated</th>
+                <th class="px-4 py-2">Approved By</th> 
+                <th class="px-4 py-2">Approved File</th>
+                <th class="px-4 py-2">Status</th>
+                <th class="px-4 py-2">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for template in templates %}
+            <tr class="border-b hover:bg-gray-100 transition">
+                <td class="px-4 py-2">{{ template.name }}</td>
+                <td class="px-4 py-2">{{ template.description }}</td>
+                <td class="px-4 py-2">{{ template.department }}</td>
+                <td class="px-4 py-2">{{ template.created_at|date:"M d, Y" }}</td>
+                <td class="px-4 py-2">{{ template.last_updated|date:"M d, Y" }}</td>
+                
+                <td class="px-4 py-2">
+                    {% if template.approved %}
+                        Aniceta Graf
+                    {% else %}
+                        <span class="text-gray-400 italic">N/A</span>
+                    {% endif %}
+                </td>
+
+                <td class="px-4 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200 w-64"
+                    id="dropzone-{{ template.id }}"
+                    ondragover="handleDragOver(event, '{{ template.id }}')"
+                    ondragleave="handleDragLeave(event, '{{ template.id }}')"
+                    ondrop="handleDrop(event, '{{ template.id }}')">
+
+                    <div id="overlay-{{ template.id }}" class="absolute inset-0 bg-blue-100 bg-opacity-90 border-2 border-dashed border-blue-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none rounded-md">
+                        <span class="text-blue-700 font-bold text-xs">Drop here!</span>
+                    </div>
+
+                    <div id="list-{{ template.id }}" class="space-y-1">
+                        {% if template.approved_file %}
+                            <div class="flex items-center group bg-green-50 p-2 rounded border border-green-200">
+                                <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <a href="{{ template.approved_file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block font-medium">
+                                    {{ template.approved_file.name|cut:"approved_templates_files/" }}
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-center border-2 border-dashed border-gray-300 rounded-md p-2">
+                                <span class="text-gray-400 text-xs italic empty-msg">Drag file here...</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </td>
+
+                <td class="px-4 py-2" id="status-{{ template.id }}">
+                    {% if template.approved %}
+                        <span class="text-green-800 bg-green-100 font-semibold px-2 py-1 rounded-full text-xs">Approved</span>
+                    {% else %}
+                        <span class="text-red-800 bg-red-100 font-semibold px-2 py-1 rounded-full text-xs">Pending</span>
+                    {% endif %}
+                </td>
+
+                <td class="px-1 py-2 text-center whitespace-nowrap">
+                    <a href="{% url 'editarTemplate' template.id %}" class="fa-solid fa-pen-to-square text-gray-500 hover:text-blue-600 mr-2" title="Editar"></a>
+                    
+                    <span class="text-gray-300">|</span>
+
+                    {% for template_file in template.files.all %}
+                        <a href="{{ template_file.file.url }}" download 
+                        class="inline-block ml-2 text-indigo-600 hover:text-indigo-800 transition" 
+                        title="Baixar original: {{ template_file.file.name }}">
+                            
+                            {% if '.pdf' in template_file.file.name %}
+                                <i class="fa-solid fa-file-pdf"></i>
+                            {% elif '.doc' in template_file.file.name %}
+                                <i class="fa-solid fa-file-word"></i>
+                            {% else %}
+                                <i class="fa-solid fa-file-arrow-down"></i>
+                            {% endif %}
+                        </a>
+                    {% empty %}
+                        <span class="text-xs text-gray-300 ml-2 italic">Sem ficheiros</span>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" class="px-4 py-2 text-center">No templates found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+<div id="previewModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onclick="closePreview()"></div>
+
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 border-b flex justify-between items-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900" id="modalTitle">Visualizar Ficheiro</h3>
+                <button type="button" onclick="closePreview()" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="bg-gray-100 h-[70vh] flex justify-center items-center" id="modalContent">
+                </div>
+            
+            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="closePreview()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                    Fechar
+                </button>
+                <a id="downloadLinkBtn" href="#" target="_blank" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function handleDragOver(event, id) {
+        event.preventDefault();
+        document.getElementById(`overlay-${id}`).classList.remove('hidden');
+    }
+
+    function handleDragLeave(event, id) {
+        document.getElementById(`overlay-${id}`).classList.add('hidden');
+    }
+
+    function handleDrop(event, id) {
+        event.preventDefault();
+        document.getElementById(`overlay-${id}`).classList.add('hidden');
+        
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            uploadFile(files[0], id);
+        }
+    }
+
+    function uploadFile(file, id) {
+        const url = `/upload-template-file/${id}/`; // Verifica a URL
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Feedback Visual de Carregamento
+        const listDiv = document.getElementById(`list-${id}`);
+        listDiv.innerHTML = `<div class="text-xs text-blue-500 animate-pulse">Uploading...</div>`;
+
+        fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 1. Atualiza a Célula do Ficheiro
+                listDiv.innerHTML = `
+                    <div class="flex items-center group bg-green-50 p-2 rounded border border-green-200">
+                        <svg class="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <a href="${data.file_url}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block font-medium">
+                            ${data.file_name}
+                        </a>
+                    </div>
+                `;
+
+                // 2. Atualiza a Célula de Status para "Approved" (Verde)
+                const statusCell = document.getElementById(`status-${id}`);
+                statusCell.innerHTML = `<span class="text-green-800 bg-green-100 font-semibold px-2 py-1 rounded-full text-xs">Approved</span>`;
+
+                // 3. Atualiza a Célula "Approved By" com o nome do utilizador
+                const editorCell = document.getElementById(`editor-${id}`);
+                editorCell.textContent = data.editor_name;
+
+            } else {
+                alert('Erro: ' + data.message);
+                listDiv.innerHTML = `<span class="text-red-500 text-xs">Error uploading.</span>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            listDiv.innerHTML = `<span class="text-red-500 text-xs">Connection error.</span>`;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Q-Office{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-black mb-10">Q-Office</h1>
+
+<div class="mb-8 flex items-center gap-4">
+    <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
+        class="w-full md:w-1/2 px-4 py-3 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+    
+    {% if request.user.groups.all.0.name in "Q-Office Administracao" %}
+        <button type="button" id="insertCaixa" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 transition-all shadow font-medium">
+            Criar Caixa
+        </button>
+    {% endif %}
+</div>
+
+<div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50" id="insertCaixaForm">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto relative">
+        
+        <h2 class="text-xl font-bold mb-6 text-gray-800">Nova Entrada</h2>
+        
+        <form id="caixaForm" action="{% url 'create_caixa' %}" method="post" class="flex flex-col space-y-6">
+            {% csrf_token %}
+            
+            <input type="text" name="customer" placeholder="Cliente" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            
+            <input type="text" name="customer_order_nr" placeholder="Ordem Cliente" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+
+            <div class="grid grid-cols-2 gap-4">
+                <input type="text" name="toma_order_nr" id="tomaOrderNrInput" placeholder="Toma Ordem" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="text" name="toma_order_year" placeholder="Ano" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <input type="text" name="box_nr" placeholder="Caixa" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                <input type="number" name="qt" placeholder="Quantidade" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+
+            <input type="text" name="diameters" placeholder="Diâmetros" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Início Produção</label>
+                    <input type="date" name="production_start" class="w-full px-4 py-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 mb-1 ml-1 uppercase">Data Envio</label>
+                    <input type="date" name="envio" class="w-full px-4 py-2 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                </div>
+            </div>
+
+            <input type="text" name="observations" placeholder="Observações (opcional)" class="px-4 py-3 border rounded shadow-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            
+            <input type="hidden" name="created_at" value="{{ current_time|date:'Y-m-d H:i:s' }}" /> 
+
+            <div class="flex gap-3 pt-4 border-t mt-4">
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded font-bold hover:bg-blue-700 transition-colors shadow">Salvar</button>
+                
+                <button type="button" id="closeCaixaBtn" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded font-bold hover:bg-gray-300 transition-colors">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="requiredFieldsError" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+    <div class="bg-white p-6 rounded shadow-md text-center">
+        <p class="text-red-600 font-bold mb-4">Todos os campos obrigatórios devem ser preenchidos!</p>
+        <button onclick="document.getElementById('requiredFieldsError').classList.add('hidden')" class="bg-blue-500 text-white px-4 py-2 rounded">OK</button>
+    </div>
+</div>
+
+
+<div class="overflow-x-auto w-full bg-white rounded-lg shadow-lg p-6">
+    <table class="min-w-full table-auto text-xs md:text-sm text-left border-collapse" id="qrcodeTable">
+        <thead class="bg-gray-100 border-b-2 border-gray-200">
+            <tr>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase w-10"></th> <th class="px-4 py-4 text-gray-700 font-bold uppercase">Cliente</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ordem Cliente</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase">Toma Ordem</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ano</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase text-right">Qtd Total</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase text-center">Ações</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+            {% for group in grouped_qrcodes %}
+            <tr class="hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-200 bg-white" 
+                onclick="toggleGroup('group-{{ forloop.counter }}', this)">
+                <td class="px-4 py-5 text-center text-blue-500">
+                    <i class="fa-solid fa-chevron-right transition-transform duration-200 transform"></i>
+                </td>
+                <td class="px-4 py-5 font-medium">{{ group.customer }}</td>
+                <td class="px-4 py-5">{{ group.customer_order_nr }}</td>
+                <td class="px-4 py-5 font-bold text-blue-700">{{ group.toma_order_nr }}</td>
+                <td class="px-4 py-5">{{ group.toma_order_year }}</td>
+                <td class="px-4 py-5 font-bold text-right text-green-600">{{ group.total_qt }}</td>
+                <td class="px-4 py-5 text-center text-gray-400 text-xs">
+                    {{ group.boxes|length }} Caixas
+                </td>
+            </tr>
+
+            <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50">
+                <td colspan="7" class="p-0">
+                    <div class="p-4 border-l-4 border-blue-500 ml-4 my-2 shadow-inner bg-white rounded">
+                        <h4 class="font-bold text-gray-500 mb-2 text-base uppercase">Detalhes das Caixas - {{ group.toma_order_nr }}/{{ group.toma_order_year }}</h4>
+                        
+                        <table class="w-full text-sm text-left">
+                            <thead class="border-b">
+                                <tr class="text-gray-400">
+                                    <th class="py-2">Caixa</th>
+                                    <th class="py-2">Qtd</th>
+                                    <th class="py-2">Produção</th>
+                                    <th class="py-2">Envio</th>
+                                    <th class="py-2">Criado Em</th>
+                                    <th class="py-2">Por</th>
+                                    <th class="py-2 text-center">Editar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for qr in group.boxes %}
+                                <tr class="border-b last:border-0 hover:bg-yellow-50" id="row-{{ qr.id }}">
+                                    <td class="py-3 font-medium">
+                                        <span class="view-mode">{{ qr.box_nr }}</span>
+                                        <input type="text" form="form-{{ qr.id }}" name="box_nr" value="{{ qr.box_nr }}" class="edit-mode hidden border border-blue-300 rounded w-16 px-1">
+                                    </td>
+                                    
+                                    <td class="py-3 font-bold">
+                                        <span class="view-mode">{{ qr.qt }}</span>
+                                        <input type="number" form="form-{{ qr.id }}" name="qt" value="{{ qr.qt }}" class="edit-mode hidden border border-blue-300 rounded w-16 px-1">
+                                    </td>
+
+                                    <td class="py-3">
+                                        <span class="view-mode">{{ qr.production_start|default:"-" }}</span>
+                                        <input type="date" form="form-{{ qr.id }}" name="production_start" value="{{ qr.production_start|date:'Y-m-d' }}" class="edit-mode hidden border border-blue-300 rounded w-full px-1">
+                                    </td>
+
+                                    <td class="py-3">
+                                        <span class="view-mode">{{ qr.envio|default:"-" }}</span>
+                                        <input type="date" form="form-{{ qr.id }}" name="envio" value="{{ qr.envio|date:'Y-m-d' }}" class="edit-mode hidden border border-blue-300 rounded w-full px-1">
+                                    </td>
+
+                                    <td class="py-3 text-gray-500">{{ qr.created_at|date:"d/m/Y H:i" }}</td>
+                                    <td class="py-3 text-gray-500">{{ qr.created_by.username }}</td>
+
+                                    <td class="py-3 text-center">
+                                        {% if request.user.groups.all.0.name in "Q-Office Administracao" %}
+                                            <form id="form-{{ qr.id }}" method="POST" action="{% url 'edit_qr_inline' qr.id %}">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="customer" value="{{ qr.customer }}">
+                                                <input type="hidden" name="customer_order_nr" value="{{ qr.customer_order_nr }}">
+                                                <input type="hidden" name="toma_order_nr" value="{{ qr.toma_order_nr }}">
+                                                <input type="hidden" name="toma_order_year" value="{{ qr.toma_order_year }}">
+
+                                                <div class="view-mode flex items-center justify-center gap-2">
+                                                    <button type="button" onclick="enableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+                                                    <a href="{% url 'adicionar_dies' qr.id %}" onclick="event.stopPropagation();" class="text-yellow-600 hover:text-yellow-800" title="Ver Dies">
+                                                        <i class="fa-solid fa-layer-group"></i>
+                                                    </a>
+                                                    <a href="{% url 'export_qrcode_excel' qr.id %}" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800">
+                                                        <i class="fa-solid fa-file-excel"></i>
+                                                    </a>
+                                                </div>
+                                                <div class="edit-mode hidden flex items-center justify-center gap-2">
+                                                    <button type="submit" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800"><i class="fa-solid fa-check"></i></button>
+                                                    <button type="button" onclick="disableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-xmark"></i></button>
+                                                </div>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="px-4 py-8 text-center text-gray-500">Nenhum registo encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. LÓGICA DO TOGGLE (ABRIR/FECHAR GRUPOS)
+    function toggleGroup(rowId, btnElement) {
+        const detailRow = document.getElementById(rowId);
+        const icon = btnElement.querySelector('.fa-chevron-right');
+
+        if (detailRow.classList.contains('hidden')) {
+            // Abrir
+            detailRow.classList.remove('hidden');
+            icon.classList.add('rotate-90'); // Roda a seta para baixo
+        } else {
+            // Fechar
+            detailRow.classList.add('hidden');
+            icon.classList.remove('rotate-90'); // Volta a seta para a direita
+        }
+    }
+
+    // 2. LÓGICA DO MODAL (CRIAR CAIXA)
+    const btnInsert = document.getElementById('insertCaixa');
+    const modalForm = document.getElementById('insertCaixaForm');
+    
+    if (btnInsert) {
+        btnInsert.addEventListener('click', function() {
+            modalForm.classList.remove('hidden');
+        });
+    }
+
+    // Fechar o Modal (Botão Cancelar)
+    const btnClose = document.getElementById('closeCaixaBtn');
+    if (btnClose) {
+        btnClose.addEventListener('click', function() {
+            modalForm.classList.add('hidden');
+        });
+    }
+
+    // Validação simples do formulário (Campos vazios)
+    const caixaForm = document.getElementById('caixaForm');
+    if (caixaForm) {
+        caixaForm.addEventListener('submit', function(e) {
+            const requiredInputs = this.querySelectorAll('input[type="text"]:not([name="observations"]), input[type="number"]');
+            let hasEmpty = false;
+            
+            requiredInputs.forEach(input => {
+                if (!input.value.trim()) hasEmpty = true;
+            });
+
+            if (hasEmpty) {
+                e.preventDefault();
+                document.getElementById('requiredFieldsError').classList.remove('hidden');
+            }
+        });
+    }
+
+
+    // 3. LÓGICA DA EDIÇÃO INLINE DA TABELA
+    function enableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return; // Segurança caso a linha não exista
+        
+        row.classList.add('bg-yellow-50'); 
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
+    }
+
+    function disableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+
+        row.classList.remove('bg-yellow-50');
+        row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
+        row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
+    }
+
+    // 4. PESQUISA CORRIGIDA (PARA GRUPOS)
+    const searchInput = document.getElementById('searchInput');
+    
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const filter = this.value.toLowerCase();
+            
+            // Seleciona o corpo da tabela para iterar sobre os filhos diretos
+            const tbody = document.querySelector('#qrcodeTable tbody');
+            if (!tbody) return;
+
+            const rows = tbody.children; // Usa children para apanhar as TRs
+            
+            // Itera de 2 em 2 (Linha de Resumo + Linha de Detalhe)
+            for (let i = 0; i < rows.length; i += 2) {
+                const headerRow = rows[i];     // Linha do Pai (Resumo)
+                const contentRow = rows[i+1];  // Linha do Filho (Tabela interna)
+                
+                // Segurança caso o número de linhas seja ímpar (não deve acontecer, mas previne erros)
+                if (!headerRow || !contentRow) continue;
+
+                // Procura no texto de AMBAS as linhas (para encontrar se pesquisares por uma caixa específica dentro do grupo)
+                const text = headerRow.textContent.toLowerCase() + contentRow.textContent.toLowerCase();
+                
+                if (text.includes(filter)) {
+                    // SE ENCONTRAR:
+                    // Remove o estilo inline 'display: none' para que as classes CSS voltem a mandar
+                    headerRow.style.display = ''; 
+                    contentRow.style.display = ''; 
+                } else {
+                    // SE NÃO ENCONTRAR:
+                    // Força 'display: none' para esconder tudo
+                    headerRow.style.display = 'none';
+                    contentRow.style.display = 'none';
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

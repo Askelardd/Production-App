@@ -1,0 +1,102 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Partidos Menu{% endblock %}
+
+{% block content %}
+
+<div class="max-w-xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10">
+    <h1 class="text-3xl font-bold text-red-600 mb-2 text-center">Fieiras Partidas</h1>
+    <p class="text-gray-600 mb-8 text-center">Registe as unidades que sofreram rutura ou danos graves.</p>
+
+    <form id="partidosForm" method="POST" action="{% url 'partidosMenu' qr_code.toma_order_full %}">
+        {% csrf_token %}
+
+        <div class="mb-4">
+            <label class="block mb-1 text-sm font-medium text-gray-700">Quantidade Partida:</label>
+            <input
+                id="numeroPartidos"
+                class="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-red-400"
+                placeholder="Ex: 2"
+                type="number"
+                min="1"
+                name="numeroPartidos"
+                required
+            />
+        </div>
+
+        <div class="mb-4">
+            <label class="block mb-1 text-sm font-medium text-gray-700">Detalhes da Ocorrência:</label>
+            <textarea
+                id="observations"
+                class="placeholder:text-gray-400 placeholder:italic border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-red-400"
+                placeholder="Explique como/onde partiu (OBRIGATÓRIO)"
+                name="observations"
+                rows="4"
+                required
+            ></textarea>
+        </div>
+
+        <label class="block mb-2 font-semibold text-gray-700">Selecione os Números de Série:</label>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-6 p-3 border rounded-lg bg-gray-50">
+            {% for die in dies_existentes %}
+                <label class="flex items-center space-x-2 bg-white rounded-lg p-2 border hover:border-red-400 transition cursor-pointer">
+                    <input type="checkbox" name="serieDies" value="{{ die.serial_number }}"
+                          class="die-checkbox accent-red-500 focus:ring-red-400">
+                    <span class="text-gray-800">{{ die.serial_number }}</span>
+                </label>
+            {% empty %}
+                <p class="text-gray-500 col-span-full italic">Nenhuma fieira registada.</p>
+            {% endfor %}
+        </div>
+
+        <div id="error-msg" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-6"></div>
+
+        <div class="flex items-center justify-between">
+            <button
+                type="submit"
+                class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold shadow hover:bg-red-700 transition-colors"
+            >
+                Confirmar Partidas
+            </button>
+            <button
+              type="button"
+              onclick="window.location.href='{% url 'listarDies' %}'"
+              class="bg-gray-400 text-white px-6 py-2 rounded-lg font-semibold hover:bg-gray-500 transition-colors"
+            >
+              Cancelar
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('partidosForm').addEventListener('submit', function (e) {
+        const errorMsg = document.getElementById('error-msg');
+        const checkboxes = document.querySelectorAll('input[name="serieDies"]:checked');
+        const numeroInput = document.getElementById('numeroPartidos').value;
+        
+        // Resetar erros
+        errorMsg.classList.add('hidden');
+        errorMsg.innerHTML = '';
+        let errors = [];
+
+        // 1. Validação de Checkboxes
+        if (checkboxes.length === 0) {
+            errors.push('Deve selecionar pelo menos uma <b>fieira</b> da lista.');
+        }
+
+        // 2. Validação de Coerência (Opcional: verificar se o número inserido bate com as selecionadas)
+        if (parseInt(numeroInput) !== checkboxes.length && checkboxes.length > 0) {
+            errors.push(`A quantidade indicada (${numeroInput}) não coincide com o número de séries selecionadas (${checkboxes.length}).`);
+        }
+
+        // Exibir erros
+        if (errors.length > 0) {
+            e.preventDefault();
+            errorMsg.innerHTML = errors.join('<br>');
+            errorMsg.classList.remove('hidden');
+        }
+    });
+</script>
+
+{% endblock %}

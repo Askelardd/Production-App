@@ -1,0 +1,222 @@
+{% extends 'theme/base.html' %}
+{% block title %}Adicionar Fieira{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Adicionar Fieiras para {{ qr_code.customer }}</h1>
+
+<form method="POST" id="diesForm">
+    {% csrf_token %}
+    <input type="hidden" name="total" value="{{ qr_code.qt }}">
+
+    <div class="space-y-4">
+        {% for die in prefilled_data %}
+        <h2 class="text-lg font-semibold mb-2">Fieira {{ forloop.counter }}</h2>
+        <div class="bg-white shadow p-4 rounded grid grid-cols-4 gap-4">
+            <div>
+                <label class="block text-sm">Num Serie</label>
+                <input type="text" name="serial_{{ forloop.counter }}" value="{{ die.serial }}" class="border p-2 w-full">
+            </div>
+            <div>
+                <label class="block text-sm">Diâmetro Original</label>
+                <input type="text" name="diameter_{{ forloop.counter }}" value="{{ die.diameter }}" class="border p-2 w-full">
+            </div>
+
+            <div>
+                <label class="block text-sm">Diam. Requerido</label>
+                <input type="text" name="diam_requerido_{{ forloop.counter }}" value="{{ die.diam_requerido }}" class="border p-2 w-full">
+            </div>
+            <div>
+                <label class="block text-sm">Tipo de Fieira</label>
+                <select name="die_{{ forloop.counter }}" class="border p-2 w-full">
+                    <option value="">Selecione</option>
+                    {% for d in dies %}
+                        <option value="{{ d.id }}" data-type="{{ d.die_type }}" {% if d.id == die.die %}selected{% endif %}>
+                            {{ d.get_die_type_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm">Trabalho</label>
+                <select name="job_{{ forloop.counter }}" class="border p-2 w-full">
+                    <option value="">Selecione</option>
+                    {% for j in jobs %}
+                        <option value="{{ j.id }}" {% if j.id == die.job %}selected{% endif %}>
+                            {{ j.get_job_display }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm">Tolerância Mínima</label>
+                <input type="text" name="tol_min_{{ forloop.counter }}" value="{{ die.tol_min }}" class="border p-2 w-full">
+            </div>
+            <div>
+                <label class="block text-sm">Tolerância Máxima</label>
+                <input type="text" name="tol_max_{{ forloop.counter }}" value="{{ die.tol_max }}" class="border p-2 w-full">
+            </div>
+            <div>
+                <label class="block text-sm">Cone</label>
+                <input type="text" name="cone_{{ forloop.counter }}" value="{{ die.cone }}" class="border p-2 w-full">
+            </div>
+            <div>
+            <label class="block text-sm">Calibre</label>
+            <input type="text" name="bearing_{{ forloop.counter }}" value="{{ die.bearing }}" class="border p-2 w-full">
+
+            <label class="inline-flex items-center mt-2 text-sm">
+                <input type="checkbox" name="bearing_red_{{ forloop.counter }}" class="mr-2"
+                    {% if die.bearing_red %}checked{% endif %}>
+                Vermelho
+            </label>
+            </div>
+            <div class="col-span-2">
+                <label class="block text-sm">Observações</label>
+                <input type="text" name="observations_{{ forloop.counter }}" value="{{ die.observations }}" class="border p-2 w-full">
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="mt-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Salvar Todos
+    </button>
+
+    <a href="{% url 'listQrcodes' %}" 
+       class="ml-2 bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500"
+       onclick="return confirm('Tem certeza que deseja sair sem gravar?');">
+        Sair
+    </a>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('diesForm').addEventListener('submit', function(e) {
+    let valid = true;
+    const total = parseInt(document.querySelector('input[name="total"]').value);
+
+    for (let i = 1; i <= total; i++) {
+        const requiredFields = [
+            `serial_${i}`,
+            `diameter_${i}`,
+            `diam_requerido_${i}`,
+            `die_${i}`,
+            `job_${i}`,
+            `tol_max_${i}`,
+            `tol_min_${i}`,
+            `cone_${i}`,
+            `bearing_${i}`
+        ];
+        for (const field of requiredFields) {
+            const el = document.querySelector(`[name="${field}"]`);
+            if (!el || !el.value.trim()) {
+                valid = false;
+                break;
+            }
+        }
+        if (!valid) break;
+    }
+
+    if (!valid) {
+        e.preventDefault();
+        alert('Por favor, preencha todos os campos obrigatórios antes de salvar.');
+    }
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const total = parseInt(document.querySelector('input[name="total"]').value);
+
+    const camposParaCopiar = [
+        'diameter',
+        'diam_requerido',
+        'die',
+        'job',
+        'tol_max',
+        'tol_min',
+        'cone',
+        'bearing',
+        'observations'
+    ];
+
+    camposParaCopiar.forEach(nomeCampo => {
+        const campoBase = document.querySelector(`[name="${nomeCampo}_1"]`);
+        if (campoBase) {
+            campoBase.addEventListener('change', () => {
+                const valor = campoBase.value;
+                for (let i = 2; i <= total; i++) {
+                    const campoAlvo = document.querySelector(`[name="${nomeCampo}_${i}"]`);
+                    if (campoAlvo && !campoAlvo.value) {
+                        campoAlvo.value = valor;
+                    }
+                }
+            });
+        }
+    });
+});
+
+(function () {
+  // quais tipos pintam e como
+  const BLUE_TYPES = new Set(['ND','MCD']);
+  const RED_TYPES  = new Set(['PCD']);
+
+  // usa estilos inline para evitar problemas de purge do Tailwind
+  function resetPaint(el) {
+    el.style.backgroundColor = '';
+    el.style.color = '';
+    el.style.boxShadow = '';
+  }
+  function paintBlue(el) {
+    el.style.backgroundColor = '#DBEAFE'; // bg-blue-100
+    el.style.color = '#1E3A8A';           // text-blue-900
+    el.style.boxShadow = '0 0 0 2px rgba(147,197,253,1)'; // ring-2 ring-blue-300
+  }
+  function paintRed(el) {
+    el.style.backgroundColor = '#FEE2E2'; // bg-red-100
+    el.style.color = '#7F1D1D';           // text-red-900
+    el.style.boxShadow = '0 0 0 2px rgba(252,165,165,1)'; // ring-2 ring-red-300
+  }
+
+  function getSelectedType(selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt) return '';
+    // tenta data-type primeiro; se não houver, usa o texto
+    return (opt.dataset.type || opt.textContent || '').trim().toUpperCase();
+  }
+
+  function paintDieType(selectEl) {
+    const t = getSelectedType(selectEl);
+    resetPaint(selectEl);
+    if (BLUE_TYPES.has(t)) return paintBlue(selectEl);
+    if (RED_TYPES.has(t))  return paintRed(selectEl);
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const total = parseInt(document.querySelector('input[name="total"]').value || '0', 10);
+
+    // pinta todos os selects de Tipo de Fieira ao carregar e ao mudar
+    for (let i = 1; i <= total; i++) {
+      const el = document.querySelector(`[name="die_${i}"]`);
+      if (!el) continue;
+      paintDieType(el);
+      el.addEventListener('change', () => paintDieType(el));
+    }
+
+    // se copias do die_1 para os restantes, pinta também
+    const base = document.querySelector('[name="die_1"]');
+    if (base) {
+      base.addEventListener('change', () => {
+        for (let i = 2; i <= total; i++) {
+          const alvo = document.querySelector(`[name="die_${i}"]`);
+          if (alvo && !alvo.value) {
+            alvo.value = base.value;
+            paintDieType(alvo);
+          }
+        }
+      });
+    }
+  });
+})();
+
+</script>
+
+{% endblock %}

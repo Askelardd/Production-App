@@ -1,0 +1,99 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}Editar OrdersComing{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-black mb-6">Editar OrdersComing</h1>
+
+<form method="POST" class="bg-white p-6 rounded shadow max-w-xl">
+  {% csrf_token %}
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Nome da Ordem</label>
+    <input type="text" name="order" value="{{ oc.order }}"
+           class="border border-gray-300 rounded-lg p-2 w-full" required>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="inspectionMetrology" {% if oc.inspectionMetrology %}checked{% endif %}>
+      <span>Inspection Metrology</span>
+    </label>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="preshipment" {% if oc.preshipment %}checked{% endif %}>
+      <span>Pre-Shipment</span>
+    </label>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="mark" {% if oc.mark %}checked{% endif %}>
+      <span>Mark</span>
+    </label>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="urgent" {% if oc.urgent %}checked{% endif %}>
+      <span>Urgente</span>
+    </label>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2 cursor-pointer">
+      <input type="checkbox" name="done" id="done-checkbox" 
+            {% if oc.done %}checked{% endif %}
+            class="accent-blue-500">
+      <span class="font-medium text-gray-800">Concluído</span>
+    </label>
+  </div>
+
+  <div id="data-done-container" class="mb-4 {% if not oc.done %}hidden{% endif %} transition-all">
+    <label class="block text-sm font-medium text-gray-700">Data de Conclusão</label>
+    <input type="date" name="data_done" id="data_done_input"
+          value="{{ oc.data_done|date:'Y-m-d' }}"
+          class="border border-gray-300 rounded-lg p-2 w-full focus:ring-blue-500 focus:border-blue-500">
+    <p class="text-xs text-gray-500 mt-1">Pode alterar a data se necessário antes de guardar.</p>
+  </div>
+
+  <div class="mb-4">
+    <label class="block text-gray-700">Comentário</label>
+    <textarea name="comment"
+              class="border border-gray-300 rounded-lg p-2 w-full">{{ oc.comment }}</textarea>
+  </div>
+
+  <div class="flex gap-4">
+    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Salvar</button>
+    <a href="{% url 'listarOrders' %}" class="text-gray-700 hover:underline">Cancelar</a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const doneCheckbox = document.getElementById('done-checkbox');
+    const dataContainer = document.getElementById('data-done-container');
+    const dataInput = document.getElementById('data_done_input');
+
+    doneCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        // Mostra o campo
+        dataContainer.classList.remove('hidden');
+        
+        // Se o campo de data estiver vazio, coloca a data de hoje automaticamente
+        if (!dataInput.value) {
+          const hoje = new Date().toISOString().split('T')[0];
+          dataInput.value = hoje;
+        }
+      } else {
+        // Esconde o campo se desmarcar
+        dataContainer.classList.add('hidden');
+      }
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col justify-center items-center min-h-screen px-4">
+    <h1 class="text-3xl font-bold mb-8 text-center">Menu Q-Office</h1>
+
+    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center">
+        <a href="{% url 'listarFaturas' %}" class="w-full">
+            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Faturas
+            </button>
+        </a>
+    </div>
+
+    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center mt-6">
+        <a href="{% url 'listarFornecedores' %}" class="w-full">
+            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Fornecedores
+            </button>
+        </a>
+    </div>
+
+    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center mt-6">
+        <a href="{% url 'templateFiles' %}" class="w-full">
+            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Templates de Ficheiros
+            </button>
+        </a>
+    </div>
+
+</div>
+{% endblock %}
