@@ -36,7 +36,7 @@
                 
                 <td class="px-4 py-2">
                     {% if template.approved %}
-                        Aniceta Graf
+                        {{ template.approved_by }}
                     {% else %}
                         <span class="text-gray-400 italic">N/A</span>
                     {% endif %}
@@ -77,7 +77,7 @@
                 </td>
 
                 <td class="px-1 py-2 text-center whitespace-nowrap">
-                    <a href="{% url 'editarTemplate' template.id %}" class="fa-solid fa-pen-to-square text-gray-500 hover:text-blue-600 mr-2" title="Editar"></a>
+                    <a href="{% url 'editarTemplate' template.id %}" class="fa-solid fa-pen text-gray-500 hover:text-blue-600 mr-2" title="Editar"></a>
                     
                     <span class="text-gray-300">|</span>
 

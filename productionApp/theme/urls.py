@@ -74,6 +74,7 @@ urlpatterns = [
     path('criarTemplate/', views.criarTemplate, name='criarTemplate'),
     path('editarTemplate/<int:id>/', views.editarTemplate, name='editarTemplate'),
     path('delete-file/<int:file_id>/', views.delete_template_file, name='delete_template_file'),
+    path('documentosMenu/', views.documentosMenu, name='documentosMenu'),
 ]
 handler403 = 'theme.views.erro403'
 if settings.DEBUG:

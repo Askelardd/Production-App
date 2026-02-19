@@ -260,9 +260,9 @@ class DeliveryInfoAdmin(admin.ModelAdmin):
 # -------------------
 @admin.register(OrdersComing)
 class OrdersComingAdmin(admin.ModelAdmin):
-    list_display = ['order', 'inspectionMetrology', 'mark', 'urgent', 'done', 'data_done', 'comment']
+    list_display = ['order', 'inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
     search_fields = ['order', 'comment']
-    list_filter = ['inspectionMetrology', 'mark', 'urgent', 'done', 'data_done']
+    list_filter = ['inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
     list_per_page = 20
 
 # -------------------
@@ -486,9 +486,9 @@ class TemplateFilesInline(admin.TabularInline):
 
 @admin.register(Template)
 class TemplateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'department', 'editor', 'created_at', 'last_updated']
+    list_display = ['name', 'department', 'approved', 'approved_by', 'editor', 'created_at', 'last_updated']
     search_fields = ['name', 'department', 'description']
-    list_filter = ['department', 'created_at', 'editor']
+    list_filter = ['department', 'approved', 'created_at', 'editor']
     inlines = [TemplateFilesInline]
     list_per_page = 20
-    readonly_fields = ['created_at', 'last_updated']
+    readonly_fields = ['created_at', 'last_updated', 'approved_file']

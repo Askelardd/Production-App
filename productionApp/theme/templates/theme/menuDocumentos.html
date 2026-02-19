@@ -1,0 +1,17 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="flex flex-col justify-center items-center min-h-screen px-4">
+    <h1 class="text-3xl font-bold mb-8 text-center">Documentos</h1>
+
+    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center">
+        <a href="{% url 'templateFiles' %}" class="w-full">
+            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+                Documentos Aprovados
+            </button>
+        </a>
+    </div>
+
+</div>
+{% endblock %}

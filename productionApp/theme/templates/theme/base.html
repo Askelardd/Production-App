@@ -7,11 +7,9 @@
     <title>{% block title %}Toma Tools{% endblock %}</title>
 
     <link rel="preload" as="image" href="{% static 'theme/media/logo.jpg' %}">
-
+    <meta name="description" content="Toma Tools - Soluções para Gestão de Produção e Logística interno TOMATools.">
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.css" rel="stylesheet" />
-    
+        
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <link rel="icon" href="{% static 'theme/media/favicon.ico' %}?v=2">
@@ -43,9 +41,10 @@
                         <a href="{% url 'login' 0 %}">
                     {% endif %}
                         <img src="{% static 'theme/media/logo.jpg' %}" 
-                             alt="Logo" 
-                             class="h-16 w-auto rounded border-1 border-black shadow-lg"
-                             fetchpriority="high">
+                            alt="Logo" 
+                            width="200" height="64"
+                            class="h-16 w-auto rounded border-1 border-black shadow-lg"
+                            fetchpriority="high">
                     </a>
                 </div>
 

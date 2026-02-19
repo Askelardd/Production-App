@@ -5,39 +5,50 @@
 {% block content %}
 <h1 class="text-3xl font-bold text-black mb-8">Orders criadas</h1>
 
-<!-- Barra de Pesquisa -->
-<div class="mb-4">
-  <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
-    class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
-  {% if is_admin %}
-    <a href="{% url 'orders' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-      Nova Order
-    </a>
-  {% endif %}
-
-</div>
-
-
-<div class="mb-4 flex gap-2">
-  <button id="filterImportacaoBtn" 
-    class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 transition">
-    Filtrar Importação
-  </button>
-  <button id="filterExportacaoBtn" 
-    class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 transition">
-    Filtrar Exportação
-  </button>
-  <button id="clearFilterBtn" 
-    class="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300 transition">
-    Limpar Filtros
-  </button>
-</div>
-
-<div class="relative">
-  <!-- Scrollbar superior -->
-  <div id="topScroller" class="overflow-x-auto h-4 mb-2">
-    <div id="topScrollerInner" class="h-1"></div>
+<form id="filterForm" method="GET" class="mb-4 bg-gray-50 p-4 rounded shadow-sm border border-gray-200">
+  
+  <div class="flex flex-col md:flex-row gap-4 mb-4">
+    <div class="flex-grow flex gap-2">
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Pesquisar Tracking, Plant, Courier..."
+        class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-300" />
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition font-semibold">
+        Pesquisar
+      </button>
+    </div>
+    
+    {% if is_admin %}
+      <a href="{% url 'orders' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center justify-center font-semibold">
+        Nova Order
+      </a>
+    {% endif %}
   </div>
+
+  <div class="flex flex-wrap items-center gap-4 justify-between">
+    <div class="flex gap-2">
+      <input type="hidden" name="tipo" id="tipoInput" value="{{ filtro_tipo }}">
+      
+      <button type="button" id="btnImport" class="px-3 py-1 text-sm font-semibold rounded transition border">
+        Filtrar Importação
+      </button>
+      <button type="button" id="btnExport" class="px-3 py-1 text-sm font-semibold rounded transition border">
+        Filtrar Exportação
+      </button>
+      <button type="button" id="btnClear" class="px-3 py-1 text-sm font-semibold rounded bg-red-100 text-red-700 border-red-200 hover:bg-red-200 transition">
+        Limpar Filtros
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <label for="limitSelect" class="text-sm font-semibold text-gray-700">Mostrar:</label>
+      <select name="limit" id="limitSelect" onchange="this.form.submit()" class="border border-gray-300 rounded shadow-sm px-3 py-1 text-sm focus:ring-blue-300">
+        <option value="15" {% if limite_escolhido == '15' %}selected{% endif %}>15 linhas</option>
+        <option value="50" {% if limite_escolhido == '50' %}selected{% endif %}>50 linhas</option>
+        <option value="100" {% if limite_escolhido == '100' %}selected{% endif %}>100 linhas</option>
+        <option value="todos" {% if limite_escolhido == 'todos' %}selected{% endif %}>Todas as orders</option>
+      </select>
+    </div>
+  </div>
+</form>
 
   <!-- Tabela scrollável -->
   <p class="mb-2 text-sm text-gray-600">Clique em Shift + scroll do rato para dar Scroll horizontalmente</p>
@@ -191,104 +202,75 @@
 
 {% block extra_js %}
 <script>
-  // --- 1. Estado Global ---
-  // Guardamos o que o utilizador escolheu nestas variáveis
-  let estadoPesquisa = ""; 
-  let estadoFiltro = "todos"; // pode ser: 'todos', 'import', 'export'
+  // =========================================================
+  // 1. LÓGICA DE FILTROS E PESQUISA (Agora gerida pelo Django)
+  // =========================================================
+  const form = document.getElementById('filterForm');
+  const tipoInput = document.getElementById('tipoInput');
+  const btnImport = document.getElementById('btnImport');
+  const btnExport = document.getElementById('btnExport');
+  const btnClear = document.getElementById('btnClear');
 
-  // --- 2. Elementos do DOM ---
-  const searchInput = document.getElementById('searchInput');
-  const btnImport = document.getElementById('filterImportacaoBtn');
-  const btnExport = document.getElementById('filterExportacaoBtn');
-  const btnClear = document.getElementById('clearFilterBtn');
-  const tableRows = document.querySelectorAll('tbody tr');
+  // Função para pintar os botões consoante o estado atual que veio do Django
+  function pintarBotoes() {
+      if (!tipoInput) return; // Segurança extra caso a página carregue diferente
+      
+      const tipoAtual = tipoInput.value;
+      
+      // Classes base (Botões a cinzento - Inativos)
+      const baseClass = "px-3 py-1 text-sm font-semibold rounded transition border bg-gray-200 text-gray-800 hover:bg-gray-300";
+      // Classes ativos (Botões a azul)
+      const activeClass = "px-3 py-1 text-sm font-semibold rounded transition border bg-blue-600 text-white border-blue-700 hover:bg-blue-700";
 
-  // --- 3. Função Mestra de Filtragem ---
-  function aplicarFiltros() {
-    tableRows.forEach(row => {
-      const textoLinha = row.innerText.toLowerCase();
-      const celulaPlant = row.querySelector('td:nth-child(1)'); // Coluna Plant
-      const textoPlant = celulaPlant ? celulaPlant.innerText.toLowerCase() : "";
+      // Reset a todos para o estado base
+      if(btnImport) btnImport.className = baseClass;
+      if(btnExport) btnExport.className = baseClass;
 
-      // Verificação 1: A linha corresponde ao texto da barra de pesquisa?
-      const correspondePesquisa = textoLinha.includes(estadoPesquisa);
-
-      // Verificação 2: A linha corresponde ao botão selecionado?
-      let correspondeFiltro = true;
-      if (estadoFiltro === 'import') {
-        correspondeFiltro = !textoPlant.includes('toma');
-      } else if (estadoFiltro === 'export') {
-        correspondeFiltro = textoPlant.includes('toma');
+      // Pinta de azul apenas o que estiver selecionado
+      if (tipoAtual === 'import' && btnImport) {
+          btnImport.className = activeClass;
+      } else if (tipoAtual === 'export' && btnExport) {
+          btnExport.className = activeClass;
       }
-
-      // DECISÃO FINAL: Só mostra se passar NAS DUAS verificações
-      if (correspondePesquisa && correspondeFiltro) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
-    });
-
-    // Atualiza o visual dos botões (para saberes qual está ativo)
-    atualizarBotoes();
   }
 
-  // --- 4. Função Visual (Opcional mas recomendada) ---
-  function atualizarBotoes() {
-    // Remove classes de "ativo" de todos
-    const classeAtiva = ['bg-blue-600', 'text-white']; // Estilo do botão selecionado
-    const classeInativa = ['bg-gray-200', 'text-gray-800']; // Estilo normal
+  // Correr logo ao carregar a página para pintar os botões corretamente
+  pintarBotoes();
 
-    // Função auxiliar para resetar estilo
-    function resetBtn(btn) {
-      btn.classList.remove(...classeAtiva);
-      btn.classList.add(...classeInativa);
-    }
-    // Função auxiliar para ativar estilo
-    function activeBtn(btn) {
-      btn.classList.remove(...classeInativa);
-      btn.classList.add(...classeAtiva);
-    }
-
-    resetBtn(btnImport);
-    resetBtn(btnExport);
-    // O botão Clear não fica "ativo", apenas reseta
-
-    if (estadoFiltro === 'import') activeBtn(btnImport);
-    if (estadoFiltro === 'export') activeBtn(btnExport);
+  // Quando clica no botão Importação
+  if (btnImport) {
+      btnImport.addEventListener('click', function() {
+          // Se já estava 'import', muda para 'todos', senão muda para 'import'
+          tipoInput.value = (tipoInput.value === 'import') ? 'todos' : 'import';
+          form.submit(); // Manda logo o formulário para o Django recarregar a página!
+      });
   }
 
-  // --- 5. Event Listeners (Ouvintes) ---
+  // Quando clica no botão Exportação
+  if (btnExport) {
+      btnExport.addEventListener('click', function() {
+          tipoInput.value = (tipoInput.value === 'export') ? 'todos' : 'export';
+          form.submit();
+      });
+  }
 
-  // Barra de Pesquisa
-  searchInput.addEventListener('input', function(e) {
-    estadoPesquisa = e.target.value.toLowerCase();
-    aplicarFiltros(); // Chama a função mestra
-  });
-
-  // Botão Importação
-  btnImport.addEventListener('click', function() {
-    // Se já estiver ativo e clicar de novo, desativa (toggle), senão ativa
-    estadoFiltro = (estadoFiltro === 'import') ? 'todos' : 'import';
-    aplicarFiltros();
-  });
-
-  // Botão Exportação
-  btnExport.addEventListener('click', function() {
-    estadoFiltro = (estadoFiltro === 'export') ? 'todos' : 'export';
-    aplicarFiltros();
-  });
-
-  // Botão Limpar
-  btnClear.addEventListener('click', function() {
-    estadoPesquisa = "";
-    estadoFiltro = "todos";
-    searchInput.value = ""; // Limpa visualmente o input
-    aplicarFiltros();
-  });
+  // Quando clica em Limpar
+  if (btnClear) {
+      btnClear.addEventListener('click', function() {
+          tipoInput.value = 'todos'; // Reseta o tipo (Import/Export)
+          
+          // Limpa o texto da caixa de pesquisa
+          const barraPesquisa = document.querySelector('input[name="q"]');
+          if (barraPesquisa) barraPesquisa.value = ''; 
+          
+          form.submit(); // Recarrega a página limpa
+      });
+  }
 
 
-  // --- CÓDIGO EXISTENTE DE SCROLL E EXPORTAÇÃO ---
+  // =========================================================
+  // 2. CÓDIGO EXISTENTE DE SCROLL E EXPORTAÇÃO (Intacto!)
+  // =========================================================
   
   // Scroll superior sincronizado
   const tableScroller = document.getElementById('tableScroller');

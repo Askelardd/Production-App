@@ -345,10 +345,14 @@ class OrdersComing(models.Model):
     order = models.CharField(max_length=500, blank=False, null=False)
     inspectionMetrology = models.BooleanField(default=False)
     preshipment = models.BooleanField(default=False)
+    days_2_3 = models.BooleanField(default=False)
+    days_3_4 = models.BooleanField(default=False)
+    recondicioning = models.BooleanField(default=False)
+    semifinished = models.BooleanField(default=False)
+    casing = models.BooleanField(default=False)
     mark = models.BooleanField(default=False)
     urgent = models.BooleanField(default=False)
     done = models.BooleanField(default=False)
-    # add  data to done
     data_done = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
 
@@ -571,9 +575,10 @@ class Template(models.Model):
     name = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateField(default=timezone.now)
     approved = models.BooleanField(default=False)
-    last_updated = models.DateTimeField(auto_now=True, null=True, blank=True)
+    approved_by = models.CharField(max_length=20, blank=True, null=True)
+    last_updated = models.DateField(null=True, blank=True, default=timezone.now)
     editor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     approved_file = models.FileField(upload_to='approved_templates_files/', null=True, blank=True)
     
