@@ -78,6 +78,9 @@ def qOfficeMenu(request):
 def financeiroMenu(request):
     return render(request, 'theme/menuFinanceiro.html')
 
+def documentosMenu(request):
+    return render(request, 'theme/menuDocumentos.html')
+
 def productionMenu(request):
     q = request.GET.get('q', '').strip()
     print("q:", q)
@@ -188,7 +191,7 @@ def orders(request):
             message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
                      f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=settings.DEFAULT_REPLY_TO_EMAIL if isinstance(settings.DEFAULT_REPLY_TO_EMAIL, list) else [settings.DEFAULT_REPLY_TO_EMAIL],  # lista de emails
+            recipient_list=settings.DEFAULT_FROM_EMAIL if isinstance(settings.DEFAULT_FROM_EMAIL, list) else [settings.DEFAULT_FROM_EMAIL],  # lista de emails
         )
 
         globalLogs.objects.create(
@@ -216,7 +219,16 @@ def create_orders_coming_ajax(request):
             data = json.loads(request.body)
             oc = OrdersComing.objects.create(
                 order=data.get('order'),
+                inspectionMetrology=data.get('inspectionMetrology', False),
+                preshipment=data.get('preshipment', False),
+                mark=data.get('mark', False),
                 urgent=data.get('urgent', False),
+                days_2_3=data.get('days_2_3', False),
+                days_3_4=data.get('days_3_4', False),
+                recondicioning=data.get('recondicioning', False),
+                semifinished=data.get('semifinished', False),
+                casing=data.get('casing', False),
+                done=data.get('done', False),
                 comment=data.get('comment', ''),
             )
             return JsonResponse({
@@ -233,12 +245,17 @@ def create_orders_coming_ajax(request):
 def listar_orders(request):
     if not request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists():
         return erro403(request)
+    
+    ordersComing = OrdersComing.objects.all()
+
+    limite_escolhido = request.GET.get('limit', '20')
+    search_query = request.GET.get('q', '').strip()
+    filtro_tipo = request.GET.get('tipo', 'todos')
 
     orders = (
         Order.objects
         .prefetch_related('orders_coming', 'files')
-        .annotate(
-            has_tasks=Exists(
+        .annotate(has_tasks=Exists(
                 OrdersComing.objects
                 .filter(orders=OuterRef('pk'))  
                 .filter(
@@ -247,22 +264,50 @@ def listar_orders(request):
                     Q(mark=True) |
                     Q(urgent=True)
                 )
-            )
-        )
-        .order_by('-shipping_date', '-id')
+            ))
     )
 
-    ordersComing = OrdersComing.objects.all()
+    if search_query:
+        orders = orders.filter(
+            Q(tracking_number__icontains=search_query) |
+            Q(plant__icontains=search_query) |
+            Q(courier__icontains=search_query) |
+            Q(comment__icontains=search_query) 
+        )
+
+    if filtro_tipo == 'import':
+        orders = orders.exclude(plant__iexact='toma')
+    elif filtro_tipo == 'export':
+        orders = orders.filter(plant__iexact='toma')
+
+    orders = orders.order_by('-shipping_date', '-id')
+
+
+    if limite_escolhido == 'todos':
+        orders = orders
+    else:
+        try:
+            limite = int(limite_escolhido)
+            orders = orders[:limite] 
+        except ValueError:
+            orders = orders[:20]
+            limite_escolhido = '20'
+
 
     is_admin = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
     is_qOffice = request.user.groups.filter(name='Q-Office').exists()
 
     return render(request, 'theme/listarOrders.html', {
-        'orders': orders,
+        'orders': orders, # Mandas as orders já cortadas
+        'limite_escolhido': limite_escolhido, 
+        'search_query': search_query,
+        'filtro_tipo': filtro_tipo,
+
         'is_admin': is_admin,
         'ordersComing': ordersComing,
         'is_qOffice': is_qOffice,
     })
+
 
 @login_required
 @csrf_exempt
@@ -403,6 +448,11 @@ def edit_orders_coming(request, oc_id):
         orders_coming.preshipment = request.POST.get('preshipment') == 'on'
         orders_coming.mark = request.POST.get('mark') == 'on'
         orders_coming.urgent = request.POST.get('urgent') == 'on'
+        orders_coming.days_2_3 = request.POST.get('days_2_3') == 'on'
+        orders_coming.days_3_4 = request.POST.get('days_3_4') == 'on'
+        orders_coming.recondicioning = request.POST.get('recondicioning') == 'on'
+        orders_coming.semifinished = request.POST.get('semifinished') == 'on'
+        orders_coming.casing = request.POST.get('casing') == 'on'
         orders_coming.done = request.POST.get('done') == 'on' 
         done = request.POST.get('done') == 'on'
         data_done_str = request.POST.get('data_done', '')
@@ -447,6 +497,11 @@ def exportOrderExcel(request, order_id):
             'Preshipment': 'Sim' if oc.preshipment else '-',
             'Mark': 'Sim' if oc.mark else '-',
             'Urgent': 'Sim' if oc.urgent else '-',
+            'Days 2-3': 'Sim' if oc.days_2_3 else '-',
+            'Days 3-4': 'Sim' if oc.days_3_4 else '-',
+            'Recondicioning': 'Sim' if oc.recondicioning else '-',
+            'Semifinished': 'Sim' if oc.semifinished else '-',
+            'Casing': 'Sim' if oc.casing else '-',
             'Done': 'Sim' if oc.done else '-',
             'Comment': oc.comment,
         })
@@ -2760,12 +2815,14 @@ def editarTemplate(request, id):
         template.description = request.POST.get('description')
         template.department = request.POST.get('department')
 
+        template.created_at = request.POST.get('created_at') or template.created_at 
+        template.last_updated = request.POST.get('last_updated') or template.last_updated
         template.editor = request.user
-        template.last_updated = timezone.now()
         
         # Converter string 'True'/'False' para Booleano
         approved_val = request.POST.get('approved')
         template.approved = True if approved_val == 'True' else False
+        template.approved_by = request.POST.get('approved_by') or template.approved_by
 
         # 1. Adicionar NOVOS ficheiros à lista existente
         new_files = request.FILES.getlist('file')

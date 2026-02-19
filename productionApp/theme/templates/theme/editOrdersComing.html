@@ -38,10 +38,45 @@
   <div class="mb-4">
     <label class="flex items-center space-x-2">
       <input type="checkbox" name="urgent" {% if oc.urgent %}checked{% endif %}>
-      <span>Urgente</span>
+      <span>Urgente (send today|tomorrow)</span>
     </label>
   </div>
 
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="days_2_3" {% if oc.days_2_3 %}checked{% endif %}>
+      <span>2-3 days</span>
+    </label>
+  </div>
+
+  <div class="mb-4">
+    <label class="flex items-center space-x-2">
+      <input type="checkbox" name="days_3_4" {% if oc.days_3_4 %}checked{% endif %}>
+      <span>3-4 days</span>
+    </label>
+  </div>
+
+    <div class="mb-4">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" name="recondicioning" {% if oc.recondicioning %}checked{% endif %}>
+        <span>Wait for reconditioning part</span>
+      </label>
+    </div>
+
+    <div class="mb-4">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" name="semifinished" {% if oc.semifinished %}checked{% endif %}>
+        <span>Semifinished dies: put into Toma Production</span>
+      </label>
+    </div>
+
+    <div class="mb-4">
+      <label class="flex items-center space-x-2">
+        <input type="checkbox" name="casing" {% if oc.casing %}checked{% endif %}>
+        <span>Casing Reduction</span>
+      </label>
+    </div>
+    
   <div class="mb-4">
     <label class="flex items-center space-x-2 cursor-pointer">
       <input type="checkbox" name="done" id="done-checkbox" 
