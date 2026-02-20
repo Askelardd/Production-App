@@ -34,7 +34,7 @@
                 <td class="px-4 py-2">{{ template.created_at|date:"M d, Y" }}</td>
                 <td class="px-4 py-2">{{ template.last_updated|date:"M d, Y" }}</td>
                 
-                <td class="px-4 py-2">
+                <td class="px-4 py-2" id="approved-by-{{ template.id }}">
                     {% if template.approved %}
                         {{ template.approved_by }}
                     {% else %}
@@ -206,9 +206,11 @@
                 const statusCell = document.getElementById(`status-${id}`);
                 statusCell.innerHTML = `<span class="text-green-800 bg-green-100 font-semibold px-2 py-1 rounded-full text-xs">Approved</span>`;
 
-                // 3. Atualiza a Célula "Approved By" com o nome do utilizador
-                const editorCell = document.getElementById(`editor-${id}`);
-                editorCell.textContent = data.editor_name;
+                // 3. Atualiza a Célula "Approved By" com "Aniceta Graf"
+                const approvedByCell = document.getElementById(`approved-by-${id}`);
+                if (approvedByCell) {
+                    approvedByCell.textContent = data.approved_by; // Usa a nova variável que enviámos da View
+                }
 
             } else {
                 alert('Erro: ' + data.message);

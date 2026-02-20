@@ -491,4 +491,3 @@ class TemplateAdmin(admin.ModelAdmin):
     list_filter = ['department', 'approved', 'created_at', 'editor']
     inlines = [TemplateFilesInline]
     list_per_page = 20
-    readonly_fields = ['created_at', 'last_updated', 'approved_file']
