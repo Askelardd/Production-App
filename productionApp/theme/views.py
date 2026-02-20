@@ -2774,6 +2774,7 @@ def templateFiles(request):
     templates = Template.objects.all().order_by('department')
     return render(request, 'theme/templateFiles.html', {'templates': templates})
 
+@csrf_exempt
 @require_POST
 def upload_template_file(request, id):
     try:
@@ -2787,8 +2788,9 @@ def upload_template_file(request, id):
         template.approved_file = file
         
         # 2. Atualiza os campos automaticamente
-        template.approved = True  # <--- AQUI ESTÁ O QUE PEDISTE
-        template.editor = request.user # Define quem aprovou
+        template.approved = True 
+        template.approved_by = "Aniceta Graf"
+        template.editor = request.user 
         template.last_updated = timezone.now()
         
         template.save()
@@ -2798,7 +2800,8 @@ def upload_template_file(request, id):
             'status': 'success',
             'file_name': template.approved_file.name.split('/')[-1],
             'file_url': template.approved_file.url,
-            'editor_name': request.user.username, # Para atualizar a coluna "Approved By"
+            'approved_by': template.approved_by,
+            'editor_name': request.user.username, 
             'approved': True
         })
 
