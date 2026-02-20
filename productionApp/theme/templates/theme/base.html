@@ -113,7 +113,7 @@
             });
 
             {% for message in messages %}
-                let tempo = 3000;
+                var tempo = 3000;
                 {% if 'error' in message.tags %} tempo = 4000; {% endif %}
 
                 Toast.fire({

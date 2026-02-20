@@ -4,26 +4,44 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 p-6">
 
-    <div class="max-w-7xl mx-auto mb-8">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
-                <p class="text-sm text-gray-500 mt-1">Gestão agrupada por Toma de Produção</p>
-            </div>
-            
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex flex-col gap-1 mb-4">
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
+            <p class="text-sm text-gray-500 mt-1">Gestão agrupada por Toma de Produção</p>
+
             <div class="relative w-full md:w-96">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <i class="fa-solid fa-search text-gray-400"></i>
                 </div>
-                <input type="text" id="searchInput" placeholder="Pesquisar cliente, encomenda, toma..."
-                    class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+                <div id="searchContainer" class="relative">
+                    <input type="text" id="searchInput" placeholder="Pesquisar cliente, encomenda, toma..."
+                        class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+                </div>
+            </div>
+            
+            <div class="mt-4 flex gap-2">
+                <a href="?estado=todos" 
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'todos' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
+                    Todos
+                </a>
+                <a href="?estado=abertos" 
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'abertos' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
+                    Abertos
+                </a>
+                <a href="?estado=fechados" 
+                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'fechados' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
+                    Fechados
+                </a>
             </div>
         </div>
+        
+        <div class="relative w-full md:w-96">
+            </div>
     </div>
 
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <table class="min-w-full divide-y divide-gray-200 text-sm" id="mainTable">
                 <thead class="bg-gray-100">
                     <tr>
                         <th class="w-10 px-4 py-4"></th>
@@ -131,7 +149,9 @@
                                                                 <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
                                                                     <span class="font-bold text-gray-800">#{{ die.serial_number }}</span>
                                                                     {% if die.partida %}
-                                                                    <span class="text-xs font-bold text-orange-800 uppercase bg-orange-100 px-2 py-0.5 rounded">Partida</span>
+                                                                        <span class="text-xs font-bold text-orange-800 uppercase bg-orange-100 px-2 py-0.5 rounded">Partida</span>
+                                                                    {% elif die.new_diameter %}
+                                                                        <span class="text-xs font-bold text-yellow-800 uppercase bg-yellow-100 px-2 py-0.5 rounded">Novo Diâmetro</span>
                                                                     {% endif %}
                                                                     <span class="text-xs font-mono bg-white border px-2 py-0.5 rounded text-gray-600">{{ die.diameter_text }}</span>
                                                                 </div>
@@ -208,6 +228,20 @@
 
 {% block extra_js %}
 <script>
+    // --- GESTÃO DE ESTADO (MEMÓRIA) ---
+    // Cria um objeto para guardar os IDs das linhas que estão abertas
+    let togglesAbertos = JSON.parse(sessionStorage.getItem('dies_toggles_abertos')) || {};
+
+    // Função para guardar o estado atual na memória do browser
+    function guardarEstado() {
+        sessionStorage.setItem('dies_toggles_abertos', JSON.stringify(togglesAbertos));
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            sessionStorage.setItem('dies_search_query', searchInput.value);
+        }
+    }
+
+    // --- FUNÇÕES DE TOGGLE ATUALIZADAS ---
     // 1. Função para abrir o GRUPO (Nível 1)
     window.toggleGroup = function(rowId, btnElement) {
         const detailRow = document.getElementById(rowId);
@@ -216,10 +250,13 @@
         if (detailRow.classList.contains('hidden')) {
             detailRow.classList.remove('hidden');
             icon.classList.add('rotate-90');
+            togglesAbertos[rowId] = true; // Guarda que este ID está aberto
         } else {
             detailRow.classList.add('hidden');
             icon.classList.remove('rotate-90');
+            delete togglesAbertos[rowId]; // Remove da memória
         }
+        guardarEstado(); // Atualiza a memória
     };
 
     // 2. Função para abrir as FIEIRAS (Nível 2)
@@ -232,49 +269,95 @@
         row.classList.toggle('hidden');
         
         const icon = btnElement.querySelector('.fa-chevron-down');
-        if(icon) {
-            if(row.classList.contains('hidden')) {
-                icon.style.transform = 'rotate(0deg)';
-            } else {
-                icon.style.transform = 'rotate(180deg)';
-            }
+        if(row.classList.contains('hidden')) {
+            if(icon) icon.style.transform = 'rotate(0deg)';
+            delete togglesAbertos[id]; // Remove da memória
+        } else {
+            if(icon) icon.style.transform = 'rotate(180deg)';
+            togglesAbertos[id] = true; // Guarda que este ID está aberto
         }
+        guardarEstado(); // Atualiza a memória
     };
 
-    // 3. Pesquisa (CORRIGIDA)
+    // --- PESQUISA ATUALIZADA ---
     const searchInput = document.getElementById('searchInput');
     
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function () {
-            const filter = this.value.toLowerCase();
-            const mainBody = document.getElementById('mainTableBody');
+    // Função separada para aplicar o filtro para podermos chamá-la automaticamente
+    function aplicarFiltroDePesquisa(filterValue) {
+        const filter = filterValue.toLowerCase();
+        const mainBody = document.getElementById('mainTableBody');
+        if (!mainBody) return;
+        
+        const headerRows = mainBody.querySelectorAll('tr[onclick*="toggleGroup"]');
+        
+        headerRows.forEach((headerRow) => {
+            const contentRow = headerRow.nextElementSibling; // Row com dies
             
-            const rows = mainBody.children;
-            
-            for (let i = 0; i < rows.length; i += 2) {
-                const headerRow = rows[i];     // Linha do resumo (pai)
-                const contentRow = rows[i+1];  // Linha com as caixas (filho)
-                
-                if (!headerRow || !contentRow) continue;
+            if (!headerRow || !contentRow) return;
 
-                const text = headerRow.textContent.toLowerCase() + contentRow.textContent.toLowerCase();
-                
-                if (text.includes(filter)) {
-                    // SE ENCONTRAR:
-                    headerRow.style.display = ''; 
-                    
-                    // --- AQUI ESTAVA O ERRO ---
-                    // Tens de limpar o 'display: none' do conteúdo também, 
-                    // senão ele fica preso como invisível mesmo que cliques no botão.
-                    contentRow.style.display = ''; 
-                    
-                } else {
-                    // SE NÃO ENCONTRAR:
-                    headerRow.style.display = 'none';
-                    contentRow.style.display = 'none';
-                }
+            const headerText = headerRow.textContent.toLowerCase();
+            const contentText = contentRow.textContent.toLowerCase();
+            const text = headerText + contentText;
+            
+            if (filter === '' || text.includes(filter)) {
+                // SE ENCONTRAR:
+                headerRow.classList.remove('hidden');
+                // Mantém a lógica de visibilidade do contentRow (não mexe, respeita o toggle)
+            } else {
+                // SE NÃO ENCONTRAR: Oculta ambos
+                headerRow.classList.add('hidden');
+                contentRow.classList.add('hidden');
             }
         });
     }
+
+    if (searchInput) {
+        // Quando o utilizador escreve, aplica o filtro e guarda na memória
+        searchInput.addEventListener('keyup', function () {
+            aplicarFiltroDePesquisa(this.value);
+            guardarEstado();
+        });
+    }
+
+    // --- RESTAURAR O ESTADO AO CARREGAR A PÁGINA ---
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Restaurar a Pesquisa
+        const pesquisaGuardada = sessionStorage.getItem('dies_search_query');
+        if (pesquisaGuardada && searchInput) {
+            searchInput.value = pesquisaGuardada;
+            aplicarFiltroDePesquisa(pesquisaGuardada);
+        }
+
+        // 2. Restaurar os Toggles
+        for (const id in togglesAbertos) {
+            const row = document.getElementById(id);
+            if (row) {
+                // Remove a class hidden
+                row.classList.remove('hidden');
+                
+                // Tenta encontrar o ícone para o rodar
+                // Lógica simples: se for um grupo (nível 1), procura no tr anterior
+                if (id.startsWith('group-')) {
+                    const headerRow = row.previousElementSibling;
+                    if (headerRow) {
+                        const icon = headerRow.querySelector('.fa-chevron-right');
+                        if (icon) icon.classList.add('rotate-90');
+                    }
+                } 
+                // Se for fieira (nível 2), procura no tr anterior
+                else if (id.startsWith('dies-')) {
+                    const headerRow = row.previousElementSibling;
+                    if (headerRow) {
+                        const icon = headerRow.querySelector('.fa-chevron-down');
+                        if (icon) icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            } else {
+                // Se o ID já não existe na página (ex: mudou de aba), limpa-o da memória
+                delete togglesAbertos[id];
+            }
+        }
+        guardarEstado(); // Limpa IDs "órfãos" caso tenham sido apagados no loop acima
+    });
 </script>
 {% endblock %}

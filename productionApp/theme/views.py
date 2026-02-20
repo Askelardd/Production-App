@@ -83,7 +83,6 @@ def documentosMenu(request):
 
 def productionMenu(request):
     q = request.GET.get('q', '').strip()
-    print("q:", q)
     results = []
     
     if q:
@@ -272,7 +271,8 @@ def listar_orders(request):
             Q(tracking_number__icontains=search_query) |
             Q(plant__icontains=search_query) |
             Q(courier__icontains=search_query) |
-            Q(comment__icontains=search_query) 
+            Q(comment__icontains=search_query) |
+            Q(orders_coming__order__icontains=search_query) 
         )
 
     if filtro_tipo == 'import':
@@ -1214,18 +1214,40 @@ def adicionar_dies(request, qr_id):
         'prefilled_data': prefilled_data,
     })
 
-
 @login_required
-def listar_qrcodes_com_dies(request):
-    # 1. Buscar tudo (incluindo as relações para não ficar lento no loop)
+def listar_qrcodes_geral(request):
+
+    estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
+
     all_qrcodes = QRData.objects.prefetch_related('die_instances', 'where_boxes').all().order_by('-created_at')
     
-    # 2. Agrupar por Toma/Ano
-    grouped_data = {}
+    pedidos_fechados = []
+    if estado in ['abertos', 'fechados']:
+        pedidos_unicos = QRData.objects.values('toma_order_nr', 'toma_order_year').distinct()
+        for pedido in pedidos_unicos:
+            nr = pedido['toma_order_nr']
+            ano = pedido['toma_order_year']
+            
+            tem_caixas_abertas = QRData.objects.filter(
+                toma_order_nr=nr, 
+                toma_order_year=ano
+            ).exclude(where_boxes__where='FECHADO').exists()
 
+            if not tem_caixas_abertas:
+                pedidos_fechados.append((nr, ano))
+
+    # 2. Agrupar os dados
+    grouped_data = {}
     for qr in all_qrcodes:
-        # Chave única: (Nr Toma, Ano)
         key = (qr.toma_order_nr, qr.toma_order_year)
+
+        # 3. A MAGIA DO FILTRO: Saltar as iterações que não interessam consoante o estado
+        if estado == 'fechados' and key not in pedidos_fechados:
+            continue # Salta para o próximo qr se quisermos os fechados e este não for
+            
+        if estado == 'abertos' and key in pedidos_fechados:
+            continue # Salta para o próximo qr se quisermos os abertos e este estiver fechado
+
 
         if key not in grouped_data:
             grouped_data[key] = {
@@ -1234,18 +1256,22 @@ def listar_qrcodes_com_dies(request):
                 'customer': qr.customer,
                 'customer_order_nr': qr.customer_order_nr,
                 'total_qt': 0,
-                'boxes': [] # Lista de caixas (objetos QRData)
+                'boxes': []
             }
         
-        # Somar a quantidade
         grouped_data[key]['total_qt'] += qr.qt
-        # Adicionar a caixa à lista
         grouped_data[key]['boxes'].append(qr)
 
-    # Converter para lista
     final_list = list(grouped_data.values())
 
-    return render(request, 'theme/listarDies.html', {'grouped_qrcodes': final_list})
+    # Passamos o 'estado_atual' para o HTML para podermos pintar o botão ativo!
+    context = {
+        'grouped_qrcodes': final_list,
+        'estado_atual': estado,
+    }
+    
+    # Mantemos apenas 1 ficheiro HTML! Podes apagar os outros 2.
+    return render(request, 'theme/listarDies.html', context)
 
 @login_required
 def create_caixa(request):
@@ -1298,7 +1324,6 @@ def create_caixa(request):
                 observations=data.get('observations', ''),
             )
 
-            print("toma_order_full:", toma_order_full)
 
             # 6. Log de Atividade
             globalLogs.objects.create(
@@ -1833,6 +1858,7 @@ def diametroMenu(request, toma_order_full):
                 messages.error(request, 'O número de fieiras deve ser positivo.')
             elif not diametro:
                 messages.error(request, 'Por favor, insira o valor do diâmetro.')
+            
             else:
                 PedidosDiametro.objects.create(
                     qr_code=qr_code,
@@ -1844,41 +1870,49 @@ def diametroMenu(request, toma_order_full):
                     observations=observations,
                     trabalhado=fieira_trabalhada,
                 )
+                
                 messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
+                
                 globalLogs.objects.create(
                     user=request.user,
                     action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
                 )
                 
-                send_mail(
-                    subject="Novo Pedido de Diâmetro",
-                    message=(
-                        f"Novo pedido de diâmetro criado:\n"
-                        f"Pedido criado por {request.user.username}\n"
-                        f"- QR Code: {qr_code.toma_order_full}\n"
-                        f"- Cliente: {qr_code.customer}\n"
-                        f"- Diâmetro: {diametro}\n"
-                        f"- Nº de fieiras: {numero}\n"
-                        f"- Pedido por: {pedido_por or '-'}\n"
-                        f"- Matrícula: {serie_dies or '-'}\n"
-                        f"- Observações: {observations or '-'}"
-                    ),
-                    from_email=None,               # usa DEFAULT_FROM_EMAIL
-                    recipient_list=settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL],  # lista de emails
-                    fail_silently=False,
-                )
+                # Bloco de Email
+                try:
+                    send_mail(
+                        subject="Novo Pedido de Diâmetro",
+                        message=(
+                            f"Novo pedido de diâmetro criado:\n"
+                            f"Pedido criado por {request.user.username}\n"
+                            f"- QR Code: {qr_code.toma_order_full}\n"
+                            f"- Cliente: {qr_code.customer}\n"
+                            f"- Diâmetro: {diametro}\n"
+                            f"- Nº de fieiras: {numero}\n"
+                            f"- Pedido por: {pedido_por or '-'}\n"
+                            f"- Matrícula: {serie_dies or '-'}\n"
+                            f"- Observações: {observations or '-'}"
+                        ),
+                        from_email=None,
+                        recipient_list=settings.EMAIL_DIAMETRO if isinstance(settings.EMAIL_DIAMETRO, list) else [settings.EMAIL_DIAMETRO],
+                        fail_silently=False, 
+                    )
+                except Exception as e:
+                    messages.error(request, f"Pedido adicionado, mas falha ao enviar email: {str(e)}")
+
+                return redirect('listarDies') 
 
         except ValueError:
             messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
         except Exception as e:
             messages.error(request, f'Erro ao adicionar pedido: {str(e)}')
-    
-    
+            
     return render(request, 'theme/diametroMenu.html', {
         'qr_code': qr_code,
         'dies_existentes': dies_existentes,
         'choices' : observation_choices,
     })
+                
 
 @login_required
 def listarPartidos(request):
@@ -1984,7 +2018,6 @@ def deliveryCalendar(request):
 
 @login_required
 def create_tracking(request, pk=None):
-    print( f"create_tracking called with pk={pk}" )
     tracking = get_object_or_404(Tracking, pk=pk) if pk else None
 
     view_type = request.GET.get('view', 'cards')
@@ -2738,7 +2771,7 @@ def deletar_fornecedor(request, id):
         return redirect('listarFornecedores')
     
 def templateFiles(request):
-    templates = Template.objects.all().order_by('name')
+    templates = Template.objects.all().order_by('department')
     return render(request, 'theme/templateFiles.html', {'templates': templates})
 
 @require_POST
