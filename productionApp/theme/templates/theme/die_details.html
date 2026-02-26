@@ -16,8 +16,8 @@
 
         <div class="md:col-span-2">
             <label for="observations" class="block text-sm font-medium">Observações:</label>
-            <textarea name="observations" id="observations" rows="3"
-                      class="w-full border p-2 rounded">{{ die.observations|default_if_none:'' }}</textarea>
+            <textarea name="observations_prod" id="observations" rows="3"
+                      class="w-full border p-2 rounded">{{ die.observations_prod|default_if_none:'' }}</textarea>
         </div>
     </div>
     <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">

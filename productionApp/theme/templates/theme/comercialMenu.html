@@ -2,28 +2,55 @@
 {% load static %}
 
 {% block content %}
-<div class="flex flex-col justify-center items-center min-h-screen px-4">
-    <h1 class="text-3xl font-bold mb-8 text-center">Menu Comercial</h1>
+<div class="py-12 px-4 max-w-5xl mx-auto min-h-[80vh] flex flex-col justify-center">
+    
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-black text-black tracking-tight">
+            Menu Comercial
+        </h1>
+        <div class="h-1.5 w-24 bg-[#00b7ed] mx-auto mt-4 rounded-full"></div>
+    </div>
 
-    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    
+    <a href="{% url 'listQrcodes' %}" class="group">
+        <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+            <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+            </div>
+            <span class="text-xl font-bold text-black uppercase tracking-wide">CRM Delivery Identification</span>
+        </div>
+    </a>
 
-        <a href="{% url 'listQrcodes' %}" class="w-full">
-            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
-                CRM Delivery Identification
-            </button>
+    <a href="{% url 'deliveryCalendar' %}" class="group">
+        <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+            <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            <span class="text-xl font-bold text-black uppercase tracking-wide">CRM Delivery Calendar</span>
+        </div>
+    </a>
+
+    <a href="{% url 'listarInfo' %}" class="group">
+        <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+            <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <span class="text-xl font-bold text-black uppercase tracking-wide">CRM List</span>
+        </div>
+    </a>
+</div>
+    <div class="mt-16 text-center">
+        <a href="javascript:history.back()" class="inline-flex items-center text-black/70 hover:text-black transition-colors font-medium">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Voltar ao Menu Principal
         </a>
-
-        <a href="{% url 'deliveryCalendar' %}" class="w-full">
-            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
-                CRM Delivery Calendar
-            </button>
-        </a>
-
-        <a href="{% url 'listarInfo' %}" class="w-full">
-            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
-                CRM List
-            </button>
-
     </div>
 </div>
 {% endblock %}

@@ -191,7 +191,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="9" class="text-center text-gray-500 py-4">Sem orders ainda.</td>
+            <td colspan="12" class="text-center text-gray-500 py-4">Sem orders ainda.</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -261,7 +261,7 @@
           
           // Limpa o texto da caixa de pesquisa
           const barraPesquisa = document.querySelector('input[name="q"]');
-          if (barraPesquisa) barraPesquisa.value = ''; 210
+          if (barraPesquisa) barraPesquisa.value = '';
           
           form.submit(); // Recarrega a página limpa
       });

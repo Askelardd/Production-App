@@ -59,37 +59,57 @@
         {% endif %}
     </div>
 
-    <div class="flex-grow flex flex-col justify-center items-center w-full">
-        
-        <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">Menu Produção</h1>
-
-        <div class="flex flex-col gap-4 w-full max-w-md">
-            <a href="{% url 'listarDies' %}" class="w-full transform hover:scale-105 transition-transform duration-200">
-                <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg">
-                    Pedidos em Produção
-                </button>
-            </a>
-
-            <!-- <a href="{% url 'localizarFieira' %}" class="w-full transform hover:scale-105 transition-transform duration-200">
-                <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg">
-                    Localizar a Fieira
-                </button>
-            </a> -->
-
-            <a href="{% url 'fieira_path' %}" class="w-full transform hover:scale-105 transition-transform duration-200">
-                <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg">
-                    Tracking das Fieiras
-                </button>
-            </a>
-
-            <a href="{% url 'listarCalibracoes' %}" class="w-full transform hover:scale-105 transition-transform duration-200">
-                <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-lg">
-                    Calibrações
-                </button>
-            </a>
-        </div>
+    <div class="py-12 px-4 max-w-5xl mx-auto min-h-[80vh] flex flex-col justify-center">
+    
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-black text-black tracking-tight">
+            Menu Produção
+        </h1>
+        <div class="h-1.5 w-24 bg-[#00b7ed] mx-auto mt-4 rounded-full"></div>
     </div>
 
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <a href="{% url 'listarDies' %}" class="group">
+            <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+                <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Pedidos em Produção</span>
+            </div>
+        </a>
+
+        <a href="{% url 'fieira_path' %}" class="group">
+            <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+                <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Tracking das Fieiras</span>
+            </div>
+        </a>
+
+        <a href="{% url 'listarCalibracoes' %}" class="group">
+            <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+                <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Calibrações</span>
+            </div>
+        </a>
+    </div>
+
+    <div class="mt-16 text-center">
+        <a href="javascript:history.back()" class="inline-flex items-center text-black/70 hover:text-black transition-colors font-medium">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Voltar ao Menu Principal
+        </a>
+    </div>
 </div>
 {% endblock %}
 

@@ -89,7 +89,9 @@
             <tr class="hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-200 bg-white" 
                 onclick="toggleGroup('group-{{ forloop.counter }}', this)">
                 <td class="px-4 py-5 text-center text-blue-500">
-                    <i class="fa-solid fa-chevron-right transition-transform duration-200 transform"></i>
+                    <svg class="fa-solid fa-chevron-right transition-transform duration-200 transform w-4 h-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
                 </td>
                 <td class="px-4 py-5 font-medium">{{ group.customer }}</td>
                 <td class="px-4 py-5">{{ group.customer_order_nr }}</td>
@@ -152,21 +154,37 @@
                                                 <input type="hidden" name="customer_order_nr" value="{{ qr.customer_order_nr }}">
                                                 <input type="hidden" name="toma_order_nr" value="{{ qr.toma_order_nr }}">
                                                 <input type="hidden" name="toma_order_year" value="{{ qr.toma_order_year }}">
-
-                                                <div class="view-mode flex items-center justify-center gap-2">
-                                                    <button type="button" onclick="enableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700">
-                                                        <i class="fa-solid fa-pen"></i>
+                                                <div class="view-mode flex items-center justify-center gap-3">
+                                                    <button type="button" onclick="enableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 transition-colors" title="Editar">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                                                        </svg>
                                                     </button>
-                                                    <a href="{% url 'adicionar_dies' qr.id %}" onclick="event.stopPropagation();" class="text-yellow-600 hover:text-yellow-800" title="Ver Dies">
-                                                        <i class="fa-solid fa-layer-group"></i>
+
+                                                    <a href="{% url 'adicionar_dies' qr.id %}" onclick="event.stopPropagation();" class="text-yellow-600 hover:text-yellow-800 transition-colors" title="Ver Dies">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.25 2.25 0 0 0-1.5 2.122v.878m15 0A2.25 2.25 0 0 1 21 12.878v.878m-16.5 0a2.25 2.25 0 0 0-1.5 2.122v.878m16.5 0a2.25 2.25 0 0 1 1.5 2.122v.878M3 18.75a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-4.75A2.25 2.25 0 0 1 5.25 11.75h13.5A2.25 2.25 0 0 1 21 14v4.75" />
+                                                        </svg>
                                                     </a>
-                                                    <a href="{% url 'export_qrcode_excel' qr.id %}" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800">
-                                                        <i class="fa-solid fa-file-excel"></i>
+
+                                                    <a href="{% url 'export_qrcode_excel' qr.id %}" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800 transition-colors" title="Exportar Excel">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                                                        </svg>
                                                     </a>
                                                 </div>
                                                 <div class="edit-mode hidden flex items-center justify-center gap-2">
-                                                    <button type="submit" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800"><i class="fa-solid fa-check"></i></button>
-                                                    <button type="button" onclick="disableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-xmark"></i></button>
+                                                    <button type="submit" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800 transition-colors">
+                                                        <svg class="fa-solid fa-check w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                                        </svg>
+                                                    </button>
+
+                                                    <button type="button" onclick="disableEdit('{{ qr.id }}'); event.stopPropagation();" class="text-red-600 hover:text-red-800 transition-colors">
+                                                        <svg class="fa-solid fa-xmark w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                                        </svg>
+                                                    </button>
                                                 </div>
                                             </form>
                                         {% endif %}

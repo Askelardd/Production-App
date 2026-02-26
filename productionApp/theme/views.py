@@ -34,9 +34,35 @@ from .models import *  # type: ignore
 def stock_overview(request):
     return redirect('http://192.168.1.112:18000')    
 
+
 def home(request):
-    users = User.objects.all()
-    return render(request, 'theme/home.html', {'users': users})
+    # Lista com a ordem que queres que apareça no ecrã
+    grupos_ordenados = ['Administracao', 'Producao', 'Q-Office', 'Comercial']
+    
+    # Vamos construir uma lista de dicionários para passar ao HTML
+    usuarios_por_grupo = []
+
+    for nome_grupo in grupos_ordenados:
+        # Vai buscar os utilizadores que pertencem a este grupo, ordenados por nome
+        usuarios = User.objects.filter(groups__name=nome_grupo).order_by('username')
+        
+        # Se houver utilizadores neste grupo, adicionamos à nossa lista final
+        if usuarios.exists():
+            usuarios_por_grupo.append({
+                'nome_grupo': nome_grupo,
+                'usuarios': usuarios
+            })
+
+    # Caso tenhas utilizadores sem grupo atribuído e os queiras mostrar (Opcional)
+    usuarios_sem_grupo = User.objects.filter(groups__isnull=True).order_by('username')
+    if usuarios_sem_grupo.exists():
+        usuarios_por_grupo.append({
+            'nome_grupo': 'Outros',
+            'usuarios': usuarios_sem_grupo
+        })
+
+    # Passamos a nova estrutura agrupada para o template
+    return render(request, 'theme/home.html', {'usuarios_por_grupo': usuarios_por_grupo})
 
 def erro403(request, exception=None):
     return render(request, '403.html', status=403)
@@ -273,7 +299,7 @@ def listar_orders(request):
             Q(courier__icontains=search_query) |
             Q(comment__icontains=search_query) |
             Q(orders_coming__order__icontains=search_query) 
-        )
+        ).distinct()
 
     if filtro_tipo == 'import':
         orders = orders.exclude(plant__iexact='toma')
@@ -1364,7 +1390,7 @@ def die_details(request, die_id):
         elif action == "update_diametros":
             d_min = request.POST.get('diametro_min')
             d_max = request.POST.get('diametro_max')
-            obs = request.POST.get('observations', '').strip()
+            obs = request.POST.get('observations_prod', '').strip()
 
             try:
                 # Converter para Decimal
@@ -1384,7 +1410,7 @@ def die_details(request, die_id):
                         new_diam = Diameters.objects.create(min=val_min, max=val_max)
                         die.diam_max_min = new_diam
                     
-                    die.observations = obs
+                    die.observations_prod = obs
                     die.save()
                     
                     messages.success(request, "Dados gerais do Die atualizados!")
