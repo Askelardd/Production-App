@@ -81,9 +81,10 @@ class QRDataAdmin(admin.ModelAdmin):
 # -------------------
 @admin.register(dieInstance)
 class DieInstanceAdmin(admin.ModelAdmin):
-    list_display = ['serial_number', 'customer', 'die', 'job', 'diameter_text', 'tolerance', 'partida', 'created_at']
-    search_fields = ['serial_number', 'customer__customer', 'die__die_type', 'job__descricao']
-    list_filter = ['job', 'die', 'tolerance', 'partida', 'created_at']
+    list_display = ['serial_number', 'customer', 'die', 'job', 'diameter_text', 'cone', 'bearing', 'bearing_is_red', 'tolerance', 'partida', 'created_at']
+    search_fields = ['serial_number', 'customer__customer', 'die__die_type', 'job__descricao', 'cone', 'bearing']
+    list_filter = ['job', 'die', 'tolerance', 'partida', 'bearing_is_red', 'created_at']
+    readonly_fields = ['created_at']
     list_per_page = 20
 
 

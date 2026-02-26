@@ -41,23 +41,24 @@
         </div>
     </div>
 </form>
-<div class="overflow-x-auto">
-  <table id="faturasTable" class="min-w-full bg-white border border-gray-200">
-    <thead>
-      <tr>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Supplier</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice Number</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
-        <th class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
-      </tr>
-    </thead>
+<div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg">
+    <table id="faturasTable" class="min-w-full bg-white border-collapse">
+    
+        <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm">
+        <tr>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Supplier</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice Number</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
+            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
+        </tr>
+        </thead>
     <tbody id="faturasTableBody">
       {% for fatura in invoice_qs %}
       <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors 

@@ -2,25 +2,47 @@
 {% load static %}
 
 {% block content %}
-<div class="flex flex-col justify-center items-center min-h-screen px-4">
-    <h1 class="text-3xl font-bold mb-8 text-center">Menu Financeiro</h1>
-
-    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center">
-        <a href="{% url 'listarFaturas' %}" class="w-full">
-            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
-                Faturas
-            </button>
-        </a>
+<div class="min-h-screen p-6 flex flex-col items-center justify-center">
+    
+    <div class="mb-12 text-center">
+        <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">
+            Menu Financeiro
+        </h1>
+        <div class="h-1.5 w-20 bg-[#00b7ed] mx-auto mt-4 rounded-full"></div>
     </div>
 
-    <div class="flex flex-col gap-4 w-full max-w-md sm:max-w-lg md:justify-center mt-6">
-        <a href="{% url 'listarFornecedores' %}" class="w-full">
-            <button class="w-full bg-[#00b7ed] hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
-                Fornecedores
-            </button>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-4xl">
+
+        <a href="{% url 'listarFaturas' %}" class="group">
+            <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+                <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 11V9m0 0a2 2 0 100-4 2 2 0 000 4zm0 0v2" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-gray-800 uppercase tracking-wide">Faturas</span>
+            </div>
         </a>
+
+        <a href="{% url 'listarFornecedores' %}" class="group">
+            <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
+                <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-gray-800 uppercase tracking-wide">Fornecedores</span>
+            </div>
+        </a>
+
     </div>
 
-
+    <div class="mt-16 text-center">
+        <a href="javascript:history.back()" class="inline-flex items-center text-black/70 hover:text-black transition-colors font-medium">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Voltar ao Menu Principal
+        </a>
+    </div>
 </div>
 {% endblock %}

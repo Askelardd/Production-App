@@ -2,5 +2,19 @@
   "dependencies": {
     "apexcharts": "^5.3.6",
     "flowbite": "^4.0.1"
-  }
+  },
+  "name": "productionapp",
+  "version": "1.0.0",
+  "description": "Este projeto foi desenvolvido com o objetivo de **organizar e otimizar o setor de Produção, Q-Office, Administração e Comercial da empresa Toma Tools**, garantindo melhor controle sobre **onde estão e como estão as caixas, fieiras e encomendas da empresa**.",
+  "main": "index.js",
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }

@@ -167,6 +167,7 @@ class dieInstance(models.Model):
     partida = models.BooleanField(default=False)
     diam_max_min = models.ForeignKey(Diameters, on_delete=models.CASCADE, related_name='die_instances_max_min', null=True, blank=True) 
     observations = models.TextField(blank=True, null=True)
+    observations_prod = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
