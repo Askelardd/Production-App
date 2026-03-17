@@ -72,6 +72,13 @@
 
     <div class="mb-4">
       <label class="flex items-center space-x-2">
+        <input type="checkbox" name="pin" {% if oc.pin %}checked{% endif %}>
+        <span>Pin Measurement</span>
+      </label>
+    </div>
+
+    <div class="mb-4">
+      <label class="flex items-center space-x-2">
         <input type="checkbox" name="casing" {% if oc.casing %}checked{% endif %}>
         <span>Casing Reduction</span>
       </label>

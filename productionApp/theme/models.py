@@ -96,6 +96,7 @@ class QRData(models.Model):
     production_start = models.DateField(blank=True, null=True)
     envio = models.DateField(blank=True, null=True)
     observations = models.TextField(blank=True, null=True)
+    observations_prod = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         self.toma_order_full = f"{self.toma_order_year}-{self.toma_order_nr}-{self.box_nr}"
@@ -202,8 +203,9 @@ class PedidosDiametro(models.Model):
         choices=[
             ('buraco_no_cone', 'Buraco no Cone'),
             ('buraco_no_calibre', 'Buraco no Calibre'),
-            ('riscos_cone', 'Riscos no Cone'),
-            ('riscos_calibre', 'Riscos no Calibre'),
+            ('riscos_cone', 'Raias no Cone'),
+            ('riscos_calibre', 'Raias no Calibre'),
+            ('cortes', 'Cortes'),
             ('margem', 'Margem'),
             ('outros', 'Outros'),
         ],
@@ -352,6 +354,7 @@ class OrdersComing(models.Model):
     semifinished = models.BooleanField(default=False)
     casing = models.BooleanField(default=False)
     mark = models.BooleanField(default=False)
+    pin = models.BooleanField(default=False)
     urgent = models.BooleanField(default=False)
     done = models.BooleanField(default=False)
     data_done = models.DateField(null=True, blank=True)
@@ -594,3 +597,16 @@ class TemplateFiles(models.Model):
 
     def __str__(self):
         return f"{self.file.name} - template - {self.template.name}"
+    
+class Polimentos(models.Model):
+    choices = [
+        ('polimentoE', 'Polimento Entrada'),
+        ('polimentoS', 'Polimento Saida'),
+        ('polimentoC', 'Polimento Cone'),
+    ]
+    numero_fieiras = models.IntegerField()
+    cliente = models.CharField(max_length=100, blank=True, null=True)
+    tipo = models.CharField(max_length=20, choices=choices)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    observations = models.TextField(blank=True, null=True)

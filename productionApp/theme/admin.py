@@ -1,11 +1,8 @@
 from django.contrib import admin # type: ignore
 from django import forms  # type: ignore
 
-from django import forms  # type: ignore
-
 from .models import (
     FaturaEstrangeitoFile, FaturaPagoFile, Order, Products, ProductDeleteLog, QRData, Jobs,
-    Order, Products, ProductDeleteLog, QRData, Jobs,
     Diameters, Die, Tolerance,
     NumeroPartidos, PedidosDiametro,
     dieInstance,
@@ -29,11 +26,9 @@ from .models import (
     Fornecedor,
     faturas,
     FaturaFile,
-    FaturaEstrangeitoFile,
-    FaturaPagoFile,
     Template,
-    TemplateFiles
-    
+    TemplateFiles,
+    Polimentos
 )
 
 # -------------------
@@ -70,7 +65,7 @@ class DieInstanceInline(admin.TabularInline):
 @admin.register(QRData)
 class QRDataAdmin(admin.ModelAdmin):
     list_display = ['customer', 'toma_order_nr', 'customer_order_nr', 'qt', 'created_at']
-    search_fields = ['customer', 'toma_order_nr', 'customer_order_nr']
+    search_fields = ['customer', 'toma_order_nr', 'customer_order_nr', 'toma_order_full']
     list_filter = ['created_at']
     inlines = [DieInstanceInline]
     list_per_page = 20
@@ -95,13 +90,27 @@ class DieWorkWorkerInline(admin.TabularInline):
     model = DieWorkWorker
     extra = 2
     fields = ['worker', 'diam_min', 'diam_max', 'added_at']
-    readonly_fields = []
+    readonly_fields = ['added_at']
+
+
 @admin.register(DieWork)
 class DieWorkAdmin(admin.ModelAdmin):
     list_display = ['die', 'work_type', 'subtype', 'created_at']
     search_fields = ['die__serial_number', 'work_type', 'subtype']
     list_filter = ['work_type', 'created_at']
     inlines = [DieWorkWorkerInline]
+    list_per_page = 20
+
+
+# -------------------
+# DieWorkWorker
+# -------------------
+@admin.register(DieWorkWorker)
+class DieWorkWorkerAdmin(admin.ModelAdmin):
+    list_display = ['worker', 'work', 'diam_min', 'diam_max', 'added_at']
+    search_fields = ['worker__username', 'work__die__serial_number', 'work__work_type']
+    list_filter = ['work__work_type', 'added_at', 'worker']
+    readonly_fields = ['added_at']
     list_per_page = 20
 
 
@@ -114,7 +123,6 @@ class WhereDieAdmin(admin.ModelAdmin):
     list_filter = ['where', 'updated_at']
     search_fields = ['die__serial_number']
 
-    
 
 # -------------------
 # WhereBox
@@ -125,7 +133,6 @@ class WhereBoxAdmin(admin.ModelAdmin):
     search_fields = ['order_number__toma_order_nr']
     list_filter = ['where']
     list_per_page = 20
-
 
 
 # -------------------
@@ -170,16 +177,18 @@ class ToleranceAdmin(admin.ModelAdmin):
 
 @admin.register(NumeroPartidos)
 class NumeroPartidosAdmin(admin.ModelAdmin):
-    list_display = ['qr_code', 'partido', 'created_at']
+    list_display = ['qr_code', 'partido', 'checkbox', 'created_at']
     search_fields = ['qr_code__toma_order_nr']
-    list_filter = ['created_at']
+    list_filter = ['created_at', 'checkbox']
 
 
 @admin.register(PedidosDiametro)
 class PedidosDiametroAdmin(admin.ModelAdmin):
-    list_display = ['qr_code', 'diametro', 'numero_fieiras', 'created_at']
+    list_display = ['qr_code', 'diametro', 'numero_fieiras', 'checkbox', 'created_at']
     search_fields = ['qr_code__toma_order_nr', 'diametro']
-    list_filter = ['created_at', 'checkbox']
+    list_filter = ['created_at', 'checkbox', 'trabalhado']
+    readonly_fields = ['created_at']
+
 
 @admin.register(InfoFieira)
 class InfoFieiraAdmin(admin.ModelAdmin):
@@ -187,24 +196,25 @@ class InfoFieiraAdmin(admin.ModelAdmin):
     search_fields = ['serial_number', 'utilizador__username']
     list_filter = ['quando', 'utilizador']
     list_per_page = 20
+    readonly_fields = ['data_criacao']
 
 
 # -------------------
-# DeliveryInfo, DeliveryEntity
+# DeliveryInfo, DeliveryEntity, DeliveryType
 # -------------------
-
 @admin.register(DeliveryEntity)
 class DeliveryEntityAdmin(admin.ModelAdmin):
-    list_display = ['name']
-    search_fields = ['name']
+    list_display = ['name', 'email']
+    search_fields = ['name', 'email']
+
 
 @admin.register(DeliveryType)
 class DeliveryTypeAdmin(admin.ModelAdmin):
-    list_display = ['name']  # Removed 'description' since it does not exist on the model
+    list_display = ['name']
     search_fields = ['name']
     list_per_page = 20
 
-# --- Admin do DeliveryInfo usando o form acima ---
+
 class DeliveryInfoForm(forms.ModelForm):
     class Meta:
         model = DeliveryInfo
@@ -213,25 +223,22 @@ class DeliveryInfoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Mostrar apenas toma_order_full para identificator
         if 'identificator' in self.fields:
             self.fields['identificator'].queryset = QRData.objects.order_by('toma_order_full')
             self.fields['identificator'].label_from_instance = lambda obj: obj.toma_order_full
 
-        # Mostrar apenas name para deliveryEntity
         if 'deliveryEntity' in self.fields:
             self.fields['deliveryEntity'].queryset = DeliveryEntity.objects.order_by('name')
             self.fields['deliveryEntity'].label_from_instance = lambda obj: obj.name
 
-        # Mostrar apenas name para deliveryType
         if 'deliveryType' in self.fields:
             self.fields['deliveryType'].queryset = DeliveryType.objects.order_by('name')
             self.fields['deliveryType'].label_from_instance = lambda obj: obj.name
 
-        # Dica visual
         self.fields['deliveryEntity'].help_text = (
             "Quando Delivery Type = Customer, este campo é preenchido automaticamente com o nome do cliente do QR."
         )
+
 
 @admin.register(DeliveryInfo)
 class DeliveryInfoAdmin(admin.ModelAdmin):
@@ -241,20 +248,13 @@ class DeliveryInfoAdmin(admin.ModelAdmin):
     search_fields = ('identificator__toma_order_full', 'deliveryEntity__name', 'costumer')
     list_per_page = 20
 
-    # (opcional) autocompletar se preferires em vez de dropdown
-    # autocomplete_fields = ('identificator', 'deliveryEntity', 'deliveryType')
-
     def identificator_toma(self, obj):
         return getattr(obj.identificator, 'toma_order_full', None)
     identificator_toma.short_description = 'TOMA'
 
     class Media:
-        # carrega o JS que esconde/desativa o campo deliveryEntity quando Type=Customer
         js = ('theme/js/deliveryinfo_admin.js',)
 
-# -------------------
-# Order , OrderFile
-# -------------------
 
 # -------------------
 # OrdersComing
@@ -266,22 +266,25 @@ class OrdersComingAdmin(admin.ModelAdmin):
     list_filter = ['inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
     list_per_page = 20
 
+
 # -------------------
 # Order + Inline OrderFile
 # -------------------
 class OrderFileInline(admin.TabularInline):
     model = OrderFile
-    extra = 0
+    extra = 1
     fields = ['file', 'uploaded_at', 'restricted']
     readonly_fields = ['uploaded_at']
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['tracking_number', 'courier', 'shipping_date', 'comment']
-    search_fields = ['tracking_number', 'courier', 'orders_coming__order', 'comment']
-    list_filter = ['courier', 'shipping_date', 'orders_coming', 'arriving_date']
+    list_display = ['tracking_number', 'courier', 'shipping_date', 'plant', 'exportado']
+    search_fields = ['tracking_number', 'courier', 'comment']
+    list_filter = ['courier', 'shipping_date', 'plant', 'exportado']
     inlines = [OrderFileInline]
     list_per_page = 20
+
 
 # -------------------
 # OrderFile
@@ -292,6 +295,8 @@ class OrderFileAdmin(admin.ModelAdmin):
     search_fields = ['order__tracking_number', 'order__courier']
     list_filter = ['order__courier', 'order__shipping_date', 'restricted']
     list_per_page = 20
+    readonly_fields = ['uploaded_at']
+
 
 # -------------------
 # Tracking
@@ -307,16 +312,12 @@ class TrackingAdmin(admin.ModelAdmin):
         'crm', 'transportadora', 'carta_de_porte', 
         'numero_recolha', 'recebido_por', 'cliente', 'email', 'observacoes'
     ]
-    list_filter = ['finalidade', 'transportadora', 'data', 'data_entrega']
+    list_filter = ['finalidade', 'transportadora', 'data', 'data_entrega', 'enviado']
     list_per_page = 20
 
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.prefetch_related('files')
-
-    def save_related(self, request, form, formsets, change):
-        super().save_related(request, form, formsets, change)
-        form.instance.files.set(form.cleaned_data.get('files', []))
 
 
 @admin.register(TrackingFile)
@@ -324,6 +325,7 @@ class TrackingFileAdmin(admin.ModelAdmin):
     list_display = ['file', 'uploaded_at']
     readonly_fields = ['uploaded_at']
     list_per_page = 20
+
 
 # -------------------
 # Maquinas
@@ -357,21 +359,23 @@ class DetalhesMedicaoInline(admin.TabularInline):
 @admin.register(Medicao)
 class MedicaoAdmin(admin.ModelAdmin):
     list_display = ['machine', 'diameter', 'date']
-    search_fields = ['machine__machine_name', 'diameter__serie_number', 'date']
+    search_fields = ['machine__machine_name', 'diameter__serie_number']
     list_filter = ['machine', 'date']
     inlines = [DetalhesMedicaoInline]
     list_per_page = 20
+    readonly_fields = ['date']
 
 
 # -------------------
-# Medicao Detalhes
+# DetalhesMedicao
 # -------------------
 @admin.register(DetalhesMedicao)
-class MedicaoDetalhesAdmin(admin.ModelAdmin):
+class DetalhesMedicaoAdmin(admin.ModelAdmin):
     list_display = ['medicao', 'read_number', 'diameter', 'bearing', 'ovality', 'operador']
     search_fields = ['medicao__id', 'operador__username', 'bearing']
     list_filter = ['operador', 'medicao']
     list_per_page = 20
+
 
 # -------------------
 # CalibracaoMaquina
@@ -382,6 +386,7 @@ class CalibracaoMaquinaAdmin(admin.ModelAdmin):
     search_fields = ['machine__machine_name', 'operador__username']
     list_filter = ['date', 'machine', 'operador']
     list_per_page = 20
+    readonly_fields = ['date']
 
 
 # -------------------
@@ -409,7 +414,7 @@ class FaturaPagoFileInline(admin.TabularInline):
 
 
 # -------------------
-# Fornecedor + Faturas
+# Fornecedor + faturas
 # -------------------
 class FaturasInline(admin.TabularInline):
     model = faturas
@@ -420,7 +425,7 @@ class FaturasInline(admin.TabularInline):
 
 @admin.register(Fornecedor)
 class FornecedorAdmin(admin.ModelAdmin):
-    list_display = ['name', 'vat', 'debito_direto', 'estrangeiro', 'email', 'telefone','dados_bancarios']
+    list_display = ['name', 'vat', 'debito_direto', 'estrangeiro', 'email', 'telefone', 'dados_bancarios']
     search_fields = ['name', 'vat', 'email', 'telefone']
     list_filter = ['debito_direto', 'estrangeiro']
     inlines = [FaturasInline]
@@ -429,12 +434,17 @@ class FornecedorAdmin(admin.ModelAdmin):
 
 @admin.register(faturas)
 class FaturasAdmin(admin.ModelAdmin):
-    list_display = ['fatura_unica', 'numero_fatura', 'data_fatura', 'data_emissao', 'valor', 'pago', 'created_at']
+    list_display = ['fatura_unica', 'numero_fatura', 'data_fatura', 'data_emissao', 'valor', 'pago', 'is_urgent_display', 'created_at']
     search_fields = ['numero_fatura', 'fatura_unica', 'fornecedor__name', 'fornecedor__vat']
     list_filter = ['data_fatura', 'fornecedor', 'pago', 'created_at']
     inlines = [FaturaFileInline, FaturaEstrangeitoFileInline, FaturaPagoFileInline]
     list_per_page = 20
-    readonly_fields = ['fatura_unica']
+    readonly_fields = ['fatura_unica', 'created_at']
+
+    def is_urgent_display(self, obj):
+        return obj.is_urgent
+    is_urgent_display.boolean = True
+    is_urgent_display.short_description = 'Urgente'
 
 
 @admin.register(FaturaFile)
@@ -462,22 +472,11 @@ class FaturaPagoFileAdmin(admin.ModelAdmin):
     list_filter = ['uploaded_at', 'fatura__fornecedor']
     list_per_page = 20
     readonly_fields = ['uploaded_at']
-# -------------------
+
 
 # -------------------
-# templateFiles
+# Template + TemplateFiles
 # -------------------
-@admin.register(TemplateFiles)
-class TemplateFilesAdmin(admin.ModelAdmin):
-    list_display = ['file', 'uploaded_at']
-    list_filter = ['uploaded_at']
-    list_per_page = 20
-    readonly_fields = ['uploaded_at']
-
-# -------------------
-# Template + Inline TemplateFiles
-# -------------------
-
 class TemplateFilesInline(admin.TabularInline):
     model = TemplateFiles
     extra = 1
@@ -491,4 +490,24 @@ class TemplateAdmin(admin.ModelAdmin):
     search_fields = ['name', 'department', 'description']
     list_filter = ['department', 'approved', 'created_at', 'editor']
     inlines = [TemplateFilesInline]
+    list_per_page = 20
+    readonly_fields = ['created_at', 'last_updated']
+
+
+@admin.register(TemplateFiles)
+class TemplateFilesAdmin(admin.ModelAdmin):
+    list_display = ['template', 'file', 'uploaded_at']
+    search_fields = ['template__name', 'file']
+    list_filter = ['template', 'uploaded_at']
+    list_per_page = 20
+    readonly_fields = ['uploaded_at']
+
+# -------------------
+# Polimentos
+# -------------------
+@admin.register(Polimentos)
+class PolimentosAdmin(admin.ModelAdmin):
+    list_display = ['numero_fieiras', 'tipo', 'user', 'created_at']
+    search_fields = ['numero_fieiras', 'user__username', 'observations']
+    list_filter = ['tipo', 'created_at', 'user']
     list_per_page = 20

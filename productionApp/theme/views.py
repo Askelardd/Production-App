@@ -30,7 +30,8 @@ from django.views.decorators.http import require_http_methods, require_POST  # t
 from collections import OrderedDict
 import openpyxl
 from .models import *  # type: ignore
-
+from collections import defaultdict
+from django.db.models.functions import TruncDate
 def stock_overview(request):
     return redirect('http://192.168.1.112:18000')    
 
@@ -253,6 +254,7 @@ def create_orders_coming_ajax(request):
                 recondicioning=data.get('recondicioning', False),
                 semifinished=data.get('semifinished', False),
                 casing=data.get('casing', False),
+                pin=data.get('pin', False),
                 done=data.get('done', False),
                 comment=data.get('comment', ''),
             )
@@ -261,6 +263,7 @@ def create_orders_coming_ajax(request):
                 'data': {
                     'id': oc.id,
                     'order': oc.order,
+                    'pin': oc.pin,
                 }
             })
         except Exception as e:
@@ -478,6 +481,7 @@ def edit_orders_coming(request, oc_id):
         orders_coming.days_3_4 = request.POST.get('days_3_4') == 'on'
         orders_coming.recondicioning = request.POST.get('recondicioning') == 'on'
         orders_coming.semifinished = request.POST.get('semifinished') == 'on'
+        orders_coming.pin = request.POST.get('pin') == 'on'
         orders_coming.casing = request.POST.get('casing') == 'on'
         orders_coming.done = request.POST.get('done') == 'on' 
         done = request.POST.get('done') == 'on'
@@ -527,6 +531,7 @@ def exportOrderExcel(request, order_id):
             'Days 3-4': 'Sim' if oc.days_3_4 else '-',
             'Recondicioning': 'Sim' if oc.recondicioning else '-',
             'Semifinished': 'Sim' if oc.semifinished else '-',
+            'Pin': 'Sim' if oc.pin else '-',
             'Casing': 'Sim' if oc.casing else '-',
             'Done': 'Sim' if oc.done else '-',
             'Comment': oc.comment,
@@ -806,30 +811,6 @@ def edit_qr_inline(request, qr_id):
         
     return redirect(request.META.get('HTTP_REFERER', 'listarDies'))
 
-@login_required
-def edit_qr_inline(request, qr_id):
-    if request.method == "POST":
-        qr = get_object_or_404(QRData, id=qr_id)
-        
-        # Atualiza os campos
-        qr.customer = request.POST.get('customer')
-        qr.customer_order_nr = request.POST.get('customer_order_nr')
-        qr.toma_order_nr = request.POST.get('toma_order_nr')
-        qr.toma_order_year = request.POST.get('toma_order_year')
-        qr.box_nr = request.POST.get('box_nr')
-        qr.qt = request.POST.get('qt')
-        
-        # Datas precisam de atenção se vierem vazias
-        p_start = request.POST.get('production_start')
-        envio = request.POST.get('envio')
-        qr.production_start = p_start if p_start else None
-        qr.envio = envio if envio else None
-
-        qr.save() # O teu método save() já gera o toma_order_full automaticamente!
-        
-        messages.success(request, f"Registo de {qr.customer} atualizado.")
-        
-    return redirect(request.META.get('HTTP_REFERER', 'listarDies'))
 
 @login_required
 def listarInfo(request):
@@ -1005,40 +986,110 @@ def partidosMenu(request, toma_order_full):
 def showDetails(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
     pedidos = PedidosDiametro.objects.filter(qr_code=qr)
+    
+    # Preparar obs_limpa para cada pedido
+    for pedido in pedidos:
+        if pedido.observations:
+            pedido.obs_limpa = pedido.observations.replace('_', ' ').title()
+        else:
+            pedido.obs_limpa = '-'
+    
     partidos = NumeroPartidos.objects.filter(qr_code=qr)
+    user = request.user.username
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+    
+    polimentos = Polimentos.objects.filter(
+        created_at__date__range=(week_start, week_end)
+    ).order_by('-created_at')
 
-    # Todos os Dies deste QR Code
     dies = qr.die_instances.all()
-    die_ids = dies.values_list('id', flat=True)
+    polimentos_dies_ids = list(polimentos)
 
-    # Para cada die, pega todos os workers que fizeram pelo menos 1 trabalho nesse die
+    # ---------------------------------------------------------
+    # NOVO CÁLCULO DE ESTATÍSTICAS DOS TRABALHADORES
+    # ---------------------------------------------------------
     die_workers = {}
-    for die in dies:
-        workers = (
-            DieWorkWorker.objects
-            .filter(work__die=die)
-            .values_list('worker_id', 'worker__first_name', 'worker__last_name', 'worker__username')
-            .distinct()
-        )
-        for worker_id, first_name, last_name, username in workers:
-            if worker_id not in die_workers:
-                die_workers[worker_id] = {
-                    'name': f"{first_name} {last_name}",
-                    'username': username,
-                    'dies_worked': set()
-                }
-            die_workers[worker_id]['dies_worked'].add(die.id)
+    
+    # 1. Procurar TODOS os trabalhos feitos nas dies deste QR Code
+    # Anotamos a contagem para encontrar repetições do mesmo tipo/subtipo pela mesma pessoa na mesma die
+    trabalhos = DieWorkWorker.objects.filter(work__die__in=dies).values(
+        'worker_id', 
+        'worker__first_name', 
+        'worker__last_name', 
+        'worker__username',
+        'work__die__serial_number', # Precisamos saber a qual die se refere
+        'work__die_id',
+        'work__work_type',
+        'work__subtype'
+    ).annotate(total_vezes=Count('id')) # Conta quantas vezes fez este trabalho específico
 
-    # Agora, para cada worker, conta em quantos dies ele trabalhou (pelo menos 1 trabalho em cada die)
+    # 2. Organizar a informação
+    for trab in trabalhos:
+        worker_id = trab['worker_id']
+        username = trab['worker__username']
+        
+        if worker_id not in die_workers:
+            die_workers[worker_id] = {
+                'name': f"{trab['worker__first_name']} {trab['worker__last_name']}",
+                'username': username,
+                'dies_worked': set(),
+                'repeticoes': [], # Lista para guardar os avisos de trabalhos repetidos
+                'total_trabalhos': 0,
+                'trabalhos_realizados': []
+            }
+            
+        # Adiciona a die ao set (como é um set, dies repetidas não contam duas vezes para o total)
+        die_workers[worker_id]['dies_worked'].add(trab['work__die_id'])
+        die_workers[worker_id]['total_trabalhos'] += trab['total_vezes']
+
+        
+        # Se fez o mesmo trabalho mais de 1 vez na MESMA die, guarda o aviso!
+        if trab['total_vezes'] > 1:
+            tipo = trab['work__work_type']
+            subtipo = trab['work__subtype'] if trab['work__subtype'] else 'Geral'
+            serie = trab['work__die__serial_number']
+            vezes = trab['total_vezes']
+            
+            mensagem = f"Fez {vezes - 1} correção de {tipo} ({subtipo}) na fieira {serie}"
+            die_workers[worker_id]['repeticoes'].append(mensagem)
+            
+            trabalhos_relizados = f"{tipo} ({subtipo}) na fieira {serie} - {vezes} vezes"
+
+        if trab['total_vezes'] >= 1:
+            tipo = trab['work__work_type']
+            subtipo = trab['work__subtype'] if trab['work__subtype'] else 'Geral'
+            serie = trab['work__die__serial_number']
+            vezes = trab['total_vezes']
+            
+            for i in range(vezes):
+                trabalhos_relizados = f"{tipo} ({subtipo}) na fieira {serie}"
+                die_workers[worker_id]['trabalhos_realizados'].append(trabalhos_relizados)
+
+    # 3. Preparar a lista final para o template
     workers_stats_list = []
+    trabalhos_Realizado_limpo = []
+    pessoal = None
+
+    for trabalhos_realizados in die_workers[worker_id]['trabalhos_realizados']:
+        trabalhos_Realizado_limpo.append(trabalhos_realizados.replace('[', '').replace(']', '').replace("'", "").replace('_', ' ').title())
+    
     for worker in die_workers.values():
         total_dies = len(worker['dies_worked'])
         if total_dies > 0:
             workers_stats_list.append({
                 'name': worker['name'],
                 'username': worker['username'],
-                'total_dies': total_dies
+                'total_dies': total_dies,
+                'repeticoes': worker['repeticoes'], # Passamos a lista de repetições
+                'total_trabalhos': worker['total_trabalhos'], # Lista de Trabalhos absolutos
+                'trabalhos_realizados': trabalhos_Realizado_limpo # Lista de trabalhos realizados (com repetições)
             })
+
+        # Verifica o utilizador atual (logado)
+        if worker['username'] == user:
+            pessoal = total_dies
 
     # Ordena por total_dies decrescente
     workers_stats_list = sorted(workers_stats_list, key=lambda x: x['total_dies'], reverse=True)
@@ -1049,6 +1100,9 @@ def showDetails(request, qr_id):
         'workers_stats': workers_stats_list,
         'pedidos': pedidos,
         'partidos': partidos,
+        'polimentos_dies_ids': polimentos_dies_ids,
+        'pessoal': pessoal
+        
     })
 
 @login_required
@@ -1246,7 +1300,7 @@ def listar_qrcodes_geral(request):
     estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
 
     all_qrcodes = QRData.objects.prefetch_related('die_instances', 'where_boxes').all().order_by('-created_at')
-    
+
     pedidos_fechados = []
     if estado in ['abertos', 'fechados']:
         pedidos_unicos = QRData.objects.values('toma_order_nr', 'toma_order_year').distinct()
@@ -1290,10 +1344,36 @@ def listar_qrcodes_geral(request):
 
     final_list = list(grouped_data.values())
 
+    tipo_choices = Polimentos._meta.get_field('tipo').choices
+
+    if request.method == "POST":
+        numero_fieiras = request.POST.get('numero_fieiras')
+        tipo = request.POST.get('tipo')
+        cliente = request.POST.get('cliente')
+        user = request.user
+        created_at = timezone.now()
+        observations = request.POST.get('observations', '')
+
+        try:
+            Polimentos.objects.create(
+                numero_fieiras=numero_fieiras,
+                tipo=tipo,
+                cliente=cliente,
+                created_at=created_at,
+                user=user,
+                observations=observations
+            )
+            messages.success(request, "Polimento criado com sucesso!")
+            return redirect('listarDies')
+        except Exception as e:
+            messages.error(request, f"Erro ao criar polimento: {e}")
+            return redirect('listarDies')
+
     # Passamos o 'estado_atual' para o HTML para podermos pintar o botão ativo!
     context = {
         'grouped_qrcodes': final_list,
         'estado_atual': estado,
+        'tipo_choices': tipo_choices,
     }
     
     # Mantemos apenas 1 ficheiro HTML! Podes apagar os outros 2.
@@ -1435,6 +1515,7 @@ def create_die_work(request, die_id):
     if request.method == 'POST':
         tipo_trabalho = request.POST.get('tipo_trabalho')
         subtipo = request.POST.get('subtipo')
+        add_another = request.POST.get('add_another') # Capturamos a variável aqui
 
         # Validações
         if not tipo_trabalho:
@@ -1459,12 +1540,13 @@ def create_die_work(request, die_id):
             action=f"{request.user.username} criou um trabalho '{tipo_trabalho}' para o Die {die.serial_number}.",
         )
 
-        # Verifica se o usuário quer adicionar outro trabalho
-        if 'add_another' in request.POST:
+        # Verifica se o utilizador quer adicionar outro trabalho
+        # Alterado de "in request.POST" para verificar o valor exato
+        if add_another == '1':
             return redirect('create_die_work', die_id=die.id)
-
-
-        return redirect('die_details', die_id=die.id)
+        else:
+            # Se for vazio (clicou em "Não"), redireciona para os detalhes
+            return redirect('die_details', die_id=die.id)
 
     return render(request, 'theme/create_die_work.html', {'die': die})
 
@@ -1472,7 +1554,7 @@ def create_die_work(request, die_id):
 def add_multiple_works_workers(request, qr_id):
     work = get_object_or_404(QRData, id=qr_id)
     dies = work.die_instances.all()
-    users = User.objects.all()
+    users = User.objects.filter(groups__name='Producao').distinct().order_by('username')
 
     if request.method == 'POST':
         die_ids = request.POST.getlist('serieDies')  # ← Pega vários IDs
@@ -1481,8 +1563,16 @@ def add_multiple_works_workers(request, qr_id):
         worker_ids = request.POST.getlist('workers')  # ← Pega vários IDs de trabalhadores
         add_another = request.POST.get('add_another')
 
+        diam_min = 0.0000
+        diam_max = 0.0000
+
         if not die_ids or not work_type or not subtype or not worker_ids:
             messages.error(request, "Todos os campos são obrigatórios.")
+            return redirect(request.path)
+
+        selected_workers = list(users.filter(id__in=worker_ids))
+        if len(selected_workers) != len(set(worker_ids)):
+            messages.error(request, "Só é permitido selecionar trabalhadores do grupo Producao.")
             return redirect(request.path)
 
         for die_id in die_ids:
@@ -1494,9 +1584,8 @@ def add_multiple_works_workers(request, qr_id):
             )
 
             # Associa os trabalhadores ao trabalho
-            for worker_id in worker_ids:
-                user = get_object_or_404(User, id=worker_id)
-                DieWorkWorker.objects.create(work=new_work, worker=user)
+            for user in selected_workers:
+                DieWorkWorker.objects.create(work=new_work, worker=user,diam_min=diam_min, diam_max=diam_max)
 
                 # Log individual para cada trabalhador
                 globalLogs.objects.create(
@@ -1526,21 +1615,16 @@ def add_worker_to_die_work(request, work_id):
 
     if request.method == 'POST':
         user_id = request.POST.get('worker')
-        password = request.POST.get('password')
         diam_min = request.POST.get('diametro_min')
         diam_max = request.POST.get('diametro_max')
 
-        if not user_id or not password:
-            messages.error(request, "Selecione um utilizador e insira a senha.")
+        if not user_id:
+            messages.error(request, "Selecione um utilizador.")
             return redirect(request.path)
 
         user = get_object_or_404(User, id=user_id)
 
-        # Verificar senha do utilizador selecionado
-        auth_user = authenticate(username=user.username, password=password)
-        if auth_user is None:
-            messages.error(request, "Senha incorreta para o utilizador selecionado!")
-            return redirect(request.path)
+
 
         # Adicionar trabalhador ao trabalho
         DieWorkWorker.objects.create(work=work, worker=user, diam_min=diam_min or None, diam_max=diam_max or None)
@@ -1814,6 +1898,8 @@ def listarPedidosDiametro(request):
     pedidos_com_box = []
 
     for pedido in pedidos:
+        if pedido.observations:
+            pedido.obs_limpa = pedido.observations.replace('_', ' ').title()
         numeros_serie = dieInstance.objects.filter(customer=pedido.qr_code).values_list('serial_number', flat=True)
 
         serie_dies_pedido = pedido.serie_dies.split(', ')  # Access 'serie_dies' on the individual 'pedido' object
@@ -1822,12 +1908,15 @@ def listarPedidosDiametro(request):
         # Verifica se o pedido está associado a um QR Code e obtém o box_nr
         qr_code = pedido.qr_code  
 
+
         box_nr = None
         original_dim = None
         requerido_dim = None
         if qr_code is not None:
             die_instances = dieInstance.objects.filter(customer=qr_code, serial_number__in=numeros_iguais)
             if die_instances.exists():
+                n_encomenda = die_instances.first().customer.customer_order_nr
+                cliente = die_instances.first().customer.customer
                 box_nr = die_instances.first().customer.box_nr
                 requerido_dim = []
                 for die in die_instances:
@@ -1847,6 +1936,9 @@ def listarPedidosDiametro(request):
             'original_dim': original_dims_str,
             'diam_requerido': diam_requerido,
             'requerido_dim_str': requerido_dim_str,
+            'n_encomenda': n_encomenda,
+            'cliente': cliente,
+            'obs_limpa': getattr(pedido, 'obs_limpa', '-')
 
         })
 
@@ -1874,10 +1966,8 @@ def diametroMenu(request, toma_order_full):
         fieira_trabalhada = request.POST.get('fieiraTrabalhada')
         observations = request.POST.get('observations', '')
 
-        if fieira_trabalhada == 'Sim':
-            fieira_trabalhada = True
-        else:
-            fieira_trabalhada = False
+        # Aceita valores antigos (Sim/Não) e atuais do radio (True/False).
+        fieira_trabalhada = str(fieira_trabalhada).strip().lower() in {'true', 'sim', '1', 'on'}
         try:
             numero = int(numero)
             if numero <= 0:
@@ -2512,12 +2602,19 @@ def charts(request):
 
 
 def listarFaturas(request):
-    invoice_qs = faturas.objects.all().order_by('-created_at')
+    ordenacao = request.GET.get('ordenacao', 'recentes')
+
+    if ordenacao == 'nao_pagos':
+        invoice_qs = faturas.objects.all().order_by('pago', '-created_at')
+    elif ordenacao == 'pagos':
+        invoice_qs = faturas.objects.all().order_by('-pago', '-created_at')
+    else:
+        invoice_qs = faturas.objects.all().order_by('-created_at')
+
     fornecedor = Fornecedor.objects.all().order_by('name') 
 
-    # Filtros de Pesquisa
-    de               = request.GET.get('de') or ''
-    ate              = request.GET.get('ate') or ''
+    de = request.GET.get('de') or ''
+    ate = request.GET.get('ate') or ''
 
     de_date = parse_date(de) if de else None
     ate_date = parse_date(ate) if ate else None
@@ -2527,13 +2624,24 @@ def listarFaturas(request):
         return redirect('listarFaturas')
 
     if de_date:
-        invoice_qs = invoice_qs.filter(data_emissao__gte =de_date)
+        invoice_qs = invoice_qs.filter(data_emissao__gte=de_date)
     if ate_date:
-        invoice_qs = invoice_qs.filter(data_emissao__lte =ate_date)
+        invoice_qs = invoice_qs.filter(data_emissao__lte=ate_date)
 
-    
-    
-    return render(request, 'theme/listarFaturas.html', {'invoice_qs': invoice_qs ,'de': de, 'ate': ate, 'fornecedor': fornecedor})
+    filtro_pago = request.GET.get('pago')
+    if filtro_pago == 'sim':
+        invoice_qs = invoice_qs.filter(pago=True)
+    elif filtro_pago == 'nao':
+        invoice_qs = invoice_qs.filter(pago=False)
+
+    return render(request, 'theme/listarFaturas.html', {
+        'invoice_qs': invoice_qs,
+        'de': de, 
+        'ate': ate, 
+        'fornecedor': fornecedor, 
+        'filtro_pago': filtro_pago,
+        'ordenacao': ordenacao # Adicionado aqui!
+    })
 
 @login_required
 def criarFatura(request):
@@ -2914,5 +3022,508 @@ def delete_template_file(request, file_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-# adicionar outro charts mas agora para producao semanal e compare com a semana anterior
-# link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/
+
+@login_required
+def observacoes_caixa(request, qr_id):
+    qr = get_object_or_404(QRData, id=qr_id)
+    
+    if request.method == 'POST':
+        # Vamos buscar apenas o texto novo do formulário
+        nova_observacao = request.POST.get('nova_observacao', '').strip()
+        
+        if nova_observacao:
+            # Se já existir texto antigo, juntamos o novo na linha de baixo
+            if qr.observations_prod:
+                qr.observations_prod += f"\n\n{nova_observacao}"
+            # Se a caixa ainda não tiver observações, guarda apenas o texto novo
+            else:
+                qr.observations_prod = nova_observacao
+                
+            qr.save()
+            messages.success(request, "Observações de produção atualizadas com sucesso!")
+            
+        return redirect('listarDies')
+        
+    return render(request, 'theme/observacoes_caixa.html', {'qr': qr, 'qr_id': qr.id})
+
+
+MAPA_OPERACOES = {
+    ('polimento', 'entrada'): 'Polimento Entrada',
+    ('polimento', 'saida'): 'Polimento Saída',
+    ('polimento', 'cone'): 'Polimento Saída', 
+    ('desbaste_agulha', 'entrada'): 'Desbaste Agulha Entrada',
+    ('desbaste_agulha', 'saida'): 'Desbaste Agulha Saída',
+    ('desbaste_agulha', 'cone'): 'Desbaste Agulha Saída',
+    ('desbaste_calibre', 'desbaste_de_calibre'): 'Desbaste Calibre',
+    ('desbaste_calibre', 'calibre'): 'Desbaste Calibre',
+    ('afinacao', 'afinacao'): 'Afinação',
+    ('afinacao', 'calibre'): 'Afinação Calibre',
+    # Adiciona as restantes conforme precisares
+}
+
+
+def relatorio_data(request):
+
+    # --- 1. GESTÃO DE DATAS (POST e GET para testes) ---
+    if request.method == 'POST':
+        de_date_str = request.POST.get('data_inicio')
+        ate_date_str = request.POST.get('data_fim')
+        try:
+            de_date = parse_date(de_date_str)
+            ate_date = parse_date(ate_date_str)
+            if not de_date or not ate_date:
+                raise ValueError
+        except (ValueError, TypeError):
+            messages.error(request, "Datas inválidas. Por favor, insira datas no formato YYYY-MM-DD.")
+            return redirect('relatorio_data') # Ajusta o nome do url se necessário
+    else: 
+        # Fallback para GET (útil para os teus testes com prints)
+        de = request.GET.get('de')
+        ate = request.GET.get('ate')
+        
+        # Se não houver POST nem parâmetros GET, mostra o form vazio
+        if not de and not ate and not request.GET.get('test'): 
+            return render(request, 'theme/relatorio_data.html')
+            
+        de_date = parse_date(de) if de else parse_date("2026-03-09")
+        ate_date = parse_date(ate) if ate else timezone.now().date()
+
+
+    # --- 2. QUERIES OTIMIZADAS À BD ---
+    trabalhos_no_periodo = DieWorkWorker.objects.filter(
+        added_at__date__gte=de_date, 
+        added_at__date__lte=ate_date 
+    ).select_related(
+        'work__die__customer', 
+        'work__die__die', 
+        'worker'
+    )
+    
+    nr_trabalhos = trabalhos_no_periodo.count()
+    nr_fieiras_unicas = trabalhos_no_periodo.values('work__die').distinct().count()
+
+    print("\n--- TOTAL ---")
+    print(f"Trabalhos realizados entre {de_date} e {ate_date}: {nr_trabalhos}")
+    print(f"Fieiras ÚNICAS mexidas: {nr_fieiras_unicas}")
+
+
+    # --- 3. TIPO DE FIEIRAS ---
+    tipos_fieira_lista = ['ND', 'PCD', 'MCD']
+    contagens_tipos_qs = (
+        trabalhos_no_periodo
+        .values('work__die__die__die_type')
+        .annotate(total=Count('work__die', distinct=True)) 
+    )
+    
+    contagens_por_tipo = {
+        item['work__die__die__die_type']: item['total']
+        for item in contagens_tipos_qs if item['work__die__die__die_type']
+    }
+
+    print("\n--- TIPO DE FIEIRAS ---")
+    lista_tipos_front = [] # <--- LISTA PARA O HTML
+    for tipo in tipos_fieira_lista:
+        total = contagens_por_tipo.get(tipo, 0)
+        percentagem = (total / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        
+        # Guardar para o Front-end
+        lista_tipos_front.append({
+            'tipo': tipo,
+            'total': total,
+            'percentagem': percentagem
+        })
+        print(f"Número de fieiras '{tipo}': {total} (sendo {percentagem:.2f}% do total de fieiras)")
+    
+
+
+    # --- 4. PARTIDOS ---
+    partidos_qs = NumeroPartidos.objects.filter(
+        created_at__date__range=(de_date, ate_date)
+    ).select_related('qr_code')
+    
+    total_partidos = partidos_qs.count() 
+    contagem_partidos_por_pedido = defaultdict(int)
+    
+    for partido in partidos_qs:
+        if partido.qr_code: 
+            ped_partido = f"{partido.qr_code.toma_order_nr}/{partido.qr_code.toma_order_year}"
+            qtd = partido.partido if partido.partido else 1
+            contagem_partidos_por_pedido[ped_partido] += qtd
+
+    print("\n--- PARTIDOS ---")
+    print(f"Número de registos de partidos entre {de_date} e {ate_date}: {total_partidos}")
+
+    percentage_partidas = (total_partidos / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+
+    # --- 5. TAMANHOS / LISTA DETALHADA ---
+    resumo_pedidos_dict = {}
+
+    for trabalho in trabalhos_no_periodo:
+        diametro = trabalho.work.die.diameter_text
+        cliente = trabalho.work.die.customer.customer
+        pedido = f"{trabalho.work.die.customer.toma_order_nr}/{trabalho.work.die.customer.toma_order_year}"
+        box = str(trabalho.work.die.customer.box_nr) 
+        die_id = trabalho.work.die.id 
+        
+        if pedido not in resumo_pedidos_dict: 
+            resumo_pedidos_dict[pedido] = {'fieiras': set(), 'caixas': set(), 'cliente': cliente, 'diametros_por_fieira': {}}
+            
+        resumo_pedidos_dict[pedido]['fieiras'].add(die_id)
+        
+        if box and box != 'None':
+            resumo_pedidos_dict[pedido]['caixas'].add(box)
+            
+        if diametro not in (None, ''):
+            resumo_pedidos_dict[pedido]['diametros_por_fieira'][die_id] = str(diametro)
+
+    print("\n--- RESUMO DE FIEIRAS E CAIXAS POR PEDIDO ---")
+    
+    lista_pedidos_front = [] # <--- LISTA PARA O HTML
+    
+    for ped, info in resumo_pedidos_dict.items():
+        total_fieiras = len(info['fieiras']) 
+        cliente = info['cliente']
+        caixas_formatadas = " e ".join(sorted(info['caixas'])) if len(info['caixas']) > 1 else "".join(info['caixas'])
+        texto_caixa = "nas caixas" if len(info['caixas']) > 1 else "na caixa"
+        diametros_lista = sorted(info['diametros_por_fieira'].values())
+        diametros_str = ", ".join(diametros_lista) if diametros_lista else "-"
+        
+        qtd_partidas = contagem_partidos_por_pedido.get(ped, 0)
+        aviso_partidas = f" (Tem {qtd_partidas} fieira(s) partida(s)!)" if qtd_partidas > 0 else ""
+
+        num_mini = num_pequenas = num_medias = num_grandes = num_extragrandes = num_ultra = 0
+        for diam in info['diametros_por_fieira'].values():
+            try:
+                diam_val = float(str(diam).strip().replace(',', '.'))
+            except (TypeError, ValueError):
+                continue
+
+            if 0.100 <= diam_val <= 0.399: num_mini += 1
+            elif 0.400 <= diam_val <= 0.799: num_pequenas += 1
+            elif 0.800 <= diam_val <= 1.499: num_medias += 1
+            elif 1.500 <= diam_val <= 2.499: num_grandes += 1
+            elif 2.500 <= diam_val <= 3.999: num_extragrandes += 1
+            elif 4.000 <= diam_val <= 8.000: num_ultra += 1
+
+        print(f"Numero peq = {num_pequenas}")
+        print(f"Numero med = {num_medias}")
+        tamanhos_no_pedido = []
+        if num_mini >= 1: tamanhos_no_pedido.append(f"mini: {num_mini}")
+        if num_pequenas >= 1: tamanhos_no_pedido.append(f"pequenas: {num_pequenas}")
+        if num_medias >= 1: tamanhos_no_pedido.append(f"médias: {num_medias}")
+        if num_grandes >= 1: tamanhos_no_pedido.append(f"grandes: {num_grandes}")
+        if num_extragrandes >= 1: tamanhos_no_pedido.append(f"extragrandes: {num_extragrandes}")
+        if num_ultra >= 1: tamanhos_no_pedido.append(f"ultra: {num_ultra}")
+
+        percentagem_mini = (num_mini / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        percentagem_pequenas = (num_pequenas / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        print(f"Percentagem peq: {percentagem_pequenas:.2f}%, calculo: {num_pequenas} / {nr_fieiras_unicas} * 100")
+        percentagem_medias = (num_medias / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        percentagem_grandes = (num_grandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        percentagem_extragrandes = (num_extragrandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+        percentagem_ultra = (num_ultra / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
+
+        detalhe_tamanhos = f" | Tamanhos no pedido: {', '.join(tamanhos_no_pedido)}" if tamanhos_no_pedido else ""
+
+        # Print mantido para testes
+        print(f"No pedido {ped} do cliente {cliente} foram trabalhadas {total_fieiras} fieiras, {texto_caixa} {caixas_formatadas}.{aviso_partidas} (Recebidos os diâmetros: {diametros_str}){detalhe_tamanhos}")
+        
+        # Guardar para o Front-end
+        lista_pedidos_front.append({
+            'ped': ped,
+            'total_fieiras': total_fieiras,
+            'cliente': cliente,
+            'texto_caixa': texto_caixa,
+            'caixas_formatadas': caixas_formatadas,
+            'diametros_str': diametros_str,
+            'qtd_partidas': qtd_partidas,
+
+            
+            'num_mini': num_mini,
+            'num_pequenas': num_pequenas,
+            'num_medias': num_medias,
+            'num_grandes': num_grandes,
+            'num_extragrandes': num_extragrandes,
+            'num_ultra': num_ultra,
+
+            'percentagem_mini': percentagem_mini,
+            'percentagem_pequenas': percentagem_pequenas,
+            'percentagem_medias': percentagem_medias,
+            'percentagem_grandes': percentagem_grandes,
+            'percentagem_extragrandes': percentagem_extragrandes,
+            'percentagem_ultra': percentagem_ultra,
+        })
+
+
+    # --- 6. RELATÓRIO POR UTILIZADOR ---
+    print("\n--- RELATORIO POR UTILIZADOR ---")
+
+    resumo_workers_qs = (
+        trabalhos_no_periodo
+        .values('worker_id', 'worker__username')
+        .annotate(
+            total_trabalhos=Count('id'),
+            total_fieiras=Count('work__die', distinct=True),
+        ).order_by('worker__username')
+    )
+
+    resumo_diario_qs = (
+        trabalhos_no_periodo
+        .annotate(dia=TruncDate('added_at')) # Transforma "17/03/2026 14:30" em "17/03/2026"
+        .values('dia')                       # Dizemos para agrupar por esse dia
+        .annotate(
+            total_trabalhos=Count('id'),
+            total_fieiras=Count('work__die', distinct=True)
+        )
+        .order_by('dia') # Ordena do primeiro ao último dia da semana
+    )
+
+    # Passamos isto para uma lista limpa para o Front-end
+    lista_resumo_diario = list(resumo_diario_qs)
+
+    detalhe_workers_qs = (
+        trabalhos_no_periodo
+        .values(
+            'worker_id', 'worker__username', 'work__die_id', 
+            'work__die__serial_number', 'work__work_type', 
+            'work__subtype', 'work__die__die__die_type'
+        )
+        .annotate(total=Count('id'))
+        .order_by('worker__username', 'work__die__serial_number', 'work__work_type', 'work__subtype')
+    )
+
+    detalhes_por_worker_dict = defaultdict(list)
+    for d in detalhe_workers_qs:
+        detalhes_por_worker_dict[d['worker_id']].append(d)
+
+    lista_workers_front = [] # <--- LISTA PARA O HTML
+
+    for w in resumo_workers_qs:
+        wid = w['worker_id']
+        nome = w['worker__username'] or "Desconhecido"
+        
+        total_retificacoes_worker = 0
+        nd_trabalhadas = 0
+        pcd_trabalhadas = 0
+        mcd_trabalhadas = 0
+        
+        contagens_operacoes = defaultdict(int)
+        lista_detalhes_worker = [] # Lista de trabalhos para o loop interno
+
+        print(f"\nTrabalhador: {nome}")
+        print(f"  Total de trabalhos: {w['total_trabalhos']}")
+        print(f"  Total de fieiras únicas: {w['total_fieiras']}")
+
+        for d in detalhes_por_worker_dict.get(wid, []):
+            tipo = d['work__work_type'] or "N/A"
+            subtipo = d['work__subtype'] or "Geral"
+            tipo_die = d['work__die__die__die_type'] or "N/A"
+            serie = d['work__die__serial_number'] or "N/A"
+            retificacoes = max((d['total'] or 0) - 1, 0)
+            
+            total_retificacoes_worker += retificacoes
+
+            if tipo_die == 'ND': nd_trabalhadas += 1
+            if tipo_die == 'PCD': pcd_trabalhadas += 1
+            if tipo_die == 'MCD': mcd_trabalhadas += 1
+
+            print(f"  - Série: {serie} | {tipo} / {subtipo} | Die: {tipo_die} | trabalhos: {d['total']}")
+
+            # Adicionar detalhe à lista do worker para o Front-end
+            lista_detalhes_worker.append({
+                'serie': serie,
+                'tipo': tipo,
+                'subtipo': subtipo,
+                'tipo_die': tipo_die,
+                'total': d['total']
+            })
+
+            # Contabilizar operações pelo MAPA
+            chave = (tipo, subtipo)
+            operacao_label = MAPA_OPERACOES.get(chave, tipo.replace('_', ' ').title())
+            contagens_operacoes[operacao_label] += 1
+
+        # Imprimir e preparar operações para o Front-end
+        lista_operacoes_front = []
+        for operacao, total in contagens_operacoes.items():
+            print(f"  Total {operacao}: {total}")
+            lista_operacoes_front.append({
+                'operacao': operacao,
+                'total': total
+            })
+
+        print(f"Total de retificações: {total_retificacoes_worker}")
+        if nd_trabalhadas >= 1: print(f"Total de fieiras ND: {nd_trabalhadas}")
+        if pcd_trabalhadas >= 1: print(f"Total de fieiras PCD: {pcd_trabalhadas}")
+        if mcd_trabalhadas >= 1: print(f"Total de fieiras MCD: {mcd_trabalhadas}")
+
+        # Guardar Worker com tudo lá dentro para o Front-end
+        lista_workers_front.append({
+            'nome': nome,
+            'total_trabalhos': w['total_trabalhos'],
+            'total_fieiras': w['total_fieiras'],
+            
+            'detalhes': lista_detalhes_worker,     # Para o: for trab in worker.detalhes
+            'contagens': lista_operacoes_front,    # Para o: for cont in worker.contagens
+            
+            'total_retificacoes_worker': total_retificacoes_worker,
+            'nd_trabalhadas': nd_trabalhadas,
+            'pcd_trabalhadas': pcd_trabalhadas,
+            'mcd_trabalhadas': mcd_trabalhadas,
+        })
+
+    #testes
+    """
+    relatorio_diario = {}
+
+    # Para garantir que os partidos são associados ao dia certo, precisamos 
+    # de uma query dos partidos com a data truncada.
+    partidos_por_dia_pedido = defaultdict(int)
+    for partido in partidos_qs:
+        if partido.qr_code:
+            # Apanhamos a data da criação do registo de partido
+            dia_partido = partido.created_at.date() 
+            ped_partido = f"{partido.qr_code.toma_order_nr}/{partido.qr_code.toma_order_year}"
+            qtd = partido.partido if partido.partido else 1
+            chave = (dia_partido, ped_partido)
+            partidos_por_dia_pedido[chave] += qtd
+
+    # Iteramos de novo (ou podes juntar isto ao loop principal se preferires otimizar)
+    # Para este exemplo, faço um loop novo para ficar mais claro
+    for trabalho in trabalhos_no_periodo:
+        dia = trabalho.added_at.date() # Agrupador principal!
+        pedido = f"{trabalho.work.die.customer.toma_order_nr}/{trabalho.work.die.customer.toma_order_year}"
+        cliente = trabalho.work.die.customer.customer
+        box = str(trabalho.work.die.customer.box_nr)
+        die_id = trabalho.work.die.id
+        tipo_die = trabalho.work.die.die.die_type # Para a contagem de ND/PCD
+
+        # Inicializa o dia no dicionário
+        if dia not in relatorio_diario:
+            relatorio_diario[dia] = {}
+            
+        # Inicializa o pedido dentro do dia
+        if pedido not in relatorio_diario[dia]:
+            relatorio_diario[dia][pedido] = {
+                'cliente': cliente,
+                'caixas': set(),
+                'fieiras_unicas': set(),
+                'diametros_raw': {}, # Para contar os tamanhos depois
+                'nd': 0,
+                'pcd': 0,
+                'mcd': 0
+            }
+
+        # Adiciona a caixa
+        if box and box != 'None':
+            relatorio_diario[dia][pedido]['caixas'].add(box)
+            
+        # Processa fieira única para este dia+pedido
+        if die_id not in relatorio_diario[dia][pedido]['fieiras_unicas']:
+            relatorio_diario[dia][pedido]['fieiras_unicas'].add(die_id)
+            
+            # Guarda o diâmetro para contar tamanhos
+            diametro = trabalho.work.die.diameter_text
+            if diametro not in (None, ''):
+                relatorio_diario[dia][pedido]['diametros_raw'][die_id] = str(diametro)
+                
+            # Conta ND / PCD / MCD
+            if tipo_die == 'ND': relatorio_diario[dia][pedido]['nd'] += 1
+            elif tipo_die == 'PCD': relatorio_diario[dia][pedido]['pcd'] += 1
+            elif tipo_die == 'MCD': relatorio_diario[dia][pedido]['mcd'] += 1
+
+    # Processamento final para a lista que vai para o Front-end
+    lista_relatorio_diario = []
+
+    # Totais da Semana inteira
+    totais_semana = {
+        'pieces': 0, 'broken': 0, 'mini': 0, 'pequenas': 0, 'medias': 0,
+        'grandes': 0, 'extragrandes': 0, 'ultra': 0, 'nd': 0, 'pcd': 0, 'mcd': 0
+    }
+
+    # Ordenamos os dias cronologicamente
+    for dia in sorted(relatorio_diario.keys()):
+        pedidos_do_dia = []
+        
+        # Totais específicos deste dia
+        totais_dia = {
+            'pieces': 0, 'broken': 0, 'mini': 0, 'pequenas': 0, 'medias': 0,
+            'grandes': 0, 'extragrandes': 0, 'ultra': 0, 'nd': 0, 'pcd': 0, 'mcd': 0
+        }
+
+        for ped, info in relatorio_diario[dia].items():
+            total_fieiras = len(info['fieiras_unicas'])
+            caixas_str = ", ".join(sorted(info['caixas']))
+            
+            # Partidas desse dia para esse pedido
+            qtd_partidas = partidos_por_dia_pedido.get((dia, ped), 0)
+            
+            # Lógica de tamanhos (igual ao que já tens)
+            num_mini = num_pequenas = num_medias = num_grandes = num_extragrandes = num_ultra = 0
+            for diam in info['diametros_raw'].values():
+                try: diam_val = float(str(diam).strip().replace(',', '.'))
+                except: continue
+                if 0.100 <= diam_val <= 0.399: num_mini += 1
+                elif 0.400 <= diam_val <= 0.799: num_pequenas += 1
+                elif 0.800 <= diam_val <= 1.499: num_medias += 1
+                elif 1.500 <= diam_val <= 2.499: num_grandes += 1
+                elif 2.500 <= diam_val <= 3.999: num_extragrandes += 1
+                elif 4.000 <= diam_val <= 8.000: num_ultra += 1
+
+            # Construir o objeto do pedido
+            pedido_processado = {
+                'pedido': ped,
+                'cliente': info['cliente'],
+                'caixas': caixas_str,
+                'total_fieiras': total_fieiras,
+                'partidas': qtd_partidas,
+                'mini': num_mini, 'pequenas': num_pequenas, 'medias': num_medias,
+                'grandes': num_grandes, 'extragrandes': num_extragrandes, 'ultra': num_ultra,
+                'nd': info['nd'], 'pcd': info['pcd'], 'mcd': info['mcd']
+            }
+            pedidos_do_dia.append(pedido_processado)
+
+            # Somar aos totais do dia
+            totais_dia['pieces'] += total_fieiras
+            totais_dia['broken'] += qtd_partidas
+            totais_dia['mini'] += num_mini
+            totais_dia['pequenas'] += num_pequenas
+            totais_dia['medias'] += num_medias
+            totais_dia['grandes'] += num_grandes
+            totais_dia['extragrandes'] += num_extragrandes
+            totais_dia['ultra'] += num_ultra
+            totais_dia['nd'] += info['nd']
+            totais_dia['pcd'] += info['pcd']
+            totais_dia['mcd'] += info['mcd']
+
+        # Adicionar totais da semana
+        for k in totais_semana.keys():
+            totais_semana[k] += totais_dia[k]
+
+        # Guarda o pacote do dia inteiro na lista final
+        lista_relatorio_diario.append({
+            'data': dia,
+            'pedidos': pedidos_do_dia,
+            'totais_dia': totais_dia,
+            'rowspan': len(pedidos_do_dia) # Necessário para o HTML agrupar o bloco "Day"
+        })"""
+
+    # --- 7. ENVIO PARA O TEMPLATE ---
+    context = {
+        # Totais
+        'nr_trabalhos': nr_trabalhos,
+        'nr_fieiras_unicas': nr_fieiras_unicas,
+        'total_partidos': total_partidos,
+        'percentage_partidas': percentage_partidas,
+
+        # Listas de Dicionários 
+        'tipos_fieira': lista_tipos_front,
+        'resumo_pedidos': lista_pedidos_front,
+        'resumo_workers': lista_workers_front,
+        'tamanhos_no_pedido': tamanhos_no_pedido,
+        'resumo_diario': lista_resumo_diario,
+        #'relatorio_diario': lista_relatorio_diario,
+        #'totais_semana': totais_semana
+    }
+
+    return render(request, 'theme/relatorio_data.html', context)

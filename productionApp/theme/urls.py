@@ -28,9 +28,10 @@ urlpatterns = [
     # QR Codes
     path('listQrcodes/', views.listQrcodes, name='listQrcodes'),
     path('edit-qr-inline/<int:qr_id>/', views.edit_qr_inline, name='edit_qr_inline'),
-    path('qrdata/editar/<int:qr_id>/', views.showDetails, name='showDetails'),
+    path('qrdata/detalhes/<int:qr_id>/', views.showDetails, name='showDetails'),
     path('qrcode/<int:qr_id>/dies/', views.adicionar_dies, name='adicionar_dies'),
     path('qrcode/<int:qr_id>/export-excel/', views.export_qrcode_excel, name='export_qrcode_excel'),
+    path('die/<int:qr_id>/observacoesProd/', views.observacoes_caixa, name='observacoes_caixa'),
 
     # Dies
     path('dies/', views.listar_qrcodes_geral, name='listarDies'),
@@ -99,6 +100,9 @@ urlpatterns = [
     path('criarTemplate/', views.criarTemplate, name='criarTemplate'),
     path('editarTemplate/<int:id>/', views.editarTemplate, name='editarTemplate'),
     path('delete-file/<int:file_id>/', views.delete_template_file, name='delete_template_file'),
+
+    # Relatorios
+    path('relatorioTrabalhos/', views.relatorio_data, name='relatorio_data'),
 ]
 
 handler403 = 'theme.views.erro403'

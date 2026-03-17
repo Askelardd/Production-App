@@ -1,0 +1,417 @@
+{% extends 'theme/base.html' %}
+{% block title %}
+  General Report
+{% endblock %}
+
+{% block content %}
+  <div class="min-h-screen bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto mb-6">
+      <h1 class="text-3xl font-bold text-gray-900 tracking-tight">General Report</h1>
+      <p class="text-sm text-gray-500 mt-1">Statistics and production analysis</p>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+      <form id="reportForm" method="POST" action="{% url 'relatorio_data' %}" enctype="multipart/form-data" class="flex flex-col md:flex-row items-end gap-4">
+        {% csrf_token %}
+        <div class="w-full md:w-auto">
+          <label for="data_inicio" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Start Date</label>
+          <input type="date" name="data_inicio" id="data_inicio" class="block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-4 py-2 text-gray-700" />
+        </div>
+        <div class="w-full md:w-auto">
+          <label for="data_fim" class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">End Date</label>
+          <input type="date" name="data_fim" id="data_fim" class="block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm px-4 py-2 text-gray-700" />
+        </div>
+        <div class="w-full md:w-auto">
+          <button type="submit" class="w-full md:w-auto inline-flex justify-center items-center px-6 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"><i class="fa-solid fa-filter mr-2"></i> Generate Report</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center">
+          <div class="p-3 rounded-full bg-blue-50 text-blue-600 mr-4">
+            <i class="fa-solid fa-hammer text-2xl"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Tasks Completed</p>
+            <p class="text-2xl font-bold text-gray-900">{{ nr_trabalhos|default:'0' }}</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center">
+          <div class="p-3 rounded-full bg-indigo-50 text-indigo-600 mr-4">
+            <i class="fa-solid fa-layer-group text-2xl"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Dies Processed</p>
+            <p class="text-2xl font-bold text-gray-900">{{ nr_fieiras_unicas|default:'0' }}</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex items-center">
+          <div class="p-3 rounded-full bg-red-50 text-red-600 mr-4">
+            <i class="fa-solid fa-heart-crack text-2xl"></i>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500">Broken Dies</p>
+            <p class="text-2xl font-bold text-gray-900">
+              {{ total_partidos|default:'0' }}
+              <span class="text-sm font-normal text-red-500 ml-1">({{ percentage_partidas|floatformat:2|default:'0.00' }}%)</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h3 class="text-lg leading-6 font-semibold text-gray-900">Distribution by Die Type</h3>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
+        {% for item in tipos_fieira %}
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center justify-center text-center">
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Die {{ item.tipo }}</dt>
+            <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.total }}</dd>
+            <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem|floatformat:2 }}%</dd>
+          </div>
+        {% empty %}
+          <div class="col-span-full text-center text-gray-500 py-4">No die type data.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h3 class="text-lg leading-6 font-semibold text-gray-900">Distribution by Size</h3>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
+        {% for item in resumo_pedidos %}
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-100 flex flex-col items-center justify-center text-center">
+            {% if item.num_mini%}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">0,100 - 0,399</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_mini }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_mini|floatformat:2 }}%</dd>
+            {% endif %}
+
+            {% if item.num_pequenas %}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">0,400 - 0,799</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_pequenas }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_pequenas|floatformat:2 }}%</dd>
+            {% endif %}
+
+            {% if item.num_medias %}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">0,800 - 1,499</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_medias }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_medias|floatformat:2 }}%</dd>
+            {% endif %}
+
+            {% if item.num_grandes %}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">1,500 - 2,499</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_grandes }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_grandes|floatformat:2 }}%</dd>
+            {% endif %}
+
+            {% if item.num_extragrandes %}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">2,500 - 3,999</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_extragrandes }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_extragrandes|floatformat:2 }}%</dd>
+            {% endif %}
+
+            {% if item.num_ultra %}
+            <dt class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">4,000+</dt>
+              <dd class="text-3xl font-bold text-gray-900 mb-1">{{ item.num_ultra }}</dd>
+              <dd class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{{ item.percentagem_ultra|floatformat:2 }}%</dd>
+            {% endif %}
+          </div>
+        {% empty %}
+          <div class="col-span-full text-center text-gray-500 py-4">No data to show.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h3 class="text-lg leading-6 font-semibold text-gray-900">Summary by Order / Customer</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table id="ordersTable" class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Box</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Pieces (with brokens)</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Broken</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="0,100 - 0,399">Mini</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="0,400 - 0,799">Small</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="0,800 - 1,499">Medium</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="1,500 - 2,499">Large</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="2,500 - 3,999">XL</th>
+              <th class="px-4 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider" title="4,000+">Ultra</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            {% for item in resumo_pedidos %}
+              <tr class="hover:bg-blue-50 transition-colors">
+                <td class="px-6 py-4 font-medium text-gray-900">{{ item.cliente }}</td>
+                <td class="px-6 py-4 text-gray-600">{{ item.ped }}</td>
+                <td class="px-6 py-4 text-gray-500">{{ item.caixas_formatadas }}</td>
+                <td class="px-6 py-4 text-center font-bold text-gray-700 bg-gray-50/50">{{ item.total_fieiras }}</td>
+
+                <td class="px-6 py-4 text-center font-bold {% if item.qtd_partidas > 0 %}
+                    text-red-600 bg-red-50/50
+                  {% else %}
+                    text-gray-300
+                  {% endif %}">
+                  {% if item.qtd_partidas > 0 %}
+                    {{ item.qtd_partidas }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_mini > 0 %}
+                    {{ item.num_mini }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_pequenas > 0 %}
+                    {{ item.num_pequenas }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_medias > 0 %}
+                    {{ item.num_medias }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_grandes > 0 %}
+                    {{ item.num_grandes }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_extragrandes > 0 %}
+                    {{ item.num_extragrandes }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-4 py-4 text-center text-gray-500">
+                  {% if item.num_ultra > 0 %}
+                    {{ item.num_ultra }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="11" class="px-6 py-8 text-center text-gray-500 italic">No data to show.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto mb-8">
+      <h3 class="text-xl font-bold text-gray-900 mb-4 px-2">Productivity by Operator</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for worker in resumo_workers %}
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-800 text-white px-4 py-3 text-center">
+              <h4 class="font-bold text-sm tracking-wider uppercase worker-name">{{ worker.nome }}</h4>
+            </div>
+
+            <div class="bg-blue-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
+              <span class="text-xs font-bold text-gray-600 uppercase">Tasks</span>
+              <span class="font-bold text-blue-700 text-lg">{{ worker.total_trabalhos }}</span>
+            </div>
+
+            <div class="p-4 space-y-2">
+              {% for op in worker.contagens %}
+                {% if op.total > 0 %}
+                  <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-600">{{ op.operacao }}</span>
+                    <span class="font-medium text-gray-900">{{ op.total }}</span>
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+            <div class="bg-gray-50 p-4 border-t border-gray-100 space-y-3">
+              <div class="flex justify-between items-center text-sm">
+                <span class="font-semibold text-gray-700">Rectifications</span>
+                <span class="font-bold {% if worker.total_retificacoes_worker > 0 %}
+                    text-red-600
+                  {% else %}
+                    text-gray-400
+                  {% endif %}">
+                  {{ worker.total_retificacoes_worker|default:'0' }}
+                </span>
+              </div>
+
+              <div>
+                <span class="block font-semibold text-gray-700 text-sm mb-1">Types Worked</span>
+                <div class="flex gap-1 flex-wrap">
+                  {% if worker.nd_trabalhadas > 0 %}
+                    <span class="text-[11px] font-normal bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600">ND: {{ worker.nd_trabalhadas }}</span>
+                  {% endif %}
+                  {% if worker.pcd_trabalhadas > 0 %}
+                    <span class="text-[11px] font-normal bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600">PCD: {{ worker.pcd_trabalhadas }}</span>
+                  {% endif %}
+                  {% if worker.mcd_trabalhadas > 0 %}
+                    <span class="text-[11px] font-normal bg-white border border-gray-200 px-2 py-0.5 rounded text-gray-600">MCD: {{ worker.mcd_trabalhadas }}</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-gray-500 italic px-2">No operator records found for this period.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+<!--
+<div class="max-w-[100vw] mx-auto overflow-x-auto shadow-sm border border-gray-300 bg-white">
+  <table class="min-w-full divide-y divide-gray-200 text-xs text-center border-collapse">
+    
+    <thead class="bg-gray-200 text-gray-700 font-bold border-b-2 border-gray-400">
+      <tr>
+        <th class="border px-2 py-2">Day</th>
+        <th class="border px-2 py-2">Customer</th>
+        <th class="border px-2 py-2">Order</th>
+        <th class="border px-2 py-2">Box</th>
+        <th class="border px-2 py-2">Pieces (Without Brokens)</th>
+        <th class="border px-2 py-2">Broken</th>
+        <th class="border px-2 py-2">0,100 - 0,399</th>
+        <th class="border px-2 py-2">0,400 - 0,799</th>
+        <th class="border px-2 py-2">0,800 - 1,499</th>
+        <th class="border px-2 py-2">1,500 - 2,499</th>
+        <th class="border px-2 py-2">2,500 - 3,999</th>
+        <th class="border px-2 py-2">4,000 - 8,000</th>
+        <th class="border px-2 py-2">Auto Machines</th>
+        <th class="border px-2 py-2">ND</th>
+        <th class="border px-2 py-2">PCD</th>
+      </tr>
+    </thead>
+    
+    <tbody class="divide-y divide-gray-200">
+      
+      {% for dia_info in relatorio_diario %}
+        
+        {% for ped in dia_info.pedidos %}
+          <tr class="hover:bg-gray-50 transition-colors">
+            
+            {% if forloop.first %}
+              <td rowspan="{{ dia_info.rowspan }}" class="border px-2 py-2 font-bold align-middle bg-white">
+                {{ dia_info.data|date:"D. d/m/Y" }}
+              </td>
+            {% endif %}
+
+            <td class="border px-2 py-2">{{ ped.cliente }}</td>
+            <td class="border px-2 py-2">{{ ped.pedido }}</td>
+            <td class="border px-2 py-2">{{ ped.caixas }}</td>
+            <td class="border px-2 py-2 font-semibold">{{ ped.total_fieiras }}</td>
+            <td class="border px-2 py-2 {% if ped.partidas > 0 %}text-red-500 font-bold{% endif %}">
+              {% if ped.partidas > 0 %}{{ ped.partidas }}{% endif %}
+            </td>
+            
+            <td class="border px-2 py-2">{% if ped.mini > 0 %}{{ ped.mini }}{% endif %}</td>
+            <td class="border px-2 py-2">{% if ped.pequenas > 0 %}{{ ped.pequenas }}{% endif %}</td>
+            <td class="border px-2 py-2">{% if ped.medias > 0 %}{{ ped.medias }}{% endif %}</td>
+            <td class="border px-2 py-2">{% if ped.grandes > 0 %}{{ ped.grandes }}{% endif %}</td>
+            <td class="border px-2 py-2">{% if ped.extragrandes > 0 %}{{ ped.extragrandes }}{% endif %}</td>
+            <td class="border px-2 py-2">{% if ped.ultra > 0 %}{{ ped.ultra }}{% endif %}</td>
+            <td class="border px-2 py-2"></td> <td class="border px-2 py-2 bg-blue-100">{% if ped.nd > 0 %}{{ ped.nd }}{% endif %}</td>
+            <td class="border px-2 py-2 bg-orange-100">{% if ped.pcd > 0 %}{{ ped.pcd }}{% endif %}</td>
+          </tr>
+        {% endfor %}
+
+        <tr class="bg-yellow-400 font-bold">
+          <td colspan="4" class="border px-2 py-2 text-right">Total dia</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.pieces }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.broken }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.mini }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.pequenas }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.medias }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.grandes }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.extragrandes }}</td>
+          <td class="border px-2 py-2">{{ dia_info.totais_dia.ultra }}</td>
+          <td class="border px-2 py-2"></td> <td class="border px-2 py-2 bg-blue-300">{{ dia_info.totais_dia.nd }}</td>
+          <td class="border px-2 py-2 bg-orange-300">{{ dia_info.totais_dia.pcd }}</td>
+        </tr>
+
+      {% endfor %}
+      
+      <tr class="bg-gray-500 text-white font-bold">
+        <td colspan="4" class="border px-2 py-2 text-right text-gray-100">Total Semana</td>
+        <td class="border px-2 py-2">{{ totais_semana.pieces }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.broken }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.mini }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.pequenas }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.medias }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.grandes }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.extragrandes }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.ultra }}</td>
+        <td class="border px-2 py-2"></td>
+        <td class="border px-2 py-2">{{ totais_semana.nd }}</td>
+        <td class="border px-2 py-2">{{ totais_semana.pcd }}</td>
+      </tr>
+
+    </tbody>
+  </table>-->
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('reportForm');
+    const startInput = document.getElementById('data_inicio');
+    const endInput = document.getElementById('data_fim');
+    const startKey = 'relatorio_data_inicio';
+    const endKey = 'relatorio_data_fim';
+
+    if (startInput && !startInput.value) {
+      const savedStart = localStorage.getItem(startKey);
+      if (savedStart) {
+        startInput.value = savedStart;
+      }
+    }
+
+    if (endInput && !endInput.value) {
+      const savedEnd = localStorage.getItem(endKey);
+      if (savedEnd) {
+        endInput.value = savedEnd;
+      }
+    }
+
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (startInput) {
+          localStorage.setItem(startKey, startInput.value || '');
+        }
+        if (endInput) {
+          localStorage.setItem(endKey, endInput.value || '');
+        }
+      });
+    }
+
+    const workerNames = document.querySelectorAll('.worker-name');
+    workerNames.forEach(function (el) {
+      const current = (el.textContent || '').trim();
+      el.textContent = current.replace(/([a-z])([A-Z])/g, '$1 $2');
+    });
+  });
+</script>
+{% endblock %}

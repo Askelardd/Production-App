@@ -1,380 +1,480 @@
 {% extends 'theme/base.html' %}
-{% block title %}Pedidos em Produção{% endblock %}
+{% block title %}
+  Pedidos em Produção
+{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 p-6">
-
+  <div class="min-h-screen bg-gray-50 p-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex flex-col gap-1 mb-4">
-            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
-            <p class="text-sm text-gray-500 mt-1">Gestão agrupada por Toma de Produção</p>
+      <div class="flex flex-col gap-1 mb-4 flex-1">
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
+        <p class="text-sm text-gray-500 mt-1">Gestão agrupada por Toma de Produção</p>
 
-            <div class="relative w-full md:w-96">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="fa-solid fa-search text-gray-400 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                    </svg>
-                </div>
-                <div id="searchContainer" class="relative">
-                    <input type="text" id="searchInput" placeholder="Pesquisar cliente, encomenda, toma..."
-                        class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
-                </div>
-            </div>
-            
-            <div class="mt-4 flex gap-2">
-                <a href="?estado=todos" 
-                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'todos' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
-                    Todos
-                </a>
-                <a href="?estado=abertos" 
-                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'abertos' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
-                    Abertos
-                </a>
-                <a href="?estado=fechados" 
-                class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'fechados' %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-600 border-gray-200 hover:bg-gray-50{% endif %}">
-                    Fechados
-                </a>
-            </div>
-        </div>
-        
         <div class="relative w-full md:w-96">
-            </div>
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="fa-solid fa-search text-gray-400 w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+            </svg>
+          </div>
+          <div id="searchContainer" class="relative">
+            <input type="text" id="searchInput" placeholder="Pesquisar cliente, encomenda, toma..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+          </div>
+        </div>
+
+        <div class="mt-4 flex gap-2">
+          <a href="?estado=todos"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'todos' %}
+              
+                bg-blue-600 text-white border-blue-600
+
+            {% else %}
+              
+                bg-white text-gray-600 border-gray-200 hover:bg-gray-50
+
+            {% endif %}">
+            Todos
+          </a>
+          <a href="?estado=abertos"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'abertos' %}
+              
+                bg-blue-600 text-white border-blue-600
+
+            {% else %}
+              
+                bg-white text-gray-600 border-gray-200 hover:bg-gray-50
+
+            {% endif %}">
+            Abertos
+          </a>
+          <a href="?estado=fechados"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors border {% if estado_atual == 'fechados' %}
+              
+                bg-blue-600 text-white border-blue-600
+
+            {% else %}
+              
+                bg-white text-gray-600 border-gray-200 hover:bg-gray-50
+
+            {% endif %}">
+            Fechados
+          </a>
+        </div>
+      </div>
+
+      <button id="polimentos" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap h-fit">Criar Polimentos</button>
     </div>
 
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-sm" id="mainTable">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="w-10 px-4 py-4"></th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nr. Encomenda</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Toma</th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
-                        <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total Peças</th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Caixas</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 bg-white" id="mainTableBody">
-                    {% for group in grouped_qrcodes %}
-                    
-                    <tr class="hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-200" 
-                        onclick="toggleGroup('group-{{ forloop.counter }}', this)">
-                        <td class="px-4 py-4 text-center text-blue-500">
-                            <svg class="fa-solid fa-chevron-right transition-transform duration-200 w-4 h-4 mx-auto inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                            </svg>
-                        </td>
-                        <td class="px-6 py-4 font-medium text-gray-900">{{ group.customer }}</td>
-                        <td class="px-6 py-4 text-gray-600">{{ group.customer_order_nr }}</td>
-                        <td class="px-6 py-4 font-mono text-blue-700 font-bold text-italic">{{ group.toma_order_nr }}</td>
-                        <td class="px-6 py-4 text-gray-600">{{ group.toma_order_year }}</td>
-                        <td class="px-6 py-4 font-bold text-green-600 text-right">{{ group.total_qt }}</td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="bg-gray-100 text-gray-600 py-1 px-3 rounded-full text-xs font-bold shadow-sm border">
-                                {{ group.boxes|length }}
-                            </span>
-                        </td>
-                    </tr>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm" id="mainTable">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="w-10 px-4 py-4"></th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nr. Encomenda</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Toma</th>
+              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
+              <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total Peças</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Caixas</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white" id="mainTableBody">
+            {% for group in grouped_qrcodes %}
+              <tr class="hover:bg-blue-50 transition-colors cursor-pointer border-b border-gray-200" onclick="toggleGroup('group-{{ forloop.counter }}', this)">
+                <td class="px-4 py-4 text-center text-blue-500">
+                  <svg class="fa-solid fa-chevron-right transition-transform duration-200 w-4 h-4 mx-auto inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                  </svg>
+                </td>
+                <td class="px-6 py-4 font-medium text-gray-900">{{ group.customer }}</td>
+                <td class="px-6 py-4 text-gray-600">{{ group.customer_order_nr }}</td>
+                <td class="px-6 py-4 font-mono text-blue-700 font-bold text-italic">{{ group.toma_order_nr }}</td>
+                <td class="px-6 py-4 text-gray-600">{{ group.toma_order_year }}</td>
+                <td class="px-6 py-4 font-bold text-green-600 text-right">{{ group.total_qt }}</td>
+                <td class="px-6 py-4 text-center">
+                  <span class="bg-gray-100 text-gray-600 py-1 px-3 rounded-full text-xs font-bold shadow-sm border">{{ group.boxes|length }}</span>
+                </td>
+              </tr>
 
-                    <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50 shadow-inner">
-                        <td colspan="7" class="p-4 md:p-6">
-                            
-                            <div class="bg-white rounded-lg border border-gray-200 overflow-hidden ml-4 md:ml-10">
-                                <div class="bg-blue-50/50 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
-                                    <svg class="fa-solid fa-boxes-stacked text-blue-500 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+              <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50 shadow-inner">
+                <td colspan="7" class="p-4 md:p-6">
+                  <div class="bg-white rounded-lg border border-gray-200 overflow-hidden ml-4 md:ml-10">
+                    <div class="bg-blue-50/50 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
+                      <svg class="fa-solid fa-boxes-stacked text-blue-500 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m20.25 7.5-.625 10.632a2.25 2.25 0 0 1-2.247 2.118H6.622a2.25 2.25 0 0 1-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z" />
+                      </svg>
+                      <span class="text-xs font-bold text-blue-800 uppercase">Lista de Caixas - Toma {{ group.toma_order_nr }}</span>
+                    </div>
+
+                    <table class="min-w-full divide-y divide-gray-100 text-xs md:text-sm">
+                      <thead class="bg-gray-50">
+                        <tr>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500">Caixa</th>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500">Qtd</th>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Produção</th>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Envio</th>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500">Localização</th>
+                          <th class="px-4 py-3 text-left font-medium text-gray-500 w-1/3">Observações</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-50">
+                        {% for qr in group.boxes %}
+                          <tr class="hover:bg-yellow-50 transition-colors" data-search-text="{{ group.customer }} {{ group.customer_order_nr }} {{ qr.box_nr }} {{ group.toma_order_nr }}">
+                            <td class="px-4 py-3 font-bold text-gray-700">#{{ qr.box_nr }}</td>
+                            <td class="px-4 py-3 font-bold text-blue-600">{{ qr.qt }}</td>
+                            <td class="px-4 py-3 text-gray-500">{{ qr.production_start|date:'d/m/y' }}</td>
+                            <td class="px-4 py-3 text-gray-500">{{ qr.envio|date:'d/m/y' }}</td>
+                            <td class="px-4 py-3">
+                              {% with local=qr.where_boxes.last %}
+                                {% if local %}
+                                  <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {% if local.get_where_display == 'Fechado' %} text-white bg-red-400 border-red-400 {% endif %} bg-blue-100 text-blue-800 border border-blue-200">{{ local.get_where_display }}</span>
+                                {% else %}
+                                  <span class="text-gray-400 italic">--</span>
+                                {% endif %}
+                              {% endwith %}
+                            </td>
+                            <td class="px-4 py-3 text-gray-600 truncate max-w-xs" title="{{ qr.observations }}">{{ qr.observations|default:'-' }}</td>
+
+                            <td class="px-4 py-3">
+                              <div class="flex items-center justify-center gap-2">
+                                <button onclick="toggleDies('dies-{{ qr.id }}', this)" class="flex items-center gap-1 bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition shadow-sm text-xs font-medium text-gray-700">
+                                  <span>Fieiras</span>
+                                  <svg class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-200 w-3 h-3 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                  </svg>
+                                </button>
+
+                                <div class="flex gap-1">
+                                  <a href="{% url 'add_multiple_works_workers' qr.id %}" title="Adicionar Multiplos Trabalhos - Polimento" class="p-1.5 text-gray-500 hover:bg-gray-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
                                     </svg>
-                                    <span class="text-xs font-bold text-blue-800 uppercase">Lista de Caixas - Toma {{ group.toma_order_nr }}</span>
+                                  </a>
+
+                                  <a href="{% url 'diametroMenu' qr.toma_order_full %}" title="Pedido Diametro" class="p-1.5 text-green-500 hover:bg-green-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <circle cx="12" cy="12" r="8" stroke-linecap="round" stroke-linejoin="round" />
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15" />
+                                    </svg>
+                                  </a>
+
+                                  <a href="{% url 'partidosMenu' qr.toma_order_full %}" title="Partidos" class="p-1.5 text-red-500 hover:bg-red-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                  </a>
+
+                                  <a href="{% url 'enviar_caixa' qr.id %}" title="Enviar Caixa" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                                    </svg>
+                                  </a>
+
+                                  <a href="{% url 'showDetails' qr.id %}" title="Ver Detalhes" class="p-1.5 text-gray-500 hover:bg-gray-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                  </a>
+
+                                  <a href="{% url 'observacoes_caixa' qr.id %}" title="Criar Observação" class="p-1.5 text-yellow-500 hover:bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                                    </svg>
+                                  </a>
                                 </div>
-                                
-                                <table class="min-w-full divide-y divide-gray-100 text-xs md:text-sm">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Caixa</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Qtd</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Produção</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Envio</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500">Localização</th>
-                                            <th class="px-4 py-3 text-left font-medium text-gray-500 w-1/3">Observações</th>
-                                            <th class="px-4 py-3 text-center font-medium text-gray-500">Ações</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-50">
-                                        {% for qr in group.boxes %}
-                                        
-                                        <tr class="hover:bg-yellow-50 transition-colors" data-search-text="{{ group.customer }} {{ group.customer_order_nr }} {{ qr.box_nr }} {{ group.toma_order_nr }}">
-                                            <td class="px-4 py-3 font-bold text-gray-700">#{{ qr.box_nr }}</td>
-                                            <td class="px-4 py-3 font-bold text-blue-600">{{ qr.qt }}</td>
-                                            <td class="px-4 py-3 text-gray-500">{{ qr.production_start|date:"d/m/y" }}</td>
-                                            <td class="px-4 py-3 text-gray-500">{{ qr.envio|date:"d/m/y" }}</td>
-                                            <td class="px-4 py-3">
-                                                {% with local=qr.where_boxes.last %}
-                                                    {% if local %}
-                                                        <span class="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 border border-blue-200">
-                                                            {{ local.get_where_display }}
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="text-gray-400 italic">--</span>
-                                                    {% endif %}
-                                                {% endwith %}
-                                            </td>
-                                            <td class="px-4 py-3 text-gray-600 truncate max-w-xs" title="{{ qr.observations }}">
-                                                {{ qr.observations|default:"-" }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center justify-center gap-2">
-                                                    <button onclick="toggleDies('dies-{{ qr.id }}', this)" 
-                                                        class="flex items-center gap-1 bg-white border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 transition shadow-sm text-xs font-medium text-gray-700">
-                                                        <span>Fieiras</span>
-                                                        <svg class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-200 w-3 h-3 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-                                                        </svg>
-                                                    </button>
-                                                    
-                                                    <div class="flex gap-1">
-                                                        <a href="{% url 'diametroMenu' qr.toma_order_full %}" title="Pedido Diametro" class="p-1.5 text-green-500 hover:bg-green-50 rounded">
-                                                            <svg class="fa-solid fa-plus w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                                        </a>
-                                                        <a href="{% url 'partidosMenu' qr.toma_order_full %}" title="Partidos" class="p-1.5 text-red-500 hover:bg-red-50 rounded">
-                                                            <svg class="fa-solid fa-heart-crack w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75v16.5" /></svg>
-                                                        </a>
-                                                        <a href="{% url 'enviar_caixa' qr.id %}" title="Enviar Caixa" class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded">
-                                                            <svg class="fa-solid fa-truck-fast w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m10.5 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-7.125-14.625h8.152c.319 0 .613.123.832.327l.144.135a.625.625 0 0 1 .207.464V12c0 .345-.28.625-.625.625H2.625a.625.625 0 0 1-.625-.625V4.625c0-.345.28-.625.625-.625H8.25ZM21 12v2.625c0 .345-.28.625-.625.625H2.625a.625.625 0 0 1-.625-.625V12m19 0h-2.625a.625.625 0 0 0-.625.625V15.375" /></svg>
-                                                        </a>
-                                                        <a href="{% url 'showDetails' qr.id %}" title="Ver Detalhes" class="p-1.5 text-gray-500 hover:bg-gray-50 rounded">
-                                                            <svg class="fa-solid fa-eye w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
-                                                        </a>
-                                                        
-                                                    </div>
-                                                </div>
-                                            </td>
-                                        </tr>
+                              </div>
+                            </td>
+                          </tr>
 
-                                        <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50/80 border-t border-b border-gray-200 shadow-inner">
-                                            <td colspan="8" class="p-6">
-                                                <div class="max-w-6xl mx-auto">
-                                                    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                                        <svg class="fa-solid fa-layer-group w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.25 2.25 0 0 0-1.5 2.122v.878m15 0A2.25 2.25 0 0 1 21 12.878v.878m-16.5 0a2.25 2.25 0 0 0-1.5 2.122v.878m16.5 0a2.25 2.25 0 0 1 1.5 2.122v.878M3 18.75a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-4.75A2.25 2.25 0 0 1 5.25 11.75h13.5A2.25 2.25 0 0 1 21 14v4.75" /></svg>
-                                                        Fieiras Associadas
-                                                    </h3>
+                          <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50/80 border-t border-b border-gray-200 shadow-inner">
+                            <td colspan="8" class="p-6">
+                              <div class="max-w-6xl mx-auto">
+                                <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                  <svg class="fa-solid fa-layer-group w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.25 2.25 0 0 0-1.5 2.122v.878m15 0A2.25 2.25 0 0 1 21 12.878v.878m-16.5 0a2.25 2.25 0 0 0-1.5 2.122v.878m16.5 0a2.25 2.25 0 0 1 1.5 2.122v.878M3 18.75a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-4.75A2.25 2.25 0 0 1 5.25 11.75h13.5A2.25 2.25 0 0 1 21 14v4.75" />
+                                  </svg>Fieiras Associadas
+                                </h3>
 
-                                                    {% if qr.die_instances.all %}
-                                                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                            {% for die in qr.die_instances.all %}
-                                                            <div class="bg-{{ die.partida|yesno:'orange-100,white' }} rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden">
-                                                                <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
-                                                                    <span class="font-bold text-gray-800">#{{ die.serial_number }}</span>
-                                                                    {% if die.partida %}
-                                                                        <span class="text-xs font-bold text-orange-800 uppercase bg-orange-100 px-2 py-0.5 rounded">Partida</span>
-                                                                    {% elif die.new_diameter %}
-                                                                        <span class="text-xs font-bold text-yellow-800 uppercase bg-yellow-100 px-2 py-0.5 rounded">Novo Diâmetro</span>
-                                                                    {% endif %}
-                                                                    <span class="text-xs font-mono bg-white border px-2 py-0.5 rounded text-gray-600">{{ die.diameter_text }}</span>
-                                                                </div>
-                                                                
-                                                                <div class="p-4 text-xs space-y-2">
-                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
-                                                                        <span class="text-gray-500"> Requerido:</span>
-                                                                        <span class="font-medium">{{ die.diam_requerido }}</span>
-                                                                    </div>
-                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
-                                                                        <span class="text-gray-500">Tipo / Trabalho:</span>
-                                                                        <span class="font-medium text-blue-600">{{ die.die.get_die_type_display }} / {{ die.job.get_job_display }}</span>
-                                                                    </div>
-                                                                    <div class="flex justify-between border-b border-gray-50 pb-1">
-                                                                        <span class="text-gray-500">Tolerância:</span>
-                                                                        <span>{{ die.tolerance.min|default:"-" }} a {{ die.tolerance.max|default:"-" }}</span>
-                                                                    </div>
-                                                                    <div class="flex justify-between items-center border-b border-gray-50 pb-1">
-                                                                        <span class="text-gray-500">Calibre:</span>
-                                                                        <span class="{% if die.bearing_is_red %}bg-red-100 text-red-800 px-1.5 rounded font-bold{% endif %}">
-                                                                            {{ die.bearing }}
-                                                                        </span>
-                                                                    </div>
-                                                                    {% if die.new_diameter %}
-                                                                    <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
-                                                                        <svg class="fa-solid fa-circle-info mr-1 font-bold text-black-800 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg> Novo Diâmetro: 
-                                                                        <span class="font-medium {% if die.new_diameter and die.new_diameter|floatformat:4 > die.diam_requerido|floatformat:4 %}text-red-600 font-bold{% endif %}">
-                                                                            {{ die.new_diameter|default:"-" }}
-                                                                        </span>
-                                                                    </div>
-                                                                    {% endif %}
-                                                                    
-                                                                    {% if die.observations %}
-                                                                    <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
-                                                                        <svg class="fa-solid fa-circle-info mr-1 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg> {{ die.observations }}
-                                                                    </div>
-                                                                    {% endif %}
-                                                                </div>
+                                {% if qr.die_instances.all %}
+                                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {% for die in qr.die_instances.all %}
+                                      <div class="bg-{{ die.partida|yesno:'orange-100,white' }} rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden">
+                                        <div class="bg-gray-50 px-4 py-2 border-b border-gray-100 flex justify-between items-center">
+                                          <span class="font-bold text-gray-800">#{{ die.serial_number }}</span>
+                                          {% if die.partida %}
+                                            <span class="text-xs font-bold text-orange-800 uppercase bg-orange-100 px-2 py-0.5 rounded">Partida</span>
+                                          {% elif die.new_diameter %}
+                                            <span class="text-xs font-bold text-yellow-800 uppercase bg-yellow-100 px-2 py-0.5 rounded">Novo Diâmetro</span>
+                                          {% endif %}
+                                          <span class="text-xs font-mono bg-white border px-2 py-0.5 rounded text-gray-600">{{ die.diameter_text }}</span>
+                                        </div>
 
-                                                                <div class="bg-gray-50 px-4 py-2 flex justify-between gap-2 border-t border-gray-100">
-                                                                    <a href="{% url 'die_details' die.id %}" class="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-1 rounded hover:bg-gray-50 text-xs font-medium transition-colors">Trabalhos</a>
-                                                                    <a href="{% url 'enviar_fieira' die.id %}" class="flex-1 text-center bg-blue-50 border border-blue-200 text-blue-700 py-1 rounded hover:bg-blue-100 text-xs font-medium transition-colors">Enviar</a>
-                                                                    <a href="{% url 'infoFieira' die.id %}" class="flex-1 text-center bg-purple-50 border border-purple-200 text-purple-700 py-1 rounded hover:bg-purple-100 text-xs font-medium transition-colors">Tempo</a>
-                                                                </div>
-                                                            </div>
-                                                            {% endfor %}
-                                                        </div>
-                                                    {% else %}
-                                                        <div class="flex flex-col items-center justify-center py-8 text-gray-400 bg-white rounded border border-dashed border-gray-300">
-                                                            <svg class="fa-regular fa-folder-open text-3xl mb-2 w-10 h-10 inline-block text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.31c-.195 0-.382-.078-.52-.217L13.06 6.31Z" /></svg>
-                                                            <p>Nenhuma fieira associada a este pedido.</p>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="px-6 py-10 text-center text-gray-500">Nenhum pedido encontrado.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                                        <div class="p-4 text-xs space-y-2">
+                                          <div class="flex justify-between border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Requerido:</span>
+                                            <span class="font-medium">{{ die.diam_requerido }}</span>
+                                          </div>
+                                          <div class="flex justify-between border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Tipo / Trabalho:</span>
+                                            <span class="font-medium text-blue-600">{{ die.die.get_die_type_display }} / {{ die.job.get_job_display }}</span>
+                                          </div>
+                                          <div class="flex justify-between border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Tolerância:</span>
+                                            <span>{{ die.tolerance.min|default:'-' }} a {{ die.tolerance.max|default:'-' }}</span>
+                                          </div>
+                                          <div class="flex justify-between items-center border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Calibre:</span>
+                                            <span class="{% if die.bearing_is_red %}bg-red-100 text-red-800 px-1.5 rounded font-bold{% endif %}">{{ die.bearing }}</span>
+                                          </div>
+                                          {% if die.new_diameter %}
+                                            <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
+                                              <svg class="fa-solid fa-circle-info mr-1 font-bold text-black-800 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                              </svg>Novo Diâmetro:
+                                              <span class="font-medium {% if die.new_diameter and die.new_diameter|floatformat:4 > die.diam_requerido|floatformat:4 %}text-red-600 font-bold{% endif %}">{{ die.new_diameter|default:'-' }}</span>
+                                            </div>
+                                          {% endif %}
+
+                                          {% if die.observations %}
+                                            <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
+                                              <svg class="fa-solid fa-circle-info mr-1 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                                              </svg> {{ die.observations }}
+                                            </div>
+                                          {% endif %}
+                                        </div>
+
+                                        <div class="bg-gray-50 px-4 py-2 flex justify-between gap-2 border-t border-gray-100">
+                                          <a href="{% url 'die_details' die.id %}" class="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-1 rounded hover:bg-gray-50 text-xs font-medium transition-colors">Trabalhos</a>
+                                          <a href="{% url 'enviar_fieira' die.id %}" class="flex-1 text-center bg-blue-50 border border-blue-200 text-blue-700 py-1 rounded hover:bg-blue-100 text-xs font-medium transition-colors">Enviar</a>
+                                          <a href="{% url 'infoFieira' die.id %}" class="flex-1 text-center bg-purple-50 border border-purple-200 text-purple-700 py-1 rounded hover:bg-purple-100 text-xs font-medium transition-colors">Tempo</a>
+                                        </div>
+                                      </div>
+                                    {% endfor %}
+                                  </div>
+                                {% else %}
+                                  <div class="flex flex-col items-center justify-center py-8 text-gray-400 bg-white rounded border border-dashed border-gray-300">
+                                    <svg class="fa-regular fa-folder-open text-3xl mb-2 w-10 h-10 inline-block text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.31c-.195 0-.382-.078-.52-.217L13.06 6.31Z" />
+                                    </svg>
+                                    <p>Nenhuma fieira associada a este pedido.</p>
+                                  </div>
+                                {% endif %}
+                              </div>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7" class="px-6 py-10 text-center text-gray-500">Nenhum pedido encontrado.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-</div>
+  </div>
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center hidden z-50 transition-opacity" id="inserirPolimentos">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
+      <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h2 class="text-xl font-bold text-gray-800 flex text-center gap-2">Adicionar Polimentos</h2>
+        <button type="button" onclick="document.getElementById('inserirPolimentos').classList.add('hidden')" class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-red-50">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <form id="polimentosForm" method="POST" action="{% url 'listarDies' %}" class="p-6">
+        {% csrf_token %}
+        <div class="space-y-5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Nº de Fieiras</label>
+              <input type="number" name="numero_fieiras" placeholder="Ex: 5" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Cliente</label>
+              <input type="text" name="cliente" placeholder="Ex: 26" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Tipo de Polimento</label>
+              <select name="tipo" required class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors">
+                <option value="" disabled selected>Selecione um tipo...</option>
+                {% for choice in tipo_choices %}
+                  <option value="{{ choice.0 }}">{{ choice.1 }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1">Observações <span class="text-gray-400 font-normal">(Opcional)</span></label>
+            <textarea name="observations" id="observations" rows="3" placeholder="Adicione algum detalhe extra se necessário..." class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-colors resize-none"></textarea>
+          </div>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-3 pt-5 border-t border-gray-100">
+          <button type="button" onclick="document.getElementById('inserirPolimentos').classList.add('hidden')" class="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-200 transition">Cancelar</button>
+          <button type="submit" class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition shadow-md shadow-green-600/30">Adicionar Polimentos</button>
+        </div>
+      </form>
+    </div>
+  </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const polimentosBtn = document.getElementById('polimentos')
+      const inserirPolimentos = document.getElementById('inserirPolimentos')
+    
+      if (polimentosBtn) {
+        polimentosBtn.addEventListener('click', function () {
+          inserirPolimentos.classList.toggle('hidden')
+        })
+      }
+    })
+    
     // --- GESTÃO DE ESTADO (MEMÓRIA) ---
     // Cria um objeto para guardar os IDs das linhas que estão abertas
-    let togglesAbertos = JSON.parse(sessionStorage.getItem('dies_toggles_abertos')) || {};
-
+    let togglesAbertos = JSON.parse(sessionStorage.getItem('dies_toggles_abertos')) || {}
+    
     // Função para guardar o estado atual na memória do browser
     function guardarEstado() {
-        sessionStorage.setItem('dies_toggles_abertos', JSON.stringify(togglesAbertos));
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-            sessionStorage.setItem('dies_search_query', searchInput.value);
-        }
+      sessionStorage.setItem('dies_toggles_abertos', JSON.stringify(togglesAbertos))
+      const searchInput = document.getElementById('searchInput')
+      if (searchInput) {
+        sessionStorage.setItem('dies_search_query', searchInput.value)
+      }
     }
-
+    
     // --- FUNÇÕES DE TOGGLE ATUALIZADAS ---
     // 1. Função para abrir o GRUPO (Nível 1)
-    window.toggleGroup = function(rowId, btnElement) {
-        const detailRow = document.getElementById(rowId);
-        const icon = btnElement.querySelector('.fa-chevron-right');
-
-        if (detailRow.classList.contains('hidden')) {
-            detailRow.classList.remove('hidden');
-            icon.classList.add('rotate-90');
-            togglesAbertos[rowId] = true; // Guarda que este ID está aberto
-        } else {
-            detailRow.classList.add('hidden');
-            icon.classList.remove('rotate-90');
-            delete togglesAbertos[rowId]; // Remove da memória
-        }
-        guardarEstado(); // Atualiza a memória
-    };
-
+    window.toggleGroup = function (rowId, btnElement) {
+      const detailRow = document.getElementById(rowId)
+      const icon = btnElement.querySelector('.fa-chevron-right')
+    
+      if (detailRow.classList.contains('hidden')) {
+        detailRow.classList.remove('hidden')
+        icon.classList.add('rotate-90')
+        togglesAbertos[rowId] = true // Guarda que este ID está aberto
+      } else {
+        detailRow.classList.add('hidden')
+        icon.classList.remove('rotate-90')
+        delete togglesAbertos[rowId] // Remove da memória
+      }
+      guardarEstado() // Atualiza a memória
+    }
+    
     // 2. Função para abrir as FIEIRAS (Nível 2)
-    window.toggleDies = function(id, btnElement) {
-        if(event) event.stopPropagation();
-
-        const row = document.getElementById(id);
-        if (!row) return;
-
-        row.classList.toggle('hidden');
-        
-        const icon = btnElement.querySelector('.fa-chevron-down');
-        if(row.classList.contains('hidden')) {
-            if(icon) icon.style.transform = 'rotate(0deg)';
-            delete togglesAbertos[id]; // Remove da memória
-        } else {
-            if(icon) icon.style.transform = 'rotate(180deg)';
-            togglesAbertos[id] = true; // Guarda que este ID está aberto
-        }
-        guardarEstado(); // Atualiza a memória
-    };
-
+    window.toggleDies = function (id, btnElement) {
+      if (event) event.stopPropagation()
+    
+      const row = document.getElementById(id)
+      if (!row) return
+    
+      row.classList.toggle('hidden')
+    
+      const icon = btnElement.querySelector('.fa-chevron-down')
+      if (row.classList.contains('hidden')) {
+        if (icon) icon.style.transform = 'rotate(0deg)'
+        delete togglesAbertos[id] // Remove da memória
+      } else {
+        if (icon) icon.style.transform = 'rotate(180deg)'
+        togglesAbertos[id] = true // Guarda que este ID está aberto
+      }
+      guardarEstado() // Atualiza a memória
+    }
+    
     // --- PESQUISA ATUALIZADA ---
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = document.getElementById('searchInput')
     
     // Função separada para aplicar o filtro para podermos chamá-la automaticamente
     function aplicarFiltroDePesquisa(filterValue) {
-        const filter = filterValue.toLowerCase();
-        const mainBody = document.getElementById('mainTableBody');
-        if (!mainBody) return;
-        
-        const headerRows = mainBody.querySelectorAll('tr[onclick*="toggleGroup"]');
-        
-        headerRows.forEach((headerRow) => {
-            const contentRow = headerRow.nextElementSibling; // Row com dies
-            
-            if (!headerRow || !contentRow) return;
-
-            const headerText = headerRow.textContent.toLowerCase();
-            const contentText = contentRow.textContent.toLowerCase();
-            const text = headerText + contentText;
-            
-            if (filter === '' || text.includes(filter)) {
-                // SE ENCONTRAR:
-                headerRow.classList.remove('hidden');
-                // Mantém a lógica de visibilidade do contentRow (não mexe, respeita o toggle)
-            } else {
-                // SE NÃO ENCONTRAR: Oculta ambos
-                headerRow.classList.add('hidden');
-                contentRow.classList.add('hidden');
-            }
-        });
+      const filter = filterValue.toLowerCase()
+      const mainBody = document.getElementById('mainTableBody')
+      if (!mainBody) return
+    
+      const headerRows = mainBody.querySelectorAll('tr[onclick*="toggleGroup"]')
+    
+      headerRows.forEach((headerRow) => {
+        const contentRow = headerRow.nextElementSibling // Row com dies
+    
+        if (!headerRow || !contentRow) return
+    
+        const headerText = headerRow.textContent.toLowerCase()
+        const contentText = contentRow.textContent.toLowerCase()
+        const text = headerText + contentText
+    
+        if (filter === '' || text.includes(filter)) {
+          // SE ENCONTRAR:
+          headerRow.classList.remove('hidden')
+          // Mantém a lógica de visibilidade do contentRow (não mexe, respeita o toggle)
+        } else {
+          // SE NÃO ENCONTRAR: Oculta ambos
+          headerRow.classList.add('hidden')
+          contentRow.classList.add('hidden')
+        }
+      })
     }
-
+    
     if (searchInput) {
-        // Quando o utilizador escreve, aplica o filtro e guarda na memória
-        searchInput.addEventListener('keyup', function () {
-            aplicarFiltroDePesquisa(this.value);
-            guardarEstado();
-        });
+      // Quando o utilizador escreve, aplica o filtro e guarda na memória
+      searchInput.addEventListener('keyup', function () {
+        aplicarFiltroDePesquisa(this.value)
+        guardarEstado()
+      })
     }
-
+    
     // --- RESTAURAR O ESTADO AO CARREGAR A PÁGINA ---
     document.addEventListener('DOMContentLoaded', () => {
-        // 1. Restaurar a Pesquisa
-        const pesquisaGuardada = sessionStorage.getItem('dies_search_query');
-        if (pesquisaGuardada && searchInput) {
-            searchInput.value = pesquisaGuardada;
-            aplicarFiltroDePesquisa(pesquisaGuardada);
-        }
-
-        // 2. Restaurar os Toggles
-        for (const id in togglesAbertos) {
-            const row = document.getElementById(id);
-            if (row) {
-                // Remove a class hidden
-                row.classList.remove('hidden');
-                
-                // Tenta encontrar o ícone para o rodar
-                // Lógica simples: se for um grupo (nível 1), procura no tr anterior
-                if (id.startsWith('group-')) {
-                    const headerRow = row.previousElementSibling;
-                    if (headerRow) {
-                        const icon = headerRow.querySelector('.fa-chevron-right');
-                        if (icon) icon.classList.add('rotate-90');
-                    }
-                } 
-                // Se for fieira (nível 2), procura no tr anterior
-                else if (id.startsWith('dies-')) {
-                    const headerRow = row.previousElementSibling;
-                    if (headerRow) {
-                        const icon = headerRow.querySelector('.fa-chevron-down');
-                        if (icon) icon.style.transform = 'rotate(180deg)';
-                    }
-                }
-            } else {
-                // Se o ID já não existe na página (ex: mudou de aba), limpa-o da memória
-                delete togglesAbertos[id];
+      // 1. Restaurar a Pesquisa
+      const pesquisaGuardada = sessionStorage.getItem('dies_search_query')
+      if (pesquisaGuardada && searchInput) {
+        searchInput.value = pesquisaGuardada
+        aplicarFiltroDePesquisa(pesquisaGuardada)
+      }
+    
+      // 2. Restaurar os Toggles
+      for (const id in togglesAbertos) {
+        const row = document.getElementById(id)
+        if (row) {
+          // Remove a class hidden
+          row.classList.remove('hidden')
+    
+          // Tenta encontrar o ícone para o rodar
+          // Lógica simples: se for um grupo (nível 1), procura no tr anterior
+          if (id.startsWith('group-')) {
+            const headerRow = row.previousElementSibling
+            if (headerRow) {
+              const icon = headerRow.querySelector('.fa-chevron-right')
+              if (icon) icon.classList.add('rotate-90')
             }
+          }
+          // Se for fieira (nível 2), procura no tr anterior
+          else if (id.startsWith('dies-')) {
+            const headerRow = row.previousElementSibling
+            if (headerRow) {
+              const icon = headerRow.querySelector('.fa-chevron-down')
+              if (icon) icon.style.transform = 'rotate(180deg)'
+            }
+          }
+        } else {
+          // Se o ID já não existe na página (ex: mudou de aba), limpa-o da memória
+          delete togglesAbertos[id]
         }
-        guardarEstado(); // Limpa IDs "órfãos" caso tenham sido apagados no loop acima
-    });
-</script>
+      }
+      guardarEstado() // Limpa IDs "órfãos" caso tenham sido apagados no loop acima
+    })
+  </script>
 {% endblock %}

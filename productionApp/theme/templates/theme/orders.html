@@ -141,6 +141,11 @@
       </label>
 
       <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="pin" id="oc_pin">
+        <span>Pin Measurement</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
         <input type="checkbox" name="casing" id="oc_casing">
         <span>Casing</span>
       </label>
@@ -223,6 +228,7 @@
       days_3_4: document.getElementById('oc_days_3_4').checked,
       recondicioning: document.getElementById('oc_recondicioning').checked,
       semifinished: document.getElementById('oc_semifinished').checked,
+      pin: document.getElementById('oc_pin').checked,
       casing: document.getElementById('oc_casing').checked,
       done: document.getElementById('oc_done').checked,
       comment: document.getElementById('oc_comment').value
