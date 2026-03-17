@@ -12,9 +12,6 @@
   <select name="tipo_trabalho" id="tipo_trabalho" required class="border rounded p-2 mb-4 w-full">
     <option value="">-- Escolher --</option>
     <option value="polimento">Polimento</option>
-    <option value="desbaste_agulha">Desbaste Agulha</option>
-    <option value="desbaste_calibre">Desbaste Calibre</option>
-    <option value="afinacao">Afinação</option>
   </select>
 
   <label class="block mb-2 font-medium">Subtipo:</label>
@@ -23,11 +20,11 @@
   </select>
 
   <label for="workers" class="block mb-2 font-semibold">Trabalhadores:</label>
-  <select name="workers" id="workers" multiple required class="border rounded p-2 mb-4 w-full">
-    {% for user in users|dictsort:"username" %}
-      <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
-    {% endfor %}
-  </select>
+    <select name="workers" id="workers" multiple required class="border rounded p-2 mb-4 w-full">
+      {% for user in users|dictsort:"username" %}
+        <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+      {% endfor %}
+    </select>
   <p class="text-sm text-gray-500">Segure a tecla Ctrl (ou Control) para selecionar vários trabalhadores.</p>
 
   <label class="block mb-2 font-semibold text-gray-700">Selecione os Números de Série das Fieiras:</label>
@@ -62,19 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ["saida", "Saída"],
       ["cone", "Cone"]
     ],
-    desbaste_agulha: [
-      ["entrada", "Entrada"],
-      ["saida", "Saída"],
-      ["cone", "Cone"]
-    ],
-    desbaste_calibre: [
-      ["polimento_de_calibre", "Polimento de Calibre"],
-      ["desbaste_de_calibre", "Desbaste de Calibre"]
-    ],
-    afinacao: [
-      ["calibre", "Calibre"],
-      ["afinacao", "Afinação"]
-    ]
+
   };
 
   // Atualiza o subtipo quando o tipo mudar

@@ -9,6 +9,7 @@
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos por Diâmetro</h1>
                 <p class="text-sm text-gray-500 mt-1">Gestão de requisições de alteração de diâmetro</p>
+                <p class="text-sm text-gray-400 mt-1 italic">* Faça Scroll lateral com o uso de Shift ⭡ + Scroll</p>
             </div>
             
             <div class="relative w-full md:w-96">
@@ -28,6 +29,8 @@
             <table class="min-w-full divide-y divide-gray-200" id="pedidoTable">
                 <thead class="bg-gray-50">
                     <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Nr. Encomenda</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Serial Fieiras</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Original</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Ø Atual</th>
@@ -45,6 +48,16 @@
                 <tbody class="divide-y divide-gray-100 bg-white">
                     {% for item in pedidos_com_box %}
                         <tr class="hover:bg-blue-50 transition-colors group" id="row-{{ item.pedido.id }}">
+
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                {{ item.cliente }}
+                            </td>
+
+
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                {{ item.n_encomenda }}
+                            </td>
+
                             
                             <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                 {{ item.pedido.serie_dies }}

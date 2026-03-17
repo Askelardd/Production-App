@@ -1,101 +1,215 @@
 {% extends 'theme/base.html' %}
-{% block title %}Detalhes do QR Code{% endblock %}
+{% block title %}
+  Detalhes do QR Code
+{% endblock %}
 
 {% block content %}
-<h2 class = "text-2xl font-bold mb-6">Detalhes do QR Code (ID {{ qr.id }})</h2>
+  <div class="max-w-7xl mx-auto pb-10">
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
+        <svg class="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+        </svg>Detalhes da Caixa <span class="text-gray-400 font-medium text-2xl">#{{ qr.id }}</span>
+      </h2>
+      <a href="{% url 'listarDies' %}" class="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 hover:text-blue-600 transition shadow-sm font-medium">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+        </svg>Voltar
+      </a>
+    </div>
 
-<!-- Informações principais -->
-<div class = "bg-white p-6 rounded-lg shadow mb-6">
-                      <p><strong>Cliente   : </strong> {{ qr.customer }}</p>
-    <p><strong>Ordem  Cliente              : </strong> {{ qr.customer_order_nr }}</p>
-    <p><strong>Toma   Ordem                : </strong> {{ qr.toma_order_nr }}</p>
-                      <p><strong>Quantidade: </strong> {{ qr.qt }}</p>
-    <p><strong>Criado em                   : </strong> {{ qr.created_at|date:"d/m/Y H:i" }}</p>
-</div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <div>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Cliente</p>
+          <p class="text-lg font-bold text-gray-800">{{ qr.customer }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Ordem Cliente</p>
+          <p class="text-lg font-bold text-gray-800">{{ qr.customer_order_nr }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Toma Ordem</p>
+          <p class="text-lg font-bold text-blue-600">{{ qr.toma_order_nr }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Quantidade</p>
+          <p class="text-lg font-bold text-gray-800">{{ qr.qt }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Criado em</p>
+          <p class="text-md font-semibold text-gray-600">{{ qr.created_at|date:'d/m/Y H:i' }}</p>
+        </div>
+      </div>
+    </div>
 
-<!-- Diâmetro Máx/Mín
-<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6">
-<h3  class = "text-lg font-semibold mb-2">Diâmetro Máx/Mín (para todos os Dies)</h3>
-    {% if qr.die_instances.exists %}
-        {% with first_die=qr.die_instances.first %}
-            <p><strong>Mínimo: </strong> {{ first_die.diam_max_min.min|default:"-" }}</p>
-            <p><strong>Máximo: </strong> {{ first_die.diam_max_min.max|default:"-" }}</p>
-        {% endwith %}
-    {% else %}
-        <p class = "text-gray-500 italic">Nenhum Die associado.</p>
+    {% if pessoal %}
+      <div class="bg-blue-50 border border-blue-200 p-4 mb-8 rounded-xl flex items-center gap-4 shadow-sm">
+        <div class="bg-blue-100 p-2 rounded-full text-blue-600">
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+          </svg>
+        </div>
+        <p class="text-blue-800 font-semibold text-lg">
+          Fieiras pessoais trabalhadas por ti nesta caixa: <span class="font-extrabold text-blue-600 text-xl ml-1">{{ pessoal }}</span>
+        </p>
+      </div>
     {% endif %}
-</div>
-}-->
 
-<hr class = "my-6">
-
-<h2    class = "text-xl font-bold mb-4">Resumo por Trabalhador (Fieiras Únicas)</h2>
-<table class = "w-full border border-gray-300 text-sm">
-    <thead>
-        <tr class = "bg-gray-200">
-        <th class = "p-2 text-left">Trabalhador</th>
-        <th class = "p-2 text-center">Fieiras Trabalhadas</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for stat in workers_stats %}
-        <tr class = "border-b">
-        <td class = "p-2">{{ stat.name }} ({{ stat.username }})</td>
-        <td class = "p-2 text-center font-semibold">{{ stat.total_dies }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan = "2" class = "text-center text-gray-500 p-2">Nenhum trabalhador associado a esta Fieiras.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
-<!-- Pedidos de Diâmetro -->
-<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6 mt-6">
-<h3  class = "text-lg font-semibold mb-2">Pedidos de Diâmetro</h3>
-    {% if pedidos %}
-        <ul class = "list-disc ml-6">
-            {% for pedido in pedidos %}
-                <li>
-                    {{ pedido.numero_fieiras }} fieiras para {{ pedido.diametro }}
-                    <small class = "text-gray-500">({{ pedido.created_at|date:"d/m/Y H:i" }})</small>
-                    <p     class = "text-gray-600"> Numero Fieira: {{ pedido.serie_dies|default:"-" }}</p>
-                    <p     class = "text-gray-600"> Observações: {{ pedido.observations|default:"-" }}</p>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class = "text-gray-500 italic">Nenhum pedido de diâmetro registrado.</p>
-    {% endif %}
-</div>
-
-<!-- Partidos -->
-<div class = "bg-gray-50 p-4 rounded-lg shadow mb-6">
-<h3  class = "text-lg font-semibold mb-2">Partidos</h3>
-    {% if partidos %}
-        <ul class = "list-disc ml-6">
-            {% for partido in partidos %}
-                <li>
-                    {{ partido.partido }} fieiras
-                    <small class = "text-gray-500">({{ partido.created_at|date:"d/m/Y H:i" }})</small>
-                    <p     class = "text-gray-600">Número Fieira: {{ partido.serie_dies_partidos|default:"-" }}</p>
-                    <p     class = "text-gray-600">Observações: {{ partido.observations|default:"-" }}</p>
-                    {% for die in partido.dies_partidos.all %}
-                        <span class = "inline-block bg-red-200 text-red-800 px-2 py-1 rounded-full text-xs font-mono mr-1 mb-1">{{ die.serial_number }}</span>
+    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+      <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+      </svg>Resumo da Equipa
+    </h2>
+    <div class="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-100 mb-10">
+      <table class="w-full text-sm text-left">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-bold tracking-wider border-b border-gray-200">
+          <tr>
+            <th class="px-6 py-4">Trabalhador</th>
+            <th class="px-6 py-4 text-center">Fieiras Únicas</th>
+            <th class="px-6 py-4">Avisos / Repetições</th>
+            <th class="px-6 py-4 text-center">Total Ações</th>
+            <th class="px-6 py-4">Trabalhos Realizados</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for stat in workers_stats %}
+            <tr class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4">
+                <p class="font-bold text-gray-800">{{ stat.name }}</p>
+                <p class="text-xs text-gray-400">@{{ stat.username }}</p>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <span class="inline-flex items-center justify-center px-3 py-1 bg-blue-100 text-blue-700 font-bold rounded-full">{{ stat.total_dies }}</span>
+              </td>
+              <td class="px-6 py-4">
+                {% if stat.repeticoes %}
+                  <div class="flex flex-col gap-1">
+                    {% for aviso in stat.repeticoes %}
+                      <span class="inline-flex items-center gap-1 text-xs font-medium text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-100">
+                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                        </svg>
+                        {{ aviso }}
+                      </span>
                     {% endfor %}
+                  </div>
+                {% else %}
+                  <span class="text-gray-400 italic text-xs">Sem repetições</span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4 text-center">
+                <span class="text-lg font-bold text-green-600">{{ stat.total_trabalhos }}</span>
+              </td>
+              <td class="px-6 py-4 text-gray-600 font-medium">{{ stat.trabalhos_realizados|join:", " }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-gray-500 italic bg-gray-50">Nenhum trabalhador associado a estas Fieiras ainda.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p class = "text-gray-500 italic">Nenhum partido registrado.</p>
-    {% endif %}
-</div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        <div class="bg-yellow-50 border-b border-yellow-100 px-5 py-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+          </svg>
+          <h3 class="text-lg font-bold text-yellow-800">Polimentos</h3>
+        </div>
+        <div class="p-5 flex-1">
+          {% if polimentos_dies_ids %}
+            <div class="space-y-4">
+              {% for polimento in polimentos_dies_ids %}
+                <div class="border-l-4 border-yellow-400 pl-3 py-1">
+                  <p class="font-bold text-gray-800">
+                    {{ polimento.numero_fieiras }} fieiras <span class="text-sm font-normal text-gray-500">- {{ polimento.get_tipo_display }}</span>
+                  </p>
+                  <p class="text-xs text-gray-400 mb-1">{{ polimento.created_at|date:'d/m/Y H:i' }} • @{{ polimento.user|default:'-' }} • {{ polimento.cliente|default:'-' }}</p>
+                  {% if polimento.observations %}
+                    <p class="text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 mt-2">{{ polimento.observations }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-gray-400 italic text-center py-4">Nenhum polimento registado.</p>
+          {% endif %}
+        </div>
+      </div>
 
-<!-- Botão Voltar -->
-<a href = "{% url 'listarDies' %}" class = "inline-block bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500">
-    Voltar à lista
-</a>
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        <div class="bg-green-50 border-b border-green-100 px-5 py-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <circle cx="12" cy="12" r="8" stroke-linecap="round" stroke-linejoin="round" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15" />
+          </svg>
+          <h3 class="text-lg font-bold text-green-800">Pedidos de Diâmetro</h3>
+        </div>
+        <div class="p-5 flex-1">
+          {% if pedidos %}
+            <div class="space-y-4">
+              {% for pedido in pedidos %}
+                <div class="border-l-4 border-green-400 pl-3 py-1">
+                  <p class="font-bold text-gray-800">
+                    {{ pedido.numero_fieiras }} fieiras <span class="text-sm font-normal text-gray-500">para {{ pedido.diametro }}</span>
+                  </p>
+                  <p class="text-xs text-gray-400 mb-1">{{ pedido.created_at|date:'d/m/Y H:i' }}</p>
+                  <p class="text-sm font-medium text-gray-700 mt-1">
+                    Série: <span class="font-bold text-green-700">{{ pedido.serie_dies|default:'-' }}</span>
+                  </p>
+                  {% if pedido.observations %}
+                    <p class="text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 mt-2">{{ pedido.obs_limpa }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-gray-400 italic text-center py-4">Nenhum pedido registado.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+        <div class="bg-red-50 border-b border-red-100 px-5 py-3 flex items-center gap-2">
+          <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <h3 class="text-lg font-bold text-red-800">Partidos / Quebras</h3>
+        </div>
+        <div class="p-5 flex-1">
+          {% if partidos %}
+            <div class="space-y-4">
+              {% for partido in partidos %}
+                <div class="border-l-4 border-red-500 pl-3 py-1">
+                  <p class="font-bold text-gray-800">
+                    {{ partido.partido }} fieiras <span class="text-xs font-normal text-gray-400 ml-2">{{ partido.created_at|date:'d/m/Y H:i' }}</span>
+                  </p>
+                  <p class="text-sm font-medium text-gray-700 mt-1">
+                    Série: <span class="font-bold text-red-700">{{ partido.serie_dies_partidos|default:'-' }}</span>
+                  </p>
+
+                  <div class="mt-2 flex flex-wrap gap-1">
+                    {% for die in partido.dies_partidos.all %}
+                      <span class="inline-block bg-red-100 text-red-800 px-2 py-0.5 rounded text-xs font-bold border border-red-200">{{ die.serial_number }}</span>
+                    {% endfor %}
+                  </div>
+
+                  {% if partido.observations %}
+                    <p class="text-sm text-gray-600 bg-gray-50 p-2 rounded border border-gray-100 mt-2">{{ partido.observations }}</p>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="text-gray-400 italic text-center py-4">Nenhuma quebra registada.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}

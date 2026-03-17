@@ -1,0 +1,29 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}
+  Observações Caixa
+{% endblock %}
+
+{% block content %}
+  <form method="POST" action="{% url 'observacoes_caixa' qr.id %}" class="max-w-2xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10">
+    {% csrf_token %}
+    <h1 class="text-3xl font-extrabold text-blue-700 mb-6 text-center">Adicionar Observações à Caixa</h1>
+
+{% if qr.observations_prod %}
+    <div class="mb-6">
+      <label class="block mb-2 font-semibold text-gray-700">Observações Anteriores:</label>
+      <div class="border border-gray-300 rounded-lg p-3 w-full bg-gray-100 text-gray-600 min-h-[4rem]">
+        {{ qr.observations_prod|linebreaksbr }}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="mb-4">
+      <label for="nova_observacao" class="block mb-2 font-semibold text-gray-700">Nova Observação:</label>
+      <textarea id="nova_observacao" name="nova_observacao" rows="4" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400" placeholder="Digite aqui o que pretende acrescentar..." {% if not qr.observations_prod %}required{% endif %}></textarea>
+      <p class="text-sm text-gray-500 mt-1">Este texto será adicionado às observações já existentes.</p>
+    </div>
+
+    <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition">Salvar Observação</button>
+  </form>
+{% endblock %}
