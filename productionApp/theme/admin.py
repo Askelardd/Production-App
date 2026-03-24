@@ -261,9 +261,9 @@ class DeliveryInfoAdmin(admin.ModelAdmin):
 # -------------------
 @admin.register(OrdersComing)
 class OrdersComingAdmin(admin.ModelAdmin):
-    list_display = ['order', 'inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
+    list_display = ['order','conoptica', 'inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
     search_fields = ['order', 'comment']
-    list_filter = ['inspectionMetrology', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
+    list_filter = ['inspectionMetrology','conoptica', 'preshipment', 'days_2_3', 'days_3_4', 'recondicioning', 'semifinished', 'casing', 'mark', 'urgent', 'done', 'data_done']
     list_per_page = 20
 
 

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@tailwindcss/cli": "^4.2.2",
     "apexcharts": "^5.3.6",
     "flowbite": "^4.0.1"
   },
@@ -8,10 +9,14 @@
   "description": "Este projeto foi desenvolvido com o objetivo de **organizar e otimizar o setor de Produção, Q-Office, Administração e Comercial da empresa Toma Tools**, garantindo melhor controle sobre **onde estão e como estão as caixas, fieiras e encomendas da empresa**.",
   "main": "index.js",
   "devDependencies": {
-    "tailwindcss": "^3.4.17"
+    "daisyui": "^5.5.19",
+    "tailwindcss": "^4.2.2"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npx @tailwindcss/cli -i ./theme/static/theme/css/input.css -o ./theme/static/theme/css/output.css --watch",
+    "build": "npx @tailwindcss/cli -i ./theme/static/theme/css/input.css -o ./theme/static/theme/css/output.css --minify"
+    
   },
   "keywords": [],
   "author": "",

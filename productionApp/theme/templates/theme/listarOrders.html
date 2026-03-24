@@ -101,7 +101,7 @@
                   {% for oc in o.orders_coming.all %}
                     <li>
                       {% if o.plant|lower != 'toma' %}
-                        {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent %}
+                        {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent or oc.conoptica or oc.days_2_3 or oc.days_3_4 or oc.recondicioning or oc.semifinished or oc.casing or oc.pin %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 whitespace-nowrap">
                           Have Tasks
                         </span>
