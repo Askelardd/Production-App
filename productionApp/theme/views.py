@@ -245,6 +245,7 @@ def create_orders_coming_ajax(request):
             data = json.loads(request.body)
             oc = OrdersComing.objects.create(
                 order=data.get('order'),
+                conoptica =data.get('conoptica', False),
                 inspectionMetrology=data.get('inspectionMetrology', False),
                 preshipment=data.get('preshipment', False),
                 mark=data.get('mark', False),
@@ -473,6 +474,7 @@ def edit_orders_coming(request, oc_id):
 
     if request.method == 'POST':
         orders_coming.order = request.POST.get('order')
+        orders_coming.conoptica = request.POST.get('conoptica') == 'on'
         orders_coming.inspectionMetrology = request.POST.get('inspectionMetrology') == 'on'
         orders_coming.preshipment = request.POST.get('preshipment') == 'on'
         orders_coming.mark = request.POST.get('mark') == 'on'
@@ -523,6 +525,7 @@ def exportOrderExcel(request, order_id):
             'Plant': order.plant or 'N/A',
             'Shipping Number': order.tracking_number or 'N/A',
             'Order': oc.order,
+            'Conoptica': 'Sim' if oc.conoptica else '-',
             'Inspection Metrology': 'Sim' if oc.inspectionMetrology else '-',
             'Preshipment': 'Sim' if oc.preshipment else '-',
             'Mark': 'Sim' if oc.mark else '-',
@@ -2710,8 +2713,6 @@ def corrigir_nome_ficheiro(ficheiro):
     Tenta corrigir problemas de codificação no nome do ficheiro (ex: acentos 'í' que vêm como 0xed).
     """
     try:
-        # Tenta forçar a conversão de bytes "latin-1" para texto correto
-        # Isto resolve o caso do 0xed (í) e outros acentos comuns
         ficheiro.name = ficheiro.name.encode('iso-8859-1').decode('utf-8')
     except (UnicodeEncodeError, UnicodeDecodeError):
         # Se der erro na conversão (ou seja, se já estiver correto ou for muito estranho),
@@ -3102,9 +3103,9 @@ def relatorio_data(request):
     nr_trabalhos = trabalhos_no_periodo.count()
     nr_fieiras_unicas = trabalhos_no_periodo.values('work__die').distinct().count()
 
-    print("\n--- TOTAL ---")
-    print(f"Trabalhos realizados entre {de_date} e {ate_date}: {nr_trabalhos}")
-    print(f"Fieiras ÚNICAS mexidas: {nr_fieiras_unicas}")
+    #print("\n--- TOTAL ---")
+    #print(f"Trabalhos realizados entre {de_date} e {ate_date}: {nr_trabalhos}")
+    #print(f"Fieiras ÚNICAS mexidas: {nr_fieiras_unicas}")
 
 
     # --- 3. TIPO DE FIEIRAS ---
@@ -3120,7 +3121,7 @@ def relatorio_data(request):
         for item in contagens_tipos_qs if item['work__die__die__die_type']
     }
 
-    print("\n--- TIPO DE FIEIRAS ---")
+    #print("\n--- TIPO DE FIEIRAS ---")
     lista_tipos_front = [] # <--- LISTA PARA O HTML
     for tipo in tipos_fieira_lista:
         total = contagens_por_tipo.get(tipo, 0)
@@ -3132,7 +3133,7 @@ def relatorio_data(request):
             'total': total,
             'percentagem': percentagem
         })
-        print(f"Número de fieiras '{tipo}': {total} (sendo {percentagem:.2f}% do total de fieiras)")
+        #print(f"Número de fieiras '{tipo}': {total} (sendo {percentagem:.2f}% do total de fieiras)")
     
 
 
@@ -3150,8 +3151,8 @@ def relatorio_data(request):
             qtd = partido.partido if partido.partido else 1
             contagem_partidos_por_pedido[ped_partido] += qtd
 
-    print("\n--- PARTIDOS ---")
-    print(f"Número de registos de partidos entre {de_date} e {ate_date}: {total_partidos}")
+    #print("\n--- PARTIDOS ---")
+    #print(f"Número de registos de partidos entre {de_date} e {ate_date}: {total_partidos}")
 
     percentage_partidas = (total_partidos / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
 
@@ -3176,7 +3177,7 @@ def relatorio_data(request):
         if diametro not in (None, ''):
             resumo_pedidos_dict[pedido]['diametros_por_fieira'][die_id] = str(diametro)
 
-    print("\n--- RESUMO DE FIEIRAS E CAIXAS POR PEDIDO ---")
+    #print("\n--- RESUMO DE FIEIRAS E CAIXAS POR PEDIDO ---")
     
     lista_pedidos_front = [] # <--- LISTA PARA O HTML
     
@@ -3205,8 +3206,8 @@ def relatorio_data(request):
             elif 2.500 <= diam_val <= 3.999: num_extragrandes += 1
             elif 4.000 <= diam_val <= 8.000: num_ultra += 1
 
-        print(f"Numero peq = {num_pequenas}")
-        print(f"Numero med = {num_medias}")
+        #print(f"Numero peq = {num_pequenas}")
+        #print(f"Numero med = {num_medias}")
         tamanhos_no_pedido = []
         if num_mini >= 1: tamanhos_no_pedido.append(f"mini: {num_mini}")
         if num_pequenas >= 1: tamanhos_no_pedido.append(f"pequenas: {num_pequenas}")
@@ -3217,7 +3218,7 @@ def relatorio_data(request):
 
         percentagem_mini = (num_mini / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
         percentagem_pequenas = (num_pequenas / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
-        print(f"Percentagem peq: {percentagem_pequenas:.2f}%, calculo: {num_pequenas} / {nr_fieiras_unicas} * 100")
+        #print(f"Percentagem peq: {percentagem_pequenas:.2f}%, calculo: {num_pequenas} / {nr_fieiras_unicas} * 100")
         percentagem_medias = (num_medias / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
         percentagem_grandes = (num_grandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
         percentagem_extragrandes = (num_extragrandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0
@@ -3226,7 +3227,7 @@ def relatorio_data(request):
         detalhe_tamanhos = f" | Tamanhos no pedido: {', '.join(tamanhos_no_pedido)}" if tamanhos_no_pedido else ""
 
         # Print mantido para testes
-        print(f"No pedido {ped} do cliente {cliente} foram trabalhadas {total_fieiras} fieiras, {texto_caixa} {caixas_formatadas}.{aviso_partidas} (Recebidos os diâmetros: {diametros_str}){detalhe_tamanhos}")
+        #print(f"No pedido {ped} do cliente {cliente} foram trabalhadas {total_fieiras} fieiras, {texto_caixa} {caixas_formatadas}.{aviso_partidas} (Recebidos os diâmetros: {diametros_str}){detalhe_tamanhos}")
         
         # Guardar para o Front-end
         lista_pedidos_front.append({
@@ -3256,7 +3257,7 @@ def relatorio_data(request):
 
 
     # --- 6. RELATÓRIO POR UTILIZADOR ---
-    print("\n--- RELATORIO POR UTILIZADOR ---")
+    #print("\n--- RELATORIO POR UTILIZADOR ---")
 
     resumo_workers_qs = (
         trabalhos_no_periodo
@@ -3310,9 +3311,9 @@ def relatorio_data(request):
         contagens_operacoes = defaultdict(int)
         lista_detalhes_worker = [] # Lista de trabalhos para o loop interno
 
-        print(f"\nTrabalhador: {nome}")
-        print(f"  Total de trabalhos: {w['total_trabalhos']}")
-        print(f"  Total de fieiras únicas: {w['total_fieiras']}")
+        #print(f"\nTrabalhador: {nome}")
+        #print(f"  Total de trabalhos: {w['total_trabalhos']}")
+        #print(f"  Total de fieiras únicas: {w['total_fieiras']}")
 
         for d in detalhes_por_worker_dict.get(wid, []):
             tipo = d['work__work_type'] or "N/A"
@@ -3327,7 +3328,7 @@ def relatorio_data(request):
             if tipo_die == 'PCD': pcd_trabalhadas += 1
             if tipo_die == 'MCD': mcd_trabalhadas += 1
 
-            print(f"  - Série: {serie} | {tipo} / {subtipo} | Die: {tipo_die} | trabalhos: {d['total']}")
+            #print(f"  - Série: {serie} | {tipo} / {subtipo} | Die: {tipo_die} | trabalhos: {d['total']}")
 
             # Adicionar detalhe à lista do worker para o Front-end
             lista_detalhes_worker.append({
@@ -3346,16 +3347,16 @@ def relatorio_data(request):
         # Imprimir e preparar operações para o Front-end
         lista_operacoes_front = []
         for operacao, total in contagens_operacoes.items():
-            print(f"  Total {operacao}: {total}")
+            #print(f"  Total {operacao}: {total}")
             lista_operacoes_front.append({
                 'operacao': operacao,
                 'total': total
             })
 
-        print(f"Total de retificações: {total_retificacoes_worker}")
+        """print(f"Total de retificações: {total_retificacoes_worker}")
         if nd_trabalhadas >= 1: print(f"Total de fieiras ND: {nd_trabalhadas}")
         if pcd_trabalhadas >= 1: print(f"Total de fieiras PCD: {pcd_trabalhadas}")
-        if mcd_trabalhadas >= 1: print(f"Total de fieiras MCD: {mcd_trabalhadas}")
+        if mcd_trabalhadas >= 1: print(f"Total de fieiras MCD: {mcd_trabalhadas}")"""
 
         # Guardar Worker com tudo lá dentro para o Front-end
         lista_workers_front.append({
@@ -3373,7 +3374,7 @@ def relatorio_data(request):
         })
 
     #testes
-    """
+    
     relatorio_diario = {}
 
     # Para garantir que os partidos são associados ao dia certo, precisamos 
@@ -3506,7 +3507,7 @@ def relatorio_data(request):
             'pedidos': pedidos_do_dia,
             'totais_dia': totais_dia,
             'rowspan': len(pedidos_do_dia) # Necessário para o HTML agrupar o bloco "Day"
-        })"""
+        })
 
     # --- 7. ENVIO PARA O TEMPLATE ---
     context = {
@@ -3522,8 +3523,18 @@ def relatorio_data(request):
         'resumo_workers': lista_workers_front,
         'tamanhos_no_pedido': tamanhos_no_pedido,
         'resumo_diario': lista_resumo_diario,
-        #'relatorio_diario': lista_relatorio_diario,
-        #'totais_semana': totais_semana
+        'relatorio_diario': lista_relatorio_diario,
+        'totais_semana': totais_semana
     }
 
+    if request.headers.get('HX-Request'):
+
+            # Devolve APENAS o pedacinho de HTML com a tabela preenchida
+            return render(request, 'theme/partials/tabela_relatorio.html', context)
+        
+        # Se foi um carregamento normal da página (F5 ou escrever o link)
     return render(request, 'theme/relatorio_data.html', context)
+
+    
+# adicionar outro charts mas agora para producao semanal e compare com a semana anterior
+# link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

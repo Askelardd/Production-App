@@ -346,6 +346,7 @@ class DieWorkWorker(models.Model):
 
 class OrdersComing(models.Model):
     order = models.CharField(max_length=500, blank=False, null=False)
+    conoptica = models.BooleanField(default=False)
     inspectionMetrology = models.BooleanField(default=False)
     preshipment = models.BooleanField(default=False)
     days_2_3 = models.BooleanField(default=False)

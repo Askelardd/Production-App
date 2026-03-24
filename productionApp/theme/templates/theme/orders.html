@@ -100,6 +100,11 @@
       <input type="text" id="oc_order" name="order" required class="w-full p-2 border rounded mb-4">
 
       <label class="flex items-center space-x-2 mb-2">
+        <input type="checkbox" name="conoptica" id="oc_conoptica">
+        <span>Conoptica</span>
+      </label>
+
+      <label class="flex items-center space-x-2 mb-2">
         <input type="checkbox" name="inspectionMetrology" id="oc_inspectionMetrology">
         <span>Inspection Metrology</span>
       </label>
@@ -220,6 +225,7 @@
     console.log("dados a enviar");
     const data = {
       order: document.getElementById('oc_order').value,
+      conoptica: document.getElementById('oc_conoptica').checked,
       inspectionMetrology: document.getElementById('oc_inspectionMetrology').checked,
       preshipment: document.getElementById('oc_preshipment').checked,
       mark: document.getElementById('oc_mark').checked,

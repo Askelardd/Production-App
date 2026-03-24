@@ -8,5 +8,11 @@ module.exports = {
   theme: {
     extend: {},
   },
-  plugins: [],
+  plugins: [
+    require('daisyui'),
+  ],
+
+  daisyui: {
+    themes: ["light"], // Força o tema claro para não apanhares sustos com o dark mode do sistema
+  }
 }
