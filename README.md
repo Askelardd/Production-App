@@ -47,8 +47,8 @@ Durante o desenvolvimento deste projeto, aprendi e aprofundei conhecimentos sobr
 ### ✅ Passos para execução local
 1. Clone este repositório:
     ```bash
-    git clone https://github.com/teu-repo.git
-    cd teu-repo
+    git clone [https://github.com/teu-repo.git](https://github.com/Askelardd/Production-App.git)
+    cd Production-App
     ```
 2. Crie um ambiente virtual:
     ```bash
