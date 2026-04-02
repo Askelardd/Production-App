@@ -8,33 +8,25 @@ ENV PYTHONUNBUFFERED 1
 # Diretório de trabalho
 WORKDIR /app
 
-# 1. Instalar dependências do sistema e NODE.JS (Necessário para o Tailwind)
+# 1. Instalar apenas as dependências do sistema necessárias para o Python/Postgres
+# (Removemos o Node.js daqui porque já tens o output.css pronto a usar)
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
-    curl \
-    gnupg \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Copiar requirements e instalar dependências Python
 COPY requirements.txt /app/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# 3. Copiar o código do projeto
+# 3. Copiar o código do projeto (Isto vai copiar o teu output.css que já está no NAS)
 COPY . /app/
 
-# 4. Instalar dependências do Tailwind (Node)
-# O comando 'npm install' deve rodar onde está o package.json do theme
-# Ajuste o caminho 'theme/static_src' se o teu for diferente
-#RUN cd theme/static_src && npm install && npm run build
-
-# 5. Coletar ficheiros estáticos (Whitenoise)
+# 4. Coletar ficheiros estáticos (O Django vai pegar no teu output.css automaticamente)
 RUN python manage.py collectstatic --noinput
 
 # Expor a porta
 EXPOSE 8000
 
-# Comando para rodar a aplicação (Apontei para productionApp conforme teu settings.py)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "productionApp.wsgi:application"]
+# Comando para rodar a aplicação
+CMD ["gunicorn", "--workers", "3", "--threads", "2", "--timeout", "30", "--bind", "0.0.0.0:8000", "productionApp.wsgi:application"]

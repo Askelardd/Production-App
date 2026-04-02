@@ -1,39 +1,40 @@
 import calendar
 import datetime
-import json  # type: ignore
+import json  
 import logging
 import os
-import re  # type: ignore
+from productionApp.templatetags.extras import *
 from collections import Counter
 from datetime import date, timedelta
-from unicodedata import name
-from django.db.models import Q, OuterRef, Exists, Prefetch, Sum
+from django.db.models import Q, OuterRef, Exists, Prefetch
 from django.urls import reverse
-import pandas as pd  # type: ignore
+import pandas as pd  
 from django.conf import settings
-from django.contrib import messages  # type: ignore
-from django.contrib.auth import authenticate, login, logout  # type: ignore
+from django.contrib import messages  
+from django.contrib.auth import authenticate, login  
 from django.contrib.auth import logout as auth_logout
-from django.contrib.auth.decorators import login_required  # type: ignore
-from django.contrib.auth.models import User  # type: ignore
+from django.core.mail import EmailMessage
+from django.contrib.auth.decorators import login_required  
+from django.contrib.auth.models import User  
 from django.db.models.functions import TruncMonth, TruncDay
-from django.core.mail import send_mail  # type: ignore
 from django.core.paginator import Paginator
-from django.db import IntegrityError, transaction  # type: ignore
-from django.db.models import Count  # type: ignore
-from django.http import HttpResponse, JsonResponse  # type: ignore
-from django.shortcuts import get_object_or_404, redirect, render  # type: ignore
-from django.utils import timezone  # type: ignore
+from django.db import IntegrityError, transaction  
+from django.db.models import Count  
+from django.http import HttpResponse, JsonResponse  
+from django.shortcuts import get_object_or_404, redirect, render  
+from django.utils import timezone  
 from django.utils.dateparse import parse_date
-from django.views.decorators.csrf import csrf_exempt  # type: ignore
-from django.views.decorators.http import require_http_methods, require_POST  # type: ignore
+from django.views.decorators.csrf import csrf_exempt  
+from django.views.decorators.http import require_http_methods, require_POST  
 from collections import OrderedDict
 import openpyxl
-from .models import *  # type: ignore
+from .models import *  
 from collections import defaultdict
 from django.db.models.functions import TruncDate
+
+
 def stock_overview(request):
-    return redirect('http://192.168.1.112:18000')    
+    return redirect('http://192.168.2.112:18000')    
 
 
 def home(request):
@@ -89,7 +90,7 @@ def login_view(request, user_id):
                 user=request.user,
                 action=f"{request.user.get_username()} fez login no sistema."
             )
-            return redirect('mainMenu', user_id=user_autenticado.id)
+            return redirect('mainMenu')
         else:
             messages.error(request, 'Palavra-passe incorreta.')
             # O código continua para baixo e usa o 'user_alvo' original
@@ -98,13 +99,14 @@ def login_view(request, user_id):
     return render(request, 'theme/login.html', {'user': user_alvo})
 
 
-
 def qOfficeMenu(request):
     return render(request, 'theme/qOfficeMenu.html')
 
+@group_required('Comercial', 'Administracao')
 def financeiroMenu(request):
     return render(request, 'theme/menuFinanceiro.html')
 
+@group_required('Administracao')
 def documentosMenu(request):
     return render(request, 'theme/menuDocumentos.html')
 
@@ -149,16 +151,14 @@ def fieira_path(request):
     }
     return render(request, 'theme/fieira_path.html', context)
 
+@group_required('Comercial', 'Administracao')
 @login_required
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
 
-
-
+@group_required('Comercial', 'Administracao')
 @login_required
 def orders(request):
-    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
-        return erro403(request)
     choices = Order.courier_choices
     plants = Order.plant_choices
     orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
@@ -212,13 +212,22 @@ def orders(request):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
 
-        send_mail(
+        # 1. Garante que as variáveis são listas (como já estavas a fazer bem)
+        lista_to = settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL]
+        lista_bcc = settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL]
+
+        # 2. Constrói a mensagem avançada
+        email = EmailMessage(
             subject=f"Novo pedido criado: {order.tracking_number} de {order.plant}",
-            message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
-                     f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
+            body=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
+                f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=settings.DEFAULT_FROM_EMAIL if isinstance(settings.DEFAULT_FROM_EMAIL, list) else [settings.DEFAULT_FROM_EMAIL],  # lista de emails
+            to=lista_to,       # Vai para o EMAIL_TO_EMAIL
+            bcc=lista_bcc,     # Vai para o EMAIL_DIAMETRO (BCC)
         )
+
+        # 3. Envia!
+        email.send()
 
         globalLogs.objects.create(
             user=request.user,
@@ -236,9 +245,8 @@ def orders(request):
 
 @csrf_exempt
 @login_required
+@group_required('Comercial', 'Administracao', 'Q-Office')
 def create_orders_coming_ajax(request):
-    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
-        return erro403(request)
 
     if request.method == 'POST':
         try:
@@ -271,10 +279,8 @@ def create_orders_coming_ajax(request):
             return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': False, 'message': 'Método inválido'})
 
+@group_required('Comercial', 'Administracao', 'Q-Office')
 def listar_orders(request):
-    if not request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists():
-        return erro403(request)
-    
     ordersComing = OrdersComing.objects.all()
 
     limite_escolhido = request.GET.get('limit', '20')
@@ -341,11 +347,8 @@ def listar_orders(request):
 
 @login_required
 @csrf_exempt
+@group_required('Comercial', 'Administracao')
 def edit_order(request, order_id):
-    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
-        messages.error(request, "Não tem permissão para editar esta ordem.")
-        return redirect('listarOrders')
-
     order = get_object_or_404(Order, id=order_id)
     files = order.files.all()
     choices = Order.courier_choices
@@ -433,11 +436,8 @@ def edit_order(request, order_id):
 
 @require_POST
 @login_required
+@admin_required
 def delete_order(request, order_id):
-    if not request.user.groups.filter(name__in=['Administracao']).exists():
-        messages.error(request, "Não tem permissão para eliminar esta ordem.")
-        return redirect('listarOrders')
-
     order = get_object_or_404(Order, id=order_id)
     order.delete()
 
@@ -564,9 +564,10 @@ def exportOrderExcel(request, order_id):
 
     return response
 
+@login_required
+@group_required('Administracao', 'Comercial', 'Q-Office')
 def administrationMenu(request):
-    is_admin = request.user.groups.filter(name='Administracao').exists()
-    return render(request, 'theme/administrationMenu.html', {'is_admin': is_admin})
+    return render(request, 'theme/administrationMenu.html')
 
 
 @login_required
@@ -584,13 +585,10 @@ def user_logout(request):
     return redirect('login', 0)            # <-- passa o argumento exigido
 
 
-
+@group_required('Comercial', 'Administracao')
 @require_http_methods(["GET", "POST"])
 @login_required
 def deliveryIdentification(request, toma_order_full):
-    
-    if not request.user.groups.filter(name__in=['Administracao', 'Comercial']).exists():
-        return erro403(request)
     
     qr = get_object_or_404(QRData, toma_order_full=toma_order_full)
 
@@ -700,12 +698,9 @@ def create_user(request):
     return render(request, 'theme/createUser.html')
 
 @login_required
-def mainMenu(request, user_id):
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        messages.error(request, 'Utilizador não encontrado.')
-        return redirect('home')
+def mainMenu(request):
+    
+    user = request.user
     
     # Verifica se o utilizador logado está a tentar ver outro perfil
     if request.user.id != user.id:
@@ -752,7 +747,7 @@ def deleteProduct(request, produto_id):
 
     return render(request, 'theme/confirmDelete.html', {'product': product})
 
-
+@group_required('Comercial', 'Administracao', 'Q-Office')
 def listQrcodes(request):
     # 1. Buscar todos os dados ordenados
     all_qrcodes = QRData.objects.all().order_by('-created_at')
@@ -820,6 +815,7 @@ def listarInfo(request):
     deliveries = DeliveryInfo.objects.all()
     return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
 
+@group_required('Comercial', 'Administracao')
 @login_required
 def deletar_delivery(request, id):
     delivery = get_object_or_404(DeliveryInfo, id=id)
@@ -1999,9 +1995,13 @@ def diametroMenu(request, toma_order_full):
                 
                 # Bloco de Email
                 try:
-                    send_mail(
+                    # Garantir que é uma lista
+                    lista_diametro = settings.EMAIL_DIAMETRO if isinstance(settings.EMAIL_DIAMETRO, list) else [settings.EMAIL_DIAMETRO]
+                    
+                    # Usar o EmailMessage em vez do send_mail
+                    email = EmailMessage(
                         subject="Novo Pedido de Diâmetro",
-                        message=(
+                        body=(
                             f"Novo pedido de diâmetro criado:\n"
                             f"Pedido criado por {request.user.username}\n"
                             f"- QR Code: {qr_code.toma_order_full}\n"
@@ -2012,13 +2012,14 @@ def diametroMenu(request, toma_order_full):
                             f"- Matrícula: {serie_dies or '-'}\n"
                             f"- Observações: {observations or '-'}"
                         ),
-                        from_email=None,
-                        recipient_list=settings.EMAIL_DIAMETRO if isinstance(settings.EMAIL_DIAMETRO, list) else [settings.EMAIL_DIAMETRO],
-                        fail_silently=False, 
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[settings.DEFAULT_FROM_EMAIL], # Envia para o vosso email principal
+                        bcc=lista_diametro,               # E envia para as 9 pessoas em oculto
                     )
+                    email.send(fail_silently=False)
+                    
                 except Exception as e:
                     messages.error(request, f"Pedido adicionado, mas falha ao enviar email: {str(e)}")
-
                 return redirect('listarDies') 
 
         except ValueError:
@@ -2603,7 +2604,8 @@ def charts(request):
         'current_range': days_range,      # O teu 'selected_days_range' é agora 'current_range'
     })
 
-
+@login_required
+@admin_required
 def listarFaturas(request):
     ordenacao = request.GET.get('ordenacao', 'recentes')
 
@@ -2647,6 +2649,7 @@ def listarFaturas(request):
     })
 
 @login_required
+@admin_required
 def criarFatura(request):
     fornecedores = Fornecedor.objects.all().order_by('name')
 
@@ -2707,7 +2710,8 @@ def criarFatura(request):
 
     return render(request, 'theme/criarFatura.html', {'fornecedores': fornecedores})
 
-
+@login_required
+@admin_required
 def corrigir_nome_ficheiro(ficheiro):
     """
     Tenta corrigir problemas de codificação no nome do ficheiro (ex: acentos 'í' que vêm como 0xed).
@@ -2722,6 +2726,7 @@ def corrigir_nome_ficheiro(ficheiro):
 
 @login_required
 @csrf_exempt
+@admin_required
 def editarFatura(request, fatura_id):
     fatura = get_object_or_404(faturas, id=fatura_id)
     
@@ -2782,6 +2787,9 @@ def editarFatura(request, fatura_id):
     }
     return render(request, 'theme/editarFatura.html', context)
 
+@login_required
+@csrf_exempt
+@admin_required
 def delete_anexo_api(request):
     file_id = request.POST.get('file_id')
     tipo = request.POST.get('tipo') # 'geral', 'pago', 'estrangeiro'
@@ -2806,6 +2814,8 @@ def delete_anexo_api(request):
     
     
 @require_POST
+@csrf_exempt
+@admin_required
 def upload_arquivo_fatura(request):
     fatura_id = request.POST.get('fatura_id')
     tipo = request.POST.get('tipo')  # 'geral', 'pago', ou 'estrangeiro'
@@ -2842,7 +2852,8 @@ def upload_arquivo_fatura(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-
+@login_required
+@group_required('Administracao','Comercial')
 def listarFornecedores(request):
     fornecedores = Fornecedor.objects.all().order_by('name')
 
@@ -2875,7 +2886,9 @@ def listarFornecedores(request):
 
     return render(request, 'theme/listarFornecedores.html', {'fornecedores': fornecedores})
 
+@csrf_exempt
 @require_POST
+@group_required('Administracao','Comercial')
 def atualizar_fornecedor(request, id):
     try:
         data = json.loads(request.body)
@@ -2894,7 +2907,8 @@ def atualizar_fornecedor(request, id):
             
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
+
+@admin_required    
 def deletar_fornecedor(request, id):
     fornecedor = get_object_or_404(Fornecedor, id=id)
     if request.method == 'POST':
@@ -2904,13 +2918,15 @@ def deletar_fornecedor(request, id):
     else:
         messages.error(request, "Método inválido para deletar fornecedor.")
         return redirect('listarFornecedores')
-    
+
+@admin_required    
 def templateFiles(request):
     templates = Template.objects.all().order_by('department')
     return render(request, 'theme/templateFiles.html', {'templates': templates})
 
 @csrf_exempt
 @require_POST
+@admin_required
 def upload_template_file(request, id):
     try:
         if 'file' not in request.FILES:
@@ -2943,6 +2959,8 @@ def upload_template_file(request, id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
+@admin_required
+@login_required
 def criarTemplate(request):
     if request.method == 'POST':
         name = request.POST.get('name')
@@ -2978,6 +2996,8 @@ def criarTemplate(request):
 
     return render(request, 'theme/criarTemplate.html')
 
+@admin_required
+@login_required
 def editarTemplate(request, id):
     template = get_object_or_404(Template, id=id)
 
@@ -3062,7 +3082,8 @@ MAPA_OPERACOES = {
     # Adiciona as restantes conforme precisares
 }
 
-
+@login_required
+@group_required('Administracao','Q-Office')
 def relatorio_data(request):
 
     # --- 1. GESTÃO DE DATAS (POST e GET para testes) ---

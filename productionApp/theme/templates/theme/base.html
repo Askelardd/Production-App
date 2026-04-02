@@ -32,7 +32,7 @@
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center">
                     {% if request.user.is_authenticated %}
-                        <a href="{% url 'mainMenu' request.user.id %}">
+                        <a href="{% url 'mainMenu' %}">
                     {% else %}
                         <a href="{% url 'login' 0 %}">
                     {% endif %}
@@ -46,7 +46,7 @@
 
                 <div class="hidden md:flex space-x-6">
                     {% if request.user.is_authenticated %}
-                        <a href="{% url 'mainMenu' request.user.id %}" class="hover:text-blue-500 transition">Menus</a>
+                        <a href="{% url 'mainMenu' %}" class="hover:text-blue-500 transition">Menus</a>
                         <a href="{% url 'logout' %}" class="ml-4 px-1 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-600 transition shadow-lg border border-red-700">Logout</a>
                     {% else %}
                         <a href="{% url 'login' 0 %}" class="hover:text-blue-500 transition">Login</a>
@@ -65,7 +65,7 @@
 
         <div id="mobile-menu" class="hidden md:hidden bg-gray-200 px-4 pb-4">
             {% if request.user.is_authenticated %}
-                <a href="{% url 'mainMenu' request.user.id %}" class="block py-2 hover:text-blue-500 transition">Menus</a>
+                <a href="{% url 'mainMenu' %}" class="block py-2 hover:text-blue-500 transition">Menus</a>
                 <a href="{% url 'listQrcodes' %}" class="block py-2 hover:text-blue-500 transition">Inserir Caixa</a>
                 <a href="{% url 'listarDies' %}" class="block py-2 hover:text-blue-500 transition">Trabalhar Fieiras</a>
                 <a href="{% url 'deliveryCalendar' %}" class="block py-2 hover:text-blue-500 transition">Calendário de Entregas</a>
