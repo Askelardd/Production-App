@@ -2,10 +2,8 @@ services:
   db:
     image: postgres:16
     container_name: transport_db
-    # Carrega todas as variáveis do .env automaticamente
     env_file: .env
     environment:
-      # Mapeamento manual necessário porque o Postgres usa nomes específicos
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -14,6 +12,8 @@ services:
       - ./pgdata:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    networks:
+      - transport_net   # <--- NOVO
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -29,12 +29,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # AQUI ESTÁ O SEGREDO: Carrega o .env inteiro para dentro do Django
     env_file: .env
     ports:
-      - "8020:8000"
+      - "8000:8000"
     volumes:
-      - .:/app
-      - ./static:/app/static
-      - ./media:/app/media
+     # - .:/app
+     # - ./static:/app/static
+      - /share/CE_CACHEDEV1_DATA/transportInfo/transportInfo/media:/app/media
+    networks:
+      - transport_net   
     restart: unless-stopped
+
+networks:
+  transport_net:
+    driver: bridge
