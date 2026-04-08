@@ -2660,6 +2660,7 @@ def criarFatura(request):
         data_fatura = request.POST.get('data_fatura')
         data_emissao = request.POST.get('data_emissao')
         valor = request.POST.get('valor')
+        moeda = request.POST.get('moeda')
         descricao = request.POST.get('descricao')
         
         try:
@@ -2688,6 +2689,7 @@ def criarFatura(request):
                 pago=japago,
                 data_emissao=data_emissao,
                 valor=valor,
+                moeda=moeda,
                 descricao=descricao,
             )
             nova_fatura.save() # Aqui o fatura_unica é gerado pelo teu model
@@ -2732,13 +2734,13 @@ def editarFatura(request, fatura_id):
     
     if request.method == 'POST':
         try:
-            # ... (o teu código dos campos de texto mantém-se igual) ...
             fornecedor_id = request.POST.get('fornecedor')
             fatura.fornecedor = Fornecedor.objects.get(id=fornecedor_id)
             fatura.numero_fatura = request.POST.get('numero_fatura')
             fatura.data_fatura = request.POST.get('data_fatura')
             fatura.data_emissao = request.POST.get('data_emissao')
             fatura.valor = request.POST.get('valor')
+            fatura.moeda = request.POST.get('moeda')
             fatura.descricao = request.POST.get('descricao')
 
             # Lógica da checkbox Pago

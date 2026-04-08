@@ -434,7 +434,7 @@ class FornecedorAdmin(admin.ModelAdmin):
 
 @admin.register(faturas)
 class FaturasAdmin(admin.ModelAdmin):
-    list_display = ['fatura_unica', 'numero_fatura', 'data_fatura', 'data_emissao', 'valor', 'pago', 'is_urgent_display', 'created_at']
+    list_display = ['fatura_unica', 'numero_fatura', 'data_fatura', 'data_emissao', 'valor','moeda', 'pago', 'is_urgent_display', 'created_at']
     search_fields = ['numero_fatura', 'fatura_unica', 'fornecedor__name', 'fornecedor__vat']
     list_filter = ['data_fatura', 'fornecedor', 'pago', 'created_at']
     inlines = [FaturaFileInline, FaturaEstrangeitoFileInline, FaturaPagoFileInline]

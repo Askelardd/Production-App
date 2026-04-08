@@ -47,10 +47,20 @@
                         class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5">
                 </div>
                 <div>
-                    <label for="valor" class="block text-sm font-semibold text-gray-700">Valor (€)</label>
+                    <label for="valor" class="block text-sm font-semibold text-gray-700">Valor</label>
                     <input type="number" step="0.01" id="valor" name="valor" required placeholder="0.00"
                         value="{{ values.valor|default:'' }}"
                         class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5">
+                </div>
+
+                <div>
+                    <label for="moeda" class="block text-sm font-semibold text-gray-700">Moeda</label>
+                    <select id="moeda" name="moeda" required
+                        class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border p-2.5">
+                        <option value="EUR" {% if values.moeda == 'EUR' %}selected{% endif %}>Euro (€)</option>
+                        <option value="USD" {% if values.moeda == 'USD' %}selected{% endif %}>Dólar (US$)</option>
+                        <option value="GBP" {% if values.moeda == 'GBP' %}selected{% endif %}>Libra (£)</option>
+                    </select>
                 </div>
             </div>
 

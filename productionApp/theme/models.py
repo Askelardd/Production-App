@@ -497,12 +497,19 @@ class CalibracaoMaquina(models.Model):
     
 
 class faturas(models.Model):
+    MOEDA = [
+        ('EUR', 'Euro'),
+        ('USD', 'Dólar Americano'),
+        ('GBP', 'Libras'),
+    ]
+
     fornecedor = models.ForeignKey('Fornecedor', on_delete=models.CASCADE, related_name='faturas')
     fatura_unica = models.CharField(max_length=100, unique=True, null=False, blank=False)
     numero_fatura = models.CharField(max_length=100)
     data_fatura = models.DateField(null=True, blank=True)
     data_emissao = models.DateField()
     valor = FlexibleDecimalField(max_digits=10, decimal_places=2)
+    moeda = models.CharField(max_length=3, choices=MOEDA)
     pago = models.BooleanField(default=False)
     descricao = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
