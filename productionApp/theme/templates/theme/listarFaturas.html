@@ -81,7 +81,7 @@
             <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_fatura }}</td>
         {% endif %}
         <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_emissao }}</td>
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.valor }} €</td>
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 whitespace-nowrap">{{ fatura.valor }} {%if fatura.moeda == 'EUR' %}€{% elif fatura.moeda == 'USD' %}${% elif fatura.moeda == 'GBP' %}£{% endif %}</td>
         <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.descricao }}</td>
         {% if fatura.fornecedor.debito_direto %}
         <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-blue-600 font-bold">
