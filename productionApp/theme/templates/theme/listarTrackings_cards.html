@@ -5,9 +5,10 @@
 
 <!-- Header + Ações -->
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-2xl font-bold">Trackings</h1>
+    <h1 class="text-3xl font-bold text-gray-900">Trackings</h1>
+    <p class="text-sm text-gray-500 mt-1">Gerencie e visualize o estado das encomendas</p>
   <div class="flex items-center gap-2">
-    <a href="?{% if current_query %}{{ current_query }}&{% endif %}view=table"
+    <a href="{% url 'listarTracking' %}?view=table"
        class="px-3 py-2 border rounded hidden md:inline-block">Ver tabela</a>
     <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
   </div>
@@ -31,6 +32,15 @@
         {% for value, label in finalidades %}
           <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs text-gray-500">Entregue</label>
+      <select name="entregue" class="border p-2 w-full rounded">
+        <option value="">Todas</option>
+        <option value="sim" {% if selected_entregue == 'sim' %}selected{% endif %}>Sim</option>
+        <option value="nao" {% if selected_entregue == 'nao' %}selected{% endif %}>Não</option>
       </select>
     </div>
 
@@ -70,6 +80,8 @@
       </div>
     </div>
 
+      
+
     <div class="md:col-span-2 flex items-end gap-2">
       <button class="bg-gray-800 text-white px-4 py-2 rounded">Filtrar</button>
       <a href="{% url 'listarTracking' %}?view=cards" class="px-4 py-2 border rounded">Limpar</a>
@@ -81,7 +93,6 @@
         <a class="px-3 py-1 border rounded"
            href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Anterior</a>
       {% endif %}
-      <span> Página {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} registos </span>
       {% if page_obj.has_next %}
         <a class="px-3 py-1 border rounded"
            href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Seguinte</a>
@@ -94,7 +105,7 @@
 {% if trackings %}
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
   {% for t in trackings %}
-    <article class="bg-white rounded-xl shadow-sm hover:shadow-md p-5 flex flex-col gap-4 border border-gray-200 transition-shadow">
+    <article class=" {% if t.data_entrega or t.recebido_por %} bg-green-100 {% else %} bg-white {% endif %} rounded-xl shadow-sm hover:shadow-md p-5 flex flex-col gap-4 border border-gray-200 transition-shadow">
       
       <header class="flex items-start justify-between border-b pb-3">
         <div>

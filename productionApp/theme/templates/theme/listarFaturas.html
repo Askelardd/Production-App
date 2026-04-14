@@ -51,28 +51,27 @@
 </form>
 <div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg">
     <table id="faturasTable" class="min-w-full bg-white border-collapse">
-    
         <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm">
-        <tr>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Supplier</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice Number</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
-            <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
-        </tr>
+            <tr>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 w-52">Supplier</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice<br>Number</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
+            </tr>
         </thead>
     <tbody id="faturasTableBody">
       {% for fatura in invoice_qs %}
       <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors 
                {% if fatura.is_urgent %}piscar-urgente{% endif %}">
 
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.fornecedor.name }}</td>
+        <td class="px-4 py-4 border-b border-gray-200 text-sm text-gray-700 w-52 max-w-[13rem] whitespace-normal break-all">{{ fatura.fornecedor.name }}</td>
         <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.numero_fatura }}</td>
 
         {% if fatura.fornecedor.debito_direto %}
@@ -111,7 +110,7 @@
                 {% for ficheiro in fatura.ficheiros.all %}
                     <div class="flex items-center group">
                         <svg class="w-3 h-3 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
                             {{ ficheiro.file.name|cut:"faturas_files/" }}
                         </a>
                     </div>
@@ -135,7 +134,7 @@
                 {% for ficheiro in fatura.ficheiros_pago.all %}
                     <div class="flex items-center">
                         <svg class="w-3 h-3 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
                             {{ ficheiro.file.name|cut:"faturas_files_pago/" }}
                         </a>
                     </div>
@@ -163,7 +162,7 @@
                         {% for ficheiro in fatura.ficheiros_estrangeiro.all %}
                             <div class="flex items-center">
                                 <svg class="w-3 h-3 text-yellow-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path></svg>
-                                <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="{{ ficheiro.file.name }}">
+                                <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
                                     {{ ficheiro.file.name|cut:"faturas_files_estrangeiro/" }}
                                 </a>
                             </div>
@@ -185,7 +184,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="10" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
+        <td colspan="11" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -295,7 +294,7 @@
                     const newLink = `
                         <div class="flex items-center animate-pulse">
                             <svg class="w-3 h-3 ${iconColor} mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            <a href="${data.url}" target="_blank" class="text-blue-600 hover:underline truncate w-32 block" title="${data.name}">
+                            <a href="${data.url}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="${data.name}">
                                 ${data.name}
                             </a>
                         </div>

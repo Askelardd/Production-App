@@ -78,7 +78,7 @@
             <tr>
                 <th class="px-4 py-4 text-gray-700 font-bold uppercase w-10"></th> <th class="px-4 py-4 text-gray-700 font-bold uppercase">Cliente</th>
                 <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ordem Cliente</th>
-                <th class="px-4 py-4 text-gray-700 font-bold uppercase">Toma Ordem</th>
+                <th class="px-4 py-4 text-gray-700 font-bold uppercase">Toma Ordem </th>
                 <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ano</th>
                 <th class="px-4 py-4 text-gray-700 font-bold uppercase text-right">Qtd Total</th>
                 <th class="px-4 py-4 text-gray-700 font-bold uppercase text-center">Ações</th>
@@ -124,7 +124,9 @@
                                 {% for qr in group.boxes %}
                                 <tr class="border-b last:border-0 hover:bg-yellow-50" id="row-{{ qr.id }}">
                                     <td class="py-3 font-medium">
-                                        <span class="view-mode">{{ qr.box_nr }}</span>
+                                        <a href="{% url 'deliveryIdentification' qr.toma_order_full %}" class="view-mode text-blue-500 hover:text-blue-700 transition-colors">
+                                            {{ qr.box_nr }}
+                                        </a>    
                                         <input type="text" form="form-{{ qr.id }}" name="box_nr" value="{{ qr.box_nr }}" class="edit-mode hidden border border-blue-300 rounded w-16 px-1">
                                     </td>
                                     
