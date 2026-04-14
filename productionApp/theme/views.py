@@ -788,7 +788,7 @@ def listQrcodes(request):
 def edit_qr_inline(request, qr_id):
     if request.method == "POST":
         qr = get_object_or_404(QRData, id=qr_id)
-        
+
         # Atualiza os campos
         qr.customer = request.POST.get('customer')
         qr.customer_order_nr = request.POST.get('customer_order_nr')
@@ -803,6 +803,15 @@ def edit_qr_inline(request, qr_id):
         qr.production_start = p_start if p_start else None
         qr.envio = envio if envio else None
 
+
+        novo_order = f"{qr.toma_order_nr}-{qr.toma_order_year}-{qr.box_nr}"
+
+        if QRData.objects.filter(toma_order_full=novo_order).exclude(id=qr.id).exists():
+            messages.error(request, "O pedido já tem uma caixa com este numero, se achar que é um erro, contacte o Andre.")
+            return redirect(request.META.get('HTTP_REFERER', 'listarDies'))
+        
+        qr.toma_order_full = f"{qr.toma_order_nr}-{qr.toma_order_year}-{qr.box_nr}"
+    
         qr.save() # O teu método save() já gera o toma_order_full automaticamente!
         
         messages.success(request, f"Registo de {qr.customer} atualizado.")
@@ -2221,6 +2230,7 @@ def listar_trackings(request):
     # filtros
     q                = (request.GET.get('q') or '').strip()
     finalidade       = request.GET.get('finalidade') or ''
+    entregue         = request.GET.get('entregue') or ''
     transportadora   = request.GET.get('transportadora') or ''
     recebido_por     = (request.GET.get('recebido_por') or '').strip()
     de               = request.GET.get('de') or ''
@@ -2239,6 +2249,22 @@ def listar_trackings(request):
         )
     if finalidade:
         qs = qs.filter(finalidade=finalidade)
+
+    if entregue:
+        if entregue == 'sim':
+            # Retorna se tiver data de entrega OU (quem recebeu não é nulo E não é vazio)
+            qs = qs.filter(
+                Q(data_entrega__isnull=False) | 
+                (~Q(recebido_por__isnull=True) & ~Q(recebido_por__exact=''))
+            )
+            
+        elif entregue == 'nao':
+            # Retorna se a data de entrega é nula E (quem recebeu é nulo OU vazio)
+            qs = qs.filter(
+                Q(data_entrega__isnull=True),
+                Q(recebido_por__isnull=True) | Q(recebido_por__exact='')
+        )
+        
     if transportadora:
         qs = qs.filter(transportadora=transportadora)
     if recebido_por:
@@ -2247,6 +2273,7 @@ def listar_trackings(request):
     # NOVO: filtros específicos
     if cliente_q:
         qs = qs.filter(cliente__icontains=cliente_q)
+
 
 
     de_date = parse_date(de) if de else None
@@ -2271,6 +2298,8 @@ def listar_trackings(request):
     params = request.GET.copy(); params.pop('page', None)
     current_query = params.urlencode()
 
+
+
     columns = [
         ('data', 'Data'),
         ('finalidade', 'Finalidade'),
@@ -2293,6 +2322,7 @@ def listar_trackings(request):
         'sort': sort,
         'q': q,
         'selected_finalidade': finalidade,
+        'selected_entregue': entregue,
         'selected_transportadora': transportadora,
         'recebido_por': recebido_por,
         'de': de,
