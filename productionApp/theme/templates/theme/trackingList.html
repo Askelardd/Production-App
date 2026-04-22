@@ -219,17 +219,14 @@
       <div class="flex gap-2">
         {% if page_obj.has_previous %}
           <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            href="?{% if current_query %}
-              {{ current_query }}&
-            {% endif %}page={{ page_obj.previous_page_number }}">
+            href="{% url 'listarTracking' %}?view=table{% if current_query %}&{{ current_query }}{% endif %}&page={{ page_obj.previous_page_number }}">
             <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
           </a>
         {% endif %}
+
         {% if page_obj.has_next %}
           <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            href="?{% if current_query %}
-              {{ current_query }}&
-            {% endif %}page={{ page_obj.next_page_number }}">
+            href="{% url 'listarTracking' %}?view=table{% if current_query %}&{{ current_query }}{% endif %}&page={{ page_obj.next_page_number }}">
             Seguinte <i class="fa-solid fa-chevron-right ml-1"></i>
           </a>
         {% endif %}

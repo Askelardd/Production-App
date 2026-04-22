@@ -820,6 +820,57 @@ def edit_qr_inline(request, qr_id):
 
 
 @login_required
+def clonar_linha(request, qr_id):
+    original = get_object_or_404(QRData, id=qr_id)
+
+    if request.method != 'POST':
+        return redirect('listQrcodes')
+
+    diametro = (request.POST.get('diametro') or '').strip()
+    if not diametro:
+        messages.error(request, "O diâmetro é obrigatório.")
+        return redirect('listQrcodes')
+
+    try:
+        # novo número de caixa dentro do mesmo pedido
+        last_box = (
+            QRData.objects
+            .filter(
+                toma_order_nr=original.toma_order_nr,
+                toma_order_year=original.toma_order_year
+            )
+            .order_by('-box_nr')
+            .first()
+        )
+
+        try:
+            next_box_nr = int(last_box.box_nr) + 1 if last_box and str(last_box.box_nr).isdigit() else 1
+        except Exception:
+            next_box_nr = 1
+
+        nova_caixa = QRData.objects.create(
+            customer=original.customer,
+            customer_order_nr=original.customer_order_nr,
+            toma_order_nr=original.toma_order_nr,
+            toma_order_year=original.toma_order_year,
+            box_nr=next_box_nr,
+            qt=original.qt,
+            diameters=diametro,
+            production_start=original.production_start,
+            envio=original.envio,
+            observations=original.observations,
+            created_by=request.user,
+        )
+
+        messages.success(request, f"Caixa clonada com sucesso: {nova_caixa.toma_order_full}.")
+        return redirect('listQrcodes')
+
+    except Exception as e:
+        messages.error(request, f"Erro ao clonar a caixa: {e}")
+        return redirect('listQrcodes')
+    
+
+@login_required
 def listarInfo(request):
     deliveries = DeliveryInfo.objects.all()
     return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
@@ -1020,6 +1071,18 @@ def showDetails(request, qr_id):
     # ---------------------------------------------------------
     die_workers = {}
     
+    if DieWorkWorker.objects.filter(work__die__in=dies).values('worker_id').distinct().count() == 0:
+        messages.info(request, "Nenhum trabalho foi realizado nestas caixa.")
+        return render(request, 'theme/showDetails.html', {
+            'qr': qr,
+            'dies': dies,
+            'workers_stats': [],
+            'pedidos': pedidos,
+            'partidos': partidos,
+            'polimentos_dies_ids': polimentos_dies_ids,
+            'pessoal': None
+        })
+
     # 1. Procurar TODOS os trabalhos feitos nas dies deste QR Code
     # Anotamos a contagem para encontrar repetições do mesmo tipo/subtipo pela mesma pessoa na mesma die
     trabalhos = DieWorkWorker.objects.filter(work__die__in=dies).values(
@@ -1031,7 +1094,7 @@ def showDetails(request, qr_id):
         'work__die_id',
         'work__work_type',
         'work__subtype'
-    ).annotate(total_vezes=Count('id')) # Conta quantas vezes fez este trabalho específico
+    ).annotate(total_vezes=Count('id')) # Conta quantas vezes fez este trabalho específico        
 
     # 2. Organizar a informação
     for trab in trabalhos:
@@ -1101,6 +1164,8 @@ def showDetails(request, qr_id):
 
     # Ordena por total_dies decrescente
     workers_stats_list = sorted(workers_stats_list, key=lambda x: x['total_dies'], reverse=True)
+
+
 
     return render(request, 'theme/showDetails.html', {
         'qr': qr,
@@ -1564,6 +1629,8 @@ def add_multiple_works_workers(request, qr_id):
     dies = work.die_instances.all()
     users = User.objects.filter(groups__name='Producao').distinct().order_by('username')
 
+    pedido = work.toma_order_full or f"{work.toma_order_year}-{work.toma_order_nr}"
+
     if request.method == 'POST':
         die_ids = request.POST.getlist('serieDies')  # ← Pega vários IDs
         work_type = request.POST.get('tipo_trabalho')
@@ -1613,7 +1680,7 @@ def add_multiple_works_workers(request, qr_id):
     return render(
         request,
         'theme/add_multiple_works_workers.html',
-        {'qr_id': qr_id, 'dies': dies, 'users': users},
+        {'qr_id': qr_id, 'dies': dies, 'users': users, 'pedido': pedido},
     )
 
 @login_required
@@ -1692,6 +1759,9 @@ def export_qrcode_excel(request, qr_id):
     )
 
     return response
+
+ 
+
 
 @login_required
 def info_fieira(request, die_id):
