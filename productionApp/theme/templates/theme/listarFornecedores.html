@@ -101,26 +101,32 @@
             <tr class="border-b hover:bg-gray-50 transition">
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="name">{{ fornecedor.name }}</td>
 
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="vat">{{ fornecedor.vat }}</td>
 
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="email">{{ fornecedor.email }}</td>
                     
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="telefone">{{ fornecedor.telefone }}</td>
 
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="dados_bancarios">{{ fornecedor.dados_bancarios }}</td>
 
                 <td class="editable px-4 py-3 cursor-pointer hover:bg-gray-100" 
                     data-id="{{ fornecedor.id }}" 
+                    data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                     data-field="morada">{{ fornecedor.morada }}</td>
 
                 <td class="px-4 py-3 text-center">
@@ -128,6 +134,7 @@
                         class="toggle-bool cursor-pointer px-2 py-1 rounded-full text-xs font-semibold
                         {% if fornecedor.debito_direto %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
                         data-id="{{ fornecedor.id }}" 
+                        data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                         data-field="debito_direto" 
                         data-value="{{ fornecedor.debito_direto|yesno:'true,false' }}">
                         
@@ -140,6 +147,7 @@
                         class="toggle-bool cursor-pointer px-2 py-1 rounded-full text-xs font-semibold
                         {% if fornecedor.estrangeiro %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}"
                         data-id="{{ fornecedor.id }}" 
+                        data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                         data-field="estrangeiro" 
                         data-value="{{ fornecedor.estrangeiro|yesno:'true,false' }}">
 
@@ -209,7 +217,7 @@
 
         toggleButtons.forEach(btn => {
             btn.addEventListener('click', async function() {
-                const id = this.dataset.id;
+                const updateUrl = this.dataset.url;
                 const field = this.dataset.field;
                 // Vê se o valor atual é string "true" e inverte
                 const currentValue = this.dataset.value === 'true'; 
@@ -219,7 +227,7 @@
                     // Efeito visual (opacidade) enquanto carrega
                     this.style.opacity = '0.5';
 
-                    const response = await fetch(`/atualizar-fornecedor/${id}/`, {
+                    const response = await fetch(updateUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -246,6 +254,7 @@
                         }
                     } else {
                         alert('Erro ao atualizar!');
+                        console.error('Erro HTTP ao atualizar fornecedor:', response.status, response.statusText);
                     }
                 } catch (error) {
                     console.error('Erro:', error);
@@ -264,7 +273,7 @@
 
                 const currentText = this.innerText;
                 const field = this.dataset.field;
-                const id = this.dataset.id;
+                const updateUrl = this.dataset.url;
 
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -284,7 +293,7 @@
                     }
 
                     try {
-                        const response = await fetch(`/atualizar-fornecedor/${id}/`, {
+                        const response = await fetch(updateUrl, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -298,6 +307,7 @@
 
                         if (response.ok) {
                             this.innerHTML = newValue;
+                            
                         } else {
                             alert('Erro ao guardar!');
                             this.innerHTML = currentText;

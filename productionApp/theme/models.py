@@ -379,6 +379,7 @@ class Order(models.Model):
         'Toma',
         'Spider Extrusion',
         'Paganoni',
+        '3BetterDiamond',
         'Outros',
     ]
 
