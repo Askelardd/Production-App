@@ -1,0 +1,20 @@
+{% extends 'theme/base.html' %}
+{% block title %}Criar Plant{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold text-black mb-8">Criar Plant</h1>
+
+<form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
+  {% csrf_token %}
+  <input type="text" name="name" placeholder="Nome do Plant"
+         class="border border-gray-300 rounded-lg  p-2 w-full" required>
+
+    <button type="submit" class="bg-green-500 text-white mt-4 px-4 py-2 rounded">
+        Criar Plant
+    </button>
+    <button type="button" onclick="window.location.href='{% url 'listarOrders' %}'" 
+            class="bg-gray-500 text-white px-4 py-2 rounded">
+        Voltar 
+    </button>
+</form>
+{% endblock %}

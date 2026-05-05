@@ -28,7 +28,8 @@ from .models import (
     FaturaFile,
     Template,
     TemplateFiles,
-    Polimentos
+    Polimentos,
+    Plant,
 )
 
 # -------------------
@@ -277,11 +278,18 @@ class OrderFileInline(admin.TabularInline):
     readonly_fields = ['uploaded_at']
 
 
+@admin.register(Plant)
+class PlantAdmin(admin.ModelAdmin):
+    list_display = ['name']
+    search_fields = ['name']
+    list_per_page = 20
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ['tracking_number', 'courier', 'shipping_date', 'plant', 'exportado']
+    list_display = ['tracking_number', 'courier', 'shipping_date', 'plant_fk', 'exportado']
     search_fields = ['tracking_number', 'courier', 'comment']
-    list_filter = ['courier', 'shipping_date', 'plant', 'exportado']
+    list_filter = ['courier', 'shipping_date', 'plant_fk', 'exportado']
     inlines = [OrderFileInline]
     list_per_page = 20
 

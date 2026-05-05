@@ -160,7 +160,7 @@ def comercialMenu(request):
 @login_required
 def orders(request):
     choices = Order.courier_choices
-    plants = Order.plant_choices
+    plants = Plant.objects.all().order_by('name')
     orders_coming_list = OrdersComing.objects.all().order_by('order')  # Para preencher o <select>
     
     if request.method == 'POST':
@@ -195,9 +195,23 @@ def orders(request):
         # Busca múltiplos OrdersComing
         orders_coming_qs = OrdersComing.objects.filter(id__in=orders_coming_ids)
 
+
+        if Plant.objects.filter(name=plant).exists():
+            plant_obj = Plant.objects.get(name=plant)
+        else:
+            plant_obj = Plant.objects.create(name=plant)
+
+        if Order.objects.filter(tracking_number=tracking_number).exists():
+            messages.error(request, "Número de tracking já existe.")
+            return render(request, 'theme/orders.html', {
+                'courier_choices': choices,
+                'orders_coming': orders_coming_list,
+                'plant_choices': plants,
+            })
+
         # Cria a Order (sem orders_coming ainda)
         order = Order.objects.create(
-            plant=plant,
+            plant_fk=plant_obj,
             tracking_number=tracking_number,
             courier=courier,
             shipping_date=shipping_date,
@@ -218,9 +232,9 @@ def orders(request):
 
         # 2. Constrói a mensagem avançada
         email = EmailMessage(
-            subject=f"Novo pedido criado: {order.tracking_number} de {order.plant}",
+            subject=f"Novo pedido criado: {order.tracking_number} de {order.plant_fk.name}",
             body=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
-                f"Plant: {order.plant}, shipping date: {order.shipping_date}\n"),
+                f"Plant: {order.plant_fk.name}, shipping date: {order.shipping_date}\n"),
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=lista_to,       # Vai para o EMAIL_TO_EMAIL
             bcc=lista_bcc,     # Vai para o EMAIL_DIAMETRO (BCC)
@@ -305,16 +319,16 @@ def listar_orders(request):
     if search_query:
         orders = orders.filter(
             Q(tracking_number__icontains=search_query) |
-            Q(plant__icontains=search_query) |
+            Q(plant__name__icontains=search_query) |
             Q(courier__icontains=search_query) |
             Q(comment__icontains=search_query) |
             Q(orders_coming__order__icontains=search_query) 
         ).distinct()
 
     if filtro_tipo == 'import':
-        orders = orders.exclude(plant__iexact='toma')
+        orders = orders.exclude(plant_fk__name__iexact='toma')
     elif filtro_tipo == 'export':
-        orders = orders.filter(plant__iexact='toma')
+        orders = orders.filter(plant_fk__name__iexact='toma')
 
     orders = orders.order_by('-shipping_date', '-id')
 
@@ -352,7 +366,7 @@ def edit_order(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     files = order.files.all()
     choices = Order.courier_choices
-    plants = Order.plant_choices
+    plants = Plant.objects.all().order_by('name')
     orders_coming_list = OrdersComing.objects.all().order_by('order')
 
     if request.method == 'POST':
@@ -394,7 +408,7 @@ def edit_order(request, order_id):
                 })
 
         order.courier = courier
-        order.plant = plants
+        order.plant_fk = plants
         order.shipping_date = shipping_date
         order.arriving_date = arriving_date
         order.comment = comment
@@ -522,7 +536,7 @@ def exportOrderExcel(request, order_id):
     data = []
     for oc in orders_coming:
         data.append({
-            'Plant': order.plant or 'N/A',
+            'Plant': order.plant_fk.name if order.plant_fk else 'N/A',
             'Shipping Number': order.tracking_number or 'N/A',
             'Order': oc.order,
             'Conoptica': 'Sim' if oc.conoptica else '-',
@@ -563,6 +577,23 @@ def exportOrderExcel(request, order_id):
     )
 
     return response
+
+
+@login_required
+@group_required('Administracao', 'Comercial')
+def adicionarPlants(request):
+
+    if request.method == 'POST':
+        plant_name = request.POST.get('name', '').strip()
+        if plant_name:
+            Plant.objects.create(name=plant_name)
+            messages.success(request, f"Plant '{plant_name}' criada com sucesso!")
+            return redirect('adicionarPlants')
+        else:
+            messages.error(request, "O nome do Plant não pode estar vazio.")
+    
+    plants = Plant.objects.all().order_by('name')
+    return render(request, 'theme/adicionarPlant.html', {'plants': plants})
 
 @login_required
 @group_required('Administracao', 'Comercial', 'Q-Office')
