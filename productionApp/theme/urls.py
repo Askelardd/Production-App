@@ -57,6 +57,7 @@ urlpatterns = [
     path('orders/create_orders_coming_ajax/', views.create_orders_coming_ajax, name='create_orders_coming_ajax'),
     path('orders/coming/<hashid:oc_id>/edit/', views.edit_orders_coming, name='editOrdersComing'),
     path('orders/<hashid:order_id>/export-excel/', views.exportOrderExcel, name='exportOrderExcel'),
+    path('orders/plant', views.adicionarPlants, name='adicionarPlants'),
 
     # Pedidos (Diameter & Partidos)
     path('partidosMenu/<path:toma_order_full>/', views.partidosMenu, name='partidosMenu'),

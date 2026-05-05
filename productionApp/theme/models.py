@@ -364,6 +364,13 @@ class OrdersComing(models.Model):
     def __str__(self):
         return f"OrdersComing {self.order}"
 
+
+class Plant(models.Model):
+    name = models.CharField(max_length=30, unique=True)
+
+    def __str__(self):
+        return self.name
+
 class Order(models.Model):
     # -- DHL, UPS, FedEx , SCHNENKER , TNT
     courier_choices = [
@@ -373,19 +380,10 @@ class Order(models.Model):
         'SCHENKER',
         'TNT'
     ]
-    plant_choices = [
-        'P2',
-        'P3',
-        'Toma',
-        'Spider Extrusion',
-        'Paganoni',
-        '3BetterDiamond',
-        'Outros',
-    ]
 
     tracking_number = models.CharField(max_length=20, unique=True)
     orders_coming = models.ManyToManyField(OrdersComing, related_name='orders', blank=True)
-    plant = models.CharField(max_length=30, choices=[(p, p) for p in plant_choices], blank=True, null=True)
+    plant_fk = models.ForeignKey(Plant, on_delete=models.CASCADE, null=True, blank=True)
     courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
     shipping_date = models.DateField(null=True, blank=True)
     arriving_date = models.DateField(null=True, blank=True)

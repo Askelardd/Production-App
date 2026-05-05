@@ -56,7 +56,7 @@
     <table id="ordersTable" class="min-w-full table-auto text-xs md:text-sm text-left">
       <thead class="bg-blue-600 text-white uppercase font-semibold text-sm">
         <tr>
-          <th class="px-4 py-3">Plant</th>
+          <th class="px-4 py-3"><a href="{% url 'adicionarPlants' %}" class="underline">Plant</a></th>
           <th class="px-4 py-3">Tracking</th>
           <th class="px-4 py-3">Courier</th>
           <th class="px-4 py-3">Shipping Date</th>
@@ -75,7 +75,7 @@
       <tbody class="text-gray-800">
         {% for o in orders %}
           <tr class="border-b hover:bg-gray-100 transition-colors">
-            <td class="px-4 py-2">{{ o.plant }}</td>
+            <td class="px-4 py-2">{{ o.plant_fk.name }}</td>
             <td class="px-4 py-2">{{ o.tracking_number }}</td>
             <td class="px-4 py-2">{{ o.courier }}</td>
             <td class="px-4 py-2">{{ o.shipping_date|default:"—" }}</td>
