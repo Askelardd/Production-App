@@ -65,10 +65,25 @@ class DieInstanceInline(admin.TabularInline):
 
 @admin.register(QRData)
 class QRDataAdmin(admin.ModelAdmin):
-    list_display = ['customer', 'toma_order_nr', 'customer_order_nr', 'qt', 'created_at']
+    list_display = ['customer', 'toma_order_nr', 'customer_order_nr', 'qt', 'production_start', 'envio', 'created_at']
     search_fields = ['customer', 'toma_order_nr', 'customer_order_nr', 'toma_order_full']
-    list_filter = ['created_at']
+    list_filter = ['created_at', 'production_start', 'envio']
     inlines = [DieInstanceInline]
+    readonly_fields = ['created_at', 'toma_order_full']
+    fieldsets = (
+        ('Order Information', {
+            'fields': ('customer', 'customer_order_nr', 'toma_order_nr', 'toma_order_year', 'toma_order_full', 'box_nr', 'diameters', 'qt')
+        }),
+        ('Dates', {
+            'fields': ('created_at', 'production_start', 'envio')
+        }),
+        ('Staff', {
+            'fields': ('created_by', 'inspected_by')
+        }),
+        ('Observations', {
+            'fields': ('observations', 'observations_prod')
+        }),
+    )
     list_per_page = 20
 
 

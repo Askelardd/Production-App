@@ -97,6 +97,7 @@ class QRData(models.Model):
     envio = models.DateField(blank=True, null=True)
     observations = models.TextField(blank=True, null=True)
     observations_prod = models.TextField(blank=True, null=True)
+    inspected_by = models.CharField(max_length=100, blank=True, null=True)
 
     def save(self, *args, **kwargs):
         self.toma_order_full = f"{self.toma_order_year}-{self.toma_order_nr}-{self.box_nr}"
@@ -170,6 +171,7 @@ class dieInstance(models.Model):
     observations = models.TextField(blank=True, null=True)
     observations_prod = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
+    modified_by = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f" Custumer {self.customer.customer} -  Die {self.serial_number} - {self.die.get_die_type_display()} - Trabalho - {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
