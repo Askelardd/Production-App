@@ -73,6 +73,10 @@
                 <label class="block text-sm">Observações</label>
                 <input type="text" name="observations_{{ forloop.counter }}" value="{{ die.observations }}" class="border p-2 w-full">
             </div>
+            <div>
+                <label class="block text-sm">Inspecionado Por </label>
+                <input type="text" name="modified_by_{{ forloop.counter }}" value="{{ die.modified_by }}" class="border p-2 w-full" readonly>
+            </div>
         </div>
         {% endfor %}
     </div>

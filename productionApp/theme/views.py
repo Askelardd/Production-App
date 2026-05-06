@@ -230,7 +230,7 @@ def orders(request):
         lista_to = settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL]
         lista_bcc = settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL]
 
-        # 2. Constrói a mensagem avançada
+        
         email = EmailMessage(
             subject=f"Novo pedido criado: {order.tracking_number} de {order.plant_fk.name}",
             body=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
@@ -319,7 +319,7 @@ def listar_orders(request):
     if search_query:
         orders = orders.filter(
             Q(tracking_number__icontains=search_query) |
-            Q(plant__name__icontains=search_query) |
+            Q(plant_fk__name__icontains=search_query) |
             Q(courier__icontains=search_query) |
             Q(comment__icontains=search_query) |
             Q(orders_coming__order__icontains=search_query) 
@@ -370,7 +370,7 @@ def edit_order(request, order_id):
     orders_coming_list = OrdersComing.objects.all().order_by('order')
 
     if request.method == 'POST':
-        plants = request.POST.get('plant') or None
+        plant_name = request.POST.get('plant') or None
         order.tracking_number = request.POST.get('tracking_number')
         courier = request.POST.get('courier') or None
         shipping_date_str = request.POST.get('shipping_date') or ""
@@ -408,7 +408,10 @@ def edit_order(request, order_id):
                 })
 
         order.courier = courier
-        order.plant_fk = plants
+        if plant_name:
+            order.plant_fk = Plant.objects.filter(name=plant_name).first()
+        else:
+            order.plant_fk = None
         order.shipping_date = shipping_date
         order.arriving_date = arriving_date
         order.comment = comment
@@ -467,18 +470,31 @@ def delete_order(request, order_id):
 def delete_order_file(request, file_id):
     f = get_object_or_404(OrderFile, id=file_id)
     order_id = f.order_id
-    # Apaga o ficheiro do storage também:
-    if f.file:
-        f.file.delete(save=False)
-    f.delete()
+
+    # Guarda nome para log antes de apagar
+    filename = f.file.name if getattr(f, 'file', None) and getattr(f.file, 'name', None) else ''
+
+    # Tenta apagar do storage primeiro, mas não falha se houver erro
+    if getattr(f, 'file', None):
+        try:
+            f.file.delete(save=False)
+        except Exception as e:
+            # Regista erro e continua para garantir que o registo DB é removido
+            logger.exception(f"Erro ao apagar ficheiro do storage: {e}")
+
+    try:
+        f.delete()
+    except Exception as e:
+        logger.exception(f"Erro ao apagar registo OrderFile id={file_id}: {e}")
+        messages.error(request, "Ocorreu um erro ao apagar o registo do ficheiro.")
+        return redirect('editOrder', order_id=order_id)
 
     globalLogs.objects.create(
         user=request.user,
-        action=f"{request.user.username} eliminou o ficheiro {f.file.name}.",
+        action=f"{request.user.username} eliminou o ficheiro {filename}.",
     )
     messages.success(request, "Ficheiro eliminado com sucesso!")
-    # volta para a listagem ou para a edição da order
-    return redirect('listarOrders')  # ou redirect('editOrder', order_id=order_id)
+    return redirect('editOrder', order_id=order_id)
 
 
 @require_http_methods(["GET", "POST"])
@@ -827,6 +843,7 @@ def edit_qr_inline(request, qr_id):
         qr.toma_order_year = request.POST.get('toma_order_year')
         qr.box_nr = request.POST.get('box_nr')
         qr.qt = request.POST.get('qt')
+        qr.inspected_by = request.POST.get('inspected_by')
         
         # Datas precisam de atenção se vierem vazias
         p_start = request.POST.get('production_start')
@@ -1037,7 +1054,6 @@ def partidosMenu(request, toma_order_full):
         for die in dies_existentes.filter(serial_number__in=serie_dies_list):
             die.partida = True
             die.save()
-            
 
         try:
             partido = int(numero)
@@ -1067,8 +1083,6 @@ def partidosMenu(request, toma_order_full):
         'qr_code': qr_code,
         'dies_existentes': dies_existentes
     })
-
-    
 
 
 @csrf_exempt
@@ -1276,7 +1290,9 @@ def adicionar_dies(request, qr_id):
                     'cone': request.POST.get(f'cone_{i}', ''),
                     'bearing': request.POST.get(f'bearing_{i}', ''),
                     'bearing_red': (request.POST.get(f'bearing_red_{i}') == 'on'),
+                    'modified_by' : request.user.username,    
                 })
+                
 
             return render(request, 'theme/adicionarDies.html', {
                 'qr_code': qr_code,
@@ -1289,6 +1305,7 @@ def adicionar_dies(request, qr_id):
         # ====== GRAVAÇÃO ======
         try:
             with transaction.atomic():
+                current_user = request.user.username
                 for i in range(1, total + 1):
                     serial = request.POST.get(f'serial_{i}')
                     diameter_value = request.POST.get(f'diameter_{i}')
@@ -1301,10 +1318,40 @@ def adicionar_dies(request, qr_id):
                     cone = request.POST.get(f'cone_{i}')
                     bearing = request.POST.get(f'bearing_{i}')
                     bearing_red = (request.POST.get(f'bearing_red_{i}') == 'on')
-
+                    # Decide whether this existing die was changed; only then update `modified_by`
                     if i <= len(existing_dies):
                         # Atualizar existente
                         die_obj = existing_dies[i - 1]
+
+                        # Capture original values BEFORE we overwrite them
+                        orig_serial = die_obj.serial_number or ''
+                        orig_diameter_text = die_obj.diameter_text or ''
+                        orig_diam_requerido = die_obj.diam_requerido or ''
+                        orig_die_id = str(die_obj.die_id) if die_obj.die_id else ''
+                        orig_job_id = str(die_obj.job_id) if die_obj.job_id else ''
+                        orig_observations = die_obj.observations or ''
+                        orig_cone = die_obj.cone or ''
+                        orig_bearing = die_obj.bearing or ''
+                        orig_bearing_red = bool(getattr(die_obj, 'bearing_is_red', False))
+                        orig_tol_min = getattr(die_obj.tolerance, 'min', '') if die_obj.tolerance else ''
+                        orig_tol_max = getattr(die_obj.tolerance, 'max', '') if die_obj.tolerance else ''
+
+                        # Determine if any editable field actually changed
+                        changed = (
+                            str(serial or '') != str(orig_serial) or
+                            str(diameter_value or '') != str(orig_diameter_text) or
+                            str(diam_requerido or '') != str(orig_diam_requerido) or
+                            (die_id or '') != orig_die_id or
+                            (job_id or '') != orig_job_id or
+                            str(observations or '') != str(orig_observations) or
+                            str(cone or '') != str(orig_cone) or
+                            str(bearing or '') != str(orig_bearing) or
+                            str(tol_min or '') != str(orig_tol_min) or
+                            str(tol_max or '') != str(orig_tol_max) or
+                            bearing_red != orig_bearing_red
+                        )
+
+                        # Now apply incoming values
                         die_obj.serial_number = serial
                         die_obj.diameter_text = diameter_value
                         die_obj.diam_requerido = diam_requerido or None
@@ -1314,6 +1361,9 @@ def adicionar_dies(request, qr_id):
                         die_obj.cone = cone
                         die_obj.bearing = bearing
                         die_obj.bearing_is_red = bearing_red
+
+                        if changed:
+                            die_obj.modified_by = current_user
 
                         if tol_max and tol_min:
                             if die_obj.tolerance:
@@ -1343,6 +1393,7 @@ def adicionar_dies(request, qr_id):
                             cone=cone,
                             bearing=bearing,
                             bearing_is_red=bearing_red,  # <-- aqui é o booleano
+                            modified_by=current_user
                         )
 
                 globalLogs.objects.create(
@@ -1375,6 +1426,7 @@ def adicionar_dies(request, qr_id):
                 'cone': die.cone,
                 'bearing': die.bearing,
                 'bearing_red': getattr(die, 'bearing_is_red', False),  # <-- reflete BD
+                'modified_by': die.modified_by
             })
         else:
             prefilled_data.append({
@@ -1389,6 +1441,7 @@ def adicionar_dies(request, qr_id):
                 'cone': '',
                 'bearing': '',
                 'bearing_red': False,
+                'modified_by': ''
             })
 
     return render(request, 'theme/adicionarDies.html', {

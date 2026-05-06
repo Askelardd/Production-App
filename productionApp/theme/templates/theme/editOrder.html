@@ -12,7 +12,7 @@
     <select name="plant" class="border border-gray-300 rounded-lg p-2 w-full">
       <option value="">Select Plant</option>
       {% for plant in plant_choices %}
-        <option value="{{ plant }}" {% if order.plant == plant %}selected{% endif %}>{{ plant }}</option>
+        <option value="{{ plant.name }}" {% if order.plant_fk == plant %}selected{% endif %}>{{ plant.name }}</option>
       {% endfor %}
     </select>
 
@@ -101,11 +101,11 @@
             <span>Restrito</span>
           </label>
 
-          <form method="post" action="{% url 'deleteOrderFile' f.id %}"
-                onsubmit="return confirm('Apagar este ficheiro?');">
-            {% csrf_token %}
-            <button class="text-red-600 hover:underline">Apagar</button>
-          </form>
+          <button type="button" class="text-red-600 hover:underline delete-order-file"
+                  data-url="{% url 'deleteOrderFile' f.id %}"
+                  data-confirm="Tem certeza que deseja apagar este ficheiro?">
+            Apagar
+          </button>
         </li>
       {% endfor %}
     </ul>
@@ -227,6 +227,34 @@ document.getElementById('ordersComingForm').addEventListener('submit', function 
     } else {
       alert("Erro ao criar: " + json.message);
     }
+  });
+});
+
+// Handler para apagar ficheiros sem usar formulários aninhados
+document.addEventListener('DOMContentLoaded', function () {
+  const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+  const csrfToken = csrfInput ? csrfInput.value : '';
+
+  document.querySelectorAll('.delete-order-file').forEach(btn => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      const confirmMsg = this.dataset.confirm || 'Tem certeza?';
+      if (!confirm(confirmMsg)) return;
+
+      fetch(this.dataset.url, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Accept': 'text/html'
+        },
+      }).then(resp => {
+        // reload para refletir alterações. Se o servidor redirecionar, fetch segue e ainda assim recarregamos.
+        window.location.reload();
+      }).catch(err => {
+        console.error('Erro ao apagar ficheiro:', err);
+        alert('Erro ao apagar ficheiro. Verifique os logs do servidor.');
+      });
+    });
   });
 });
 
