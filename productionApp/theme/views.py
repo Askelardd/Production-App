@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib import messages  
 from django.contrib.auth import authenticate, login  
 from django.contrib.auth import logout as auth_logout
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, send_mail
 from django.contrib.auth.decorators import login_required  
 from django.contrib.auth.models import User  
 from django.db.models.functions import TruncMonth, TruncDay
@@ -241,7 +241,7 @@ def orders(request):
         )
 
         # 3. Envia!
-        email.send()
+        #email.send()
 
         globalLogs.objects.create(
             user=request.user,
@@ -326,9 +326,9 @@ def listar_orders(request):
         ).distinct()
 
     if filtro_tipo == 'import':
-        orders = orders.exclude(plant_fk__name__iexact='toma')
+        orders = orders.exclude(plant_fk__name__iexact='Toma')
     elif filtro_tipo == 'export':
-        orders = orders.filter(plant_fk__name__iexact='toma')
+        orders = orders.filter(plant_fk__name__iexact='Toma')
 
     orders = orders.order_by('-shipping_date', '-id')
 
@@ -764,17 +764,49 @@ def inputProduction(request):
 
 @login_required
 def editProduct(request, produto_id):
-    product = get_object_or_404(Products, id= produto_id)
+    # 1. Proteger contra IDs que não existem
+    try:
+        product = Products.objects.get(id=produto_id)
+    except Products.DoesNotExist:
+        messages.error(request, "Produto não encontrado.")
+        return redirect('inputProduction')
 
     if request.method == 'POST':
-        product.order_Nmber = request.POST.get('order_Nmber')
-        product.box_Nmber = request.POST.get('box_Nmber')
-        product.task = request.POST.get('task')
-        product.qnt = request.POST.get('qnt')
-        product.edit_by = request.user
+        # 2. Capturar os dados com cuidado (.strip() tira espaços em branco inúteis)
+        order_Nmber = (request.POST.get('order_Nmber') or '').strip()
+        box_Nmber = (request.POST.get('box_Nmber') or '').strip()
+        task = (request.POST.get('task') or '').strip()
+        qnt_str = (request.POST.get('qnt') or '').strip()
 
-        product.save()
-        return redirect('inputProduction')
+        # 3. Validação de campos obrigatórios
+        if not order_Nmber or not task:
+            messages.error(request, "Os campos 'Número de Ordem' e 'Tarefa' são obrigatórios.")
+            return render(request, 'theme/editProduct.html', {'product': product})
+
+        # 4. Proteger a conversão de números
+        try:
+            qnt = int(qnt_str) if qnt_str else 0
+            if qnt < 0:
+                messages.error(request, "A quantidade não pode ser negativa.")
+                return render(request, 'theme/editProduct.html', {'product': product})
+        except ValueError:
+            messages.error(request, "O campo Quantidade tem de ser um número inteiro válido.")
+            return render(request, 'theme/editProduct.html', {'product': product})
+
+        # 5. Só grava se passar em tudo
+        product.order_Nmber = order_Nmber
+        product.box_Nmber = box_Nmber
+        product.task = task
+        product.qnt = qnt
+        product.edit_by = request.user
+        
+        try:
+            product.save()
+            messages.success(request, "Produto atualizado com sucesso!")
+            return redirect('inputProduction')
+        except Exception as e:
+            # Captura qualquer erro inesperado da base de dados sem mostrar a página amarela
+            messages.error(request, f"Ocorreu um erro ao guardar o produto: {str(e)}")
 
     return render(request, 'theme/editProduct.html', {'product': product})
 
@@ -1453,8 +1485,12 @@ def adicionar_dies(request, qr_id):
 
 @login_required
 def listar_qrcodes_geral(request):
-
+    print("A entrar na view listar_qrcodes_geral...")
     estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
+    user_group = request.user.groups.first().name
+
+    print(f"User Group: {user_group}, Estado: {estado}")
+
 
     all_qrcodes = QRData.objects.prefetch_related('die_instances', 'where_boxes').all().order_by('-created_at')
 
@@ -1531,10 +1567,14 @@ def listar_qrcodes_geral(request):
         'grouped_qrcodes': final_list,
         'estado_atual': estado,
         'tipo_choices': tipo_choices,
+        'user_group': user_group
     }
     
     # Mantemos apenas 1 ficheiro HTML! Podes apagar os outros 2.
     return render(request, 'theme/listarDies.html', context)
+
+
+
 
 @login_required
 def create_caixa(request):
@@ -1549,12 +1589,19 @@ def create_caixa(request):
         # Lista de campos para extrair do POST de forma limpa
         data = request.POST
         
-        # 2. Validação de campos obrigatórios
+        # 2. Validação de campos obrigatórios - com render ao invés de redirect
+        errors = []
         required_fields = ['customer', 'toma_order_nr', 'toma_order_year', 'box_nr', 'qt', 'diameters']
         for field in required_fields:
             if not data.get(field):
-                messages.error(request, "Todos os campos obrigatórios devem ser preenchidos.")
-                return redirect('listarDies')
+                errors.append(f"Campo '{field}' é obrigatório.")
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, 'theme/criarCaixa.html', {
+                'form_data': data.dict()
+            })
 
         try:
             box_nr = str(data.get('box_nr'))
@@ -1569,7 +1616,9 @@ def create_caixa(request):
 
             if QRData.objects.filter(toma_order_full=toma_order_full, box_nr=box_nr).exists():
                 messages.error(request, f"Já existe a caixa {box_nr} para o pedido {toma_order_full}.")
-                return redirect('listarDies')
+                return render(request, 'theme/criarCaixa.html', {
+                    'form_data': data.dict()
+                })
 
             # 5. Criação do Objeto (Corrigido o nome do campo)
             QRData.objects.create(
@@ -1595,13 +1644,20 @@ def create_caixa(request):
             )
 
             messages.success(request, "Caixa criada com sucesso!")
+            return redirect('listQrcodes')
             
         except ValueError:
             messages.error(request, "Os campos 'Caixa' e 'Quantidade' devem ser números.")
+            return render(request, 'theme/criarCaixa.html', {
+                'form_data': data.dict()
+            })
         except Exception as e:
             messages.error(request, f"Erro inesperado: {str(e)}")
+            return render(request, 'theme/criarCaixa.html', {
+                'form_data': data.dict()
+            })
 
-    return redirect('listQrcodes')
+    return render(request, 'theme/criarCaixa.html', {'form_data': {}})
 
 @login_required
 def die_details(request, die_id):
@@ -1674,13 +1730,21 @@ def create_die_work(request, die_id):
         subtipo = request.POST.get('subtipo')
         add_another = request.POST.get('add_another') # Capturamos a variável aqui
 
-        # Validações
+        # Validações - renderizar com contexto ao invés de redirect
         if not tipo_trabalho:
             messages.error(request, "Escolha um tipo de trabalho.")
-            return redirect(request.path)
+            return render(request, 'theme/create_die_work.html', {
+                'die': die,
+                'tipo_trabalho': tipo_trabalho,
+                'subtipo': subtipo
+            })
         if not subtipo:
             messages.error(request, "Escolha um subtipo.")
-            return redirect(request.path)
+            return render(request, 'theme/create_die_work.html', {
+                'die': die,
+                'tipo_trabalho': tipo_trabalho,
+                'subtipo': subtipo
+            })
 
         # Criação do trabalho
         DieWork.objects.create(
@@ -1725,41 +1789,80 @@ def add_multiple_works_workers(request, qr_id):
         diam_min = 0.0000
         diam_max = 0.0000
 
-        if not die_ids or not work_type or not subtype or not worker_ids:
-            messages.error(request, "Todos os campos são obrigatórios.")
-            return redirect(request.path)
+        # Validações com mensagens individuais
+        errors = []
+        if not die_ids:
+            errors.append("Selecione pelo menos uma fieira.")
+        if not work_type:
+            errors.append("Escolha um tipo de trabalho.")
+        if not subtype:
+            errors.append("Escolha um subtipo.")
+        if not worker_ids:
+            errors.append("Selecione pelo menos um trabalhador.")
 
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            
+            # Renderizar com dados preenchidos para o utilizador corrigir
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'form_data': request.POST.dict()
+            })
+
+        # Validação de segurança
         selected_workers = list(users.filter(id__in=worker_ids))
         if len(selected_workers) != len(set(worker_ids)):
             messages.error(request, "Só é permitido selecionar trabalhadores do grupo Producao.")
-            return redirect(request.path)
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'form_data': request.POST.dict()
+            })
 
-        for die_id in die_ids:
-            die = get_object_or_404(dieInstance, id=die_id)
+        # Agora temos certeza que todos os dados estão válidos
+        try:
+            for die_id in die_ids:
+                die = get_object_or_404(dieInstance, id=die_id)
 
-            # Cria o trabalho
-            new_work = DieWork.objects.create(
-                die=die, work_type=work_type, subtype=subtype
-            )
-
-            # Associa os trabalhadores ao trabalho
-            for user in selected_workers:
-                DieWorkWorker.objects.create(work=new_work, worker=user,diam_min=diam_min, diam_max=diam_max)
-
-                # Log individual para cada trabalhador
-                globalLogs.objects.create(
-                    user=request.user,
-                    action=f"{request.user.username} criou um trabalho '{work_type}' para o Die {die.serial_number} com o trabalhador {user.username}.",
+                # Cria o trabalho
+                new_work = DieWork.objects.create(
+                    die=die, work_type=work_type, subtype=subtype
                 )
 
-        messages.success(request, f"{len(die_ids)} trabalho(s) adicionados com sucesso para {len(worker_ids)} trabalhador(es).")
+                # Associa os trabalhadores ao trabalho
+                for user in selected_workers:
+                    DieWorkWorker.objects.create(work=new_work, worker=user, diam_min=diam_min, diam_max=diam_max)
 
-        # Se o campo hidden add_another estiver presente → volta pro mesmo formulário
-        if add_another:
-            return redirect('add_multiple_works_workers', qr_id=qr_id)
+                    # Log individual para cada trabalhador
+                    globalLogs.objects.create(
+                        user=request.user,
+                        action=f"{request.user.username} criou um trabalho '{work_type}' para o Die {die.serial_number} com o trabalhador {user.username}.",
+                    )
 
-        # Caso contrário, redireciona para os detalhes do último die
-        return redirect('die_details', die_id=die_ids[-1])
+            messages.success(request, f"{len(die_ids)} trabalho(s) adicionados com sucesso para {len(worker_ids)} trabalhador(es).")
+
+            # Se o campo hidden add_another estiver presente → volta pro mesmo formulário
+            if add_another:
+                return redirect('add_multiple_works_workers', qr_id=qr_id)
+
+            # Caso contrário, redireciona para os detalhes do último die
+            return redirect('die_details', die_id=die_ids[-1])
+        
+        except Exception as e:
+            messages.error(request, f"Erro ao criar trabalhos: {str(e)}")
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'form_data': request.POST.dict()
+            })
 
     return render(
         request,
@@ -1767,34 +1870,81 @@ def add_multiple_works_workers(request, qr_id):
         {'qr_id': qr_id, 'dies': dies, 'users': users, 'pedido': pedido},
     )
 
+from django.db import IntegrityError
+
 @login_required
 def add_worker_to_die_work(request, work_id):
-    work = get_object_or_404(DieWork, id=work_id)
+    # 1. Proteger contra manipulação do ID do Trabalho no URL
+    try:
+        work = DieWork.objects.get(id=work_id)
+    except DieWork.DoesNotExist:
+        messages.error(request, "O trabalho selecionado não existe ou foi apagado.")
+        return redirect('listarDies') # Redireciona para um local seguro
+
     users = User.objects.all()
 
     if request.method == 'POST':
-        user_id = request.POST.get('worker')
-        diam_min = request.POST.get('diametro_min')
-        diam_max = request.POST.get('diametro_max')
+        # 2. Captura limpa de dados
+        user_id = request.POST.get('worker', '').strip()
+        diam_min_str = request.POST.get('diametro_min', '').strip()
+        diam_max_str = request.POST.get('diametro_max', '').strip()
 
-        if not user_id:
-            messages.error(request, "Selecione um utilizador.")
-            return redirect(request.path)
+        # 3. Validação de Vazios (O modelo exige estes 3 campos!)
+        if not user_id or not diam_min_str or not diam_max_str:
+            messages.error(request, "Todos os campos (Utilizador, Diâmetro Mínimo e Diâmetro Máximo) são obrigatórios.")
+            return render(request, 'theme/add_worker_to_die_work.html', {
+                'work': work,
+                'users': users,
+                'form_data': request.POST # Memória do form
+            })
 
-        user = get_object_or_404(User, id=user_id)
+        # 4. Proteger contra IDs de Utilizador inválidos injetados no HTML
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            messages.error(request, "O utilizador selecionado é inválido.")
+            return render(request, 'theme/add_worker_to_die_work.html', {
+                'work': work, 'users': users, 'form_data': request.POST
+            })
 
+        # 5. Gravação Segura
+        try:
+            # O teu FlexibleDecimalField trata de converter vírgulas em pontos automaticamente
+            DieWorkWorker.objects.create(
+                work=work,
+                worker=user,
+                diam_min=diam_min_str,
+                diam_max=diam_max_str
+            )
+            
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} adicionou o trabalhador {user.username} ao trabalho {work.id}."
+            )
+            
+            messages.success(request, f"Trabalhador {user.username} adicionado com sucesso!")
+            return redirect('die_details', die_id=work.die.id)
+        
+        except IntegrityError:
+            # Se o FlexibleDecimalField não conseguir converter "abc" num número, ele devolve None
+            # O que dispara um IntegrityError porque o campo é null=False. Apanhamos isso aqui!
+            messages.error(request, "Os valores de diâmetro inseridos não são números válidos.")
+            return render(request, 'theme/add_worker_to_die_work.html', {
+                'work': work, 'users': users, 'form_data': request.POST
+            })
+            
+        except Exception as e:
+            # Outros erros imprevistos
+            messages.error(request, f"Erro inesperado ao adicionar trabalhador: {str(e)}")
+            return render(request, 'theme/add_worker_to_die_work.html', {
+                'work': work, 'users': users, 'form_data': request.POST
+            })
 
-
-        # Adicionar trabalhador ao trabalho
-        DieWorkWorker.objects.create(work=work, worker=user, diam_min=diam_min or None, diam_max=diam_max or None)
-        messages.success(request, f"Trabalhador {user.username} adicionado com sucesso!")
-        return redirect('die_details', die_id=work.die.id)
-
+    # GET: Carregamento normal da página
     return render(request, 'theme/add_worker_to_die_work.html', {
         'work': work,
         'users': users
     })
-
 
 def export_qrcode_excel(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
@@ -1856,11 +2006,11 @@ def info_fieira(request, die_id):
         # Cria um novo registro (não atualiza o anterior)
         InfoFieira.objects.create(
             serial_number=serial_number,
-            diametro_atual=request.POST.get('diametro_atual') or None,
-            angulo=request.POST.get('angulo') or None,
-            po=request.POST.get('po') or None,
-            tempo=request.POST.get('tempo') or None,
-            observacoes=request.POST.get('observacoes') or None,
+            diametro_atual=request.POST.get('diametro_atual') or '',
+            angulo=request.POST.get('angulo') or '',
+            po=request.POST.get('po') or '',
+            tempo=request.POST.get('tempo') or '',
+            observacoes=request.POST.get('observacoes') or '',
             utilizador=request.user,
             quando=timezone.now(),
         )
@@ -1957,23 +2107,76 @@ def editar_pedido_inline(request, id):
     die = dieInstance.objects.filter(customer=pedido.qr_code).first()
     
     if request.method == "POST":
-
         novo_diametro_valor = request.POST.get('novo_diametro')
         diametro_min_valor = request.POST.get('diametro_min')
+        
+        # Validações
+        if not novo_diametro_valor:
+            messages.error(request, "O novo diâmetro é obrigatório.")
+            return render(request, 'theme/editar_pedido.html', {
+                'pedido': pedido,
+                'die': die,
+                'form_data': request.POST.dict()
+            })
+        
+        if not diametro_min_valor:
+            messages.error(request, "O diâmetro mínimo é obrigatório.")
+            return render(request, 'theme/editar_pedido.html', {
+                'pedido': pedido,
+                'die': die,
+                'form_data': request.POST.dict()
+            })
+        
+        try:
+            pedido.diametro_min = diametro_min_valor
+            pedido.novo_diametro = novo_diametro_valor
+            pedido.save()
 
-        pedido.diametro_min = diametro_min_valor
-        pedido.novo_diametro = novo_diametro_valor
-        pedido.save()
+            if not die:
+                messages.error(request, "Fieira associada ao pedido não encontrada.")
+                return render(request, 'theme/editar_pedido.html', {
+                    'pedido': pedido,
+                    'die': die,
+                    'form_data': request.POST.dict()
+                })
 
-        if die:
-            die.new_diameter = novo_diametro_valor   
-            die.save()            
-        else:
-            messages.error(request, "Fieira associada ao pedido não encontrada.")
+            die.new_diameter = novo_diametro_valor
+            die.save()
 
-        return redirect('listarPedidosDiametro')
+            # Tenta enviar email, mas não impede a continuação se falhar
+            try:
+                send_mail(
+                    subject=f"Novo diâmetro para o pedido {pedido.qr_code.toma_order_full}",
+                    message=(f"Um novo pedido foi criado para o QR Code {pedido.qr_code.toma_order_full} com o novo diâmetro {novo_diametro_valor} e diâmetro mínimo {diametro_min_valor}."),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=['qc1@toma.tools'],
+                )
+            except Exception as e:
+                messages.error(request, f"Erro ao enviar email: {str(e)}")
+
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} atualizou o pedido {pedido.id} com novo diâmetro {novo_diametro_valor}.",
+            )
+
+            messages.success(request, "Pedido atualizado com sucesso!")
+            return redirect('listarPedidosDiametro')
+
+        except Exception as e:
+            messages.error(request, f"Erro ao atualizar pedido: {str(e)}")
+            return render(request, 'theme/editar_pedido.html', {
+                'pedido': pedido,
+                'die': die,
+                'form_data': request.POST.dict()
+            })
+
+
     
-    return redirect('listarPedidosDiametro')
+    return render(request, 'theme/editar_pedido.html', {
+        'pedido': pedido,
+        'die': die,
+        'form_data': {}
+    })
 
 @login_required
 def exportar_pedido_excel(request, id):
@@ -2108,94 +2311,362 @@ def listarPedidosDiametro(request):
 
 @csrf_exempt
 @login_required
-def diametroMenu(request, toma_order_full):
+def inspecao_inicial(request, toma_order_full):
+    # 1. Proteger o acesso e ir buscar uma caixa de referência
     try:
         qr_code = QRData.objects.get(toma_order_full=toma_order_full)
     except QRData.DoesNotExist:
         messages.error(request, 'QR Code não encontrado.')
         return redirect('listarDies')
 
-    dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')  # <- os dies deste QR
+    # 2. A MAGIA: Encontrar TODAS as caixas desta Toma (Pedido)
+    caixas_da_toma = QRData.objects.filter(
+        toma_order_nr=qr_code.toma_order_nr, 
+        toma_order_year=qr_code.toma_order_year
+    ).order_by('id')
+
+    # 3. AGRUPAR OS DADOS COMO EM listar_qrcodes_geral
+    grouped_data = {}
+    total_fieiras_pedido = 0
+    total_qt_pedido = 0
+    
+    for caixa in caixas_da_toma:
+        dies_caixa = dieInstance.objects.filter(customer=caixa).order_by('id')
+        grouped_data[caixa.id] = {
+            'caixa': caixa,
+            'dies': dies_caixa
+        }
+        total_fieiras_pedido += dies_caixa.count()
+        total_qt_pedido += caixa.qt
+    
     observation_choices = PedidosDiametro._meta.get_field('observations').choices
 
-    if request.method == 'POST':
-        numero = request.POST.get('numeroAlterar')
-        diametro = request.POST.get('diametroAtual')
-        diametro_min = request.POST.get('diametroMin')
-        pedido_por = request.POST.get('pedidoPor')
-        serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe os checkboxes
-        serie_dies = ', '.join(serie_dies_list)
-        fieira_trabalhada = request.POST.get('fieiraTrabalhada')
-        observations = request.POST.get('observations', '')
+    email_choices = [
+        ('anicetagraf@toma.tools','Aniceta Graf'),
+        ('danielapenagos@toma.tools','Daniela Penagos'),
+        ('patrickgraf@toma.tools','Patrick Graf'),
+        ('miguelfernandes@toma.tools','Miguel Fernandes'),
+        ('mariamacedo@toma.tools','Maria Macedo'),
+        ('qc@toma.tools','Alexandra Quesado'),
+        ('michaelgraf@toma.tools','Michael Graf'),
+        ('andrepimentel@toma.tools','Andre Pimentel')
+    ]
 
-        # Aceita valores antigos (Sim/Não) e atuais do radio (True/False).
-        fieira_trabalhada = str(fieira_trabalhada).strip().lower() in {'true', 'sim', '1', 'on'}
+    if request.method == 'POST':
+        # --- LÓGICA DE POST PARA MÚLTIPLAS FIEIRAS ---
+        pedido_por = request.POST.get('pedidoPor', '').strip()
+        emails = request.POST.getlist('emails')
+
+        if not emails:
+            messages.error(request, "O campo Emails é obrigatório.")
+            return render(request, 'theme/inspecao_inicial.html', {
+                'qr_code': qr_code, 
+                'grouped_data': grouped_data,
+                'total_fieiras': total_fieiras_pedido,
+                'total_qt': total_qt_pedido,
+                'choices': observation_choices, 
+                'email_choices': email_choices,
+                'form_data': request.POST
+            })
+
+        emails = [email.strip() for email in emails if email.strip()]
+
+        if not pedido_por:
+            messages.error(request, "O campo 'Pedido Por' é obrigatório.")
+            return render(request, 'theme/inspecao_inicial.html', {
+                'qr_code': qr_code, 
+                'grouped_data': grouped_data,
+                'total_fieiras': total_fieiras_pedido,
+                'total_qt': total_qt_pedido,
+                'choices': observation_choices, 
+                'email_choices': email_choices,
+                'form_data': request.POST
+            })
+
+        # Recolher serial numbers dos campos hidden (mais confiável)
+        serie_dies_list = [key.replace('fieira_serial_', '') for key in request.POST.keys() if key.startswith('fieira_serial_')]
+
+        if not serie_dies_list:
+            messages.error(request, "Selecione pelo menos uma fieira para inspecionar.")
+            return render(request, 'theme/inspecao_inicial.html', {
+                'qr_code': qr_code, 
+                'grouped_data': grouped_data,
+                'total_fieiras': total_fieiras_pedido,
+                'total_qt': total_qt_pedido,
+                'choices': observation_choices, 
+                'email_choices': email_choices,
+                'form_data': request.POST
+            })
+
         try:
-            numero = int(numero)
+            pedidos_criados = []
+            pedidos_falhas = []
+
+            for serie_die in serie_dies_list:
+                # 1. Encontrar a fieira para descobrir a que caixa específica ela pertence
+                try:
+                    die_obj = dieInstance.objects.get(serial_number=serie_die)
+                    caixa_da_fieira = die_obj.customer  # Esta é a caixa real desta fieira!
+                except dieInstance.DoesNotExist:
+                    pedidos_falhas.append(f"Fieira {serie_die}: Não encontrada na base de dados.")
+                    continue
+
+                diametro = request.POST.get(f'diametro_atual_{serie_die}', '').strip()
+                diametro_min = request.POST.get(f'diametro_min_{serie_die}', '').strip()
+                trabalhada_val = request.POST.get(f'trabalhada_{serie_die}', '').strip().lower()
+                trabalhada = trabalhada_val in {'true', 'sim', '1', 'on'}
+                observations = request.POST.get(f'observacoes_{serie_die}', '').strip()
+
+                # Validar campos obrigatórios para cada fieira
+                if not diametro or not diametro_min:
+                    pedidos_falhas.append(f"Fieira {serie_die}: Diâmetro Atual e Mínimo são obrigatórios.")
+                    continue
+
+                try:
+                    diametro_decimal = float(diametro.replace(',', '.'))
+                    diametro_min_decimal = float(diametro_min.replace(',', '.'))
+                except ValueError:
+                    pedidos_falhas.append(f"Fieira {serie_die}: Diâmetros devem ser números válidos.")
+                    continue
+
+                try:
+                    pedido = PedidosDiametro.objects.create(
+                        # 2. AQUI ESTAVA O ERRO! Substituir 'qr_code' pela 'caixa_da_fieira'
+                        qr_code=caixa_da_fieira, 
+                        diametro=diametro_decimal, # Passar a variável convertida para decimal
+                        diametro_min=diametro_min_decimal,
+                        numero_fieiras=1,
+                        pedido_por=pedido_por,
+                        serie_dies=serie_die,
+                        observations=observations,
+                        trabalhado=trabalhada,
+                    )
+                    pedidos_criados.append({
+                        'serie_die': serie_die,
+                        'caixa': caixa_da_fieira.box_nr, # Útil para referência
+                        'diametro': diametro,
+                        'diametro_min': diametro_min,
+                        'trabalhado': 'Sim' if trabalhada else 'Não',
+                        'observacoes': observations
+                    })
+                except Exception as e:
+                    pedidos_falhas.append(f"Fieira {serie_die}: Erro ao guardar - {str(e)}")
+
+            if not pedidos_criados:
+                messages.error(request, "Nenhuma fieira foi inspecionada. Verifique os dados.")
+                return render(request, 'theme/inspecao_inicial.html', {
+                    'qr_code': qr_code, 
+                    'grouped_data': grouped_data,
+                    'total_fieiras': total_fieiras_pedido,
+                    'total_qt': total_qt_pedido,
+                    'choices': observation_choices, 
+                    'email_choices': email_choices,
+                    'form_data': request.POST
+                })
+
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} inspecionou {len(pedidos_criados)} fieira(s) na Toma {qr_code.toma_order_nr}.",
+            )
+
+            try:
+                corpo_email = f"Inspeção Inicial - Pedido Completo:\n\n"
+                corpo_email += f"Pedido criado por {request.user.username}\n"
+                corpo_email += f"- Toma: {qr_code.toma_order_nr}\n"
+                corpo_email += f"- Cliente: {qr_code.customer}\n"
+                corpo_email += f"- Pedido Por: {pedido_por}\n"
+                corpo_email += f"- Número de Fieiras Inspecionadas: {len(pedidos_criados)}\n\n"
+                corpo_email += "DETALHES POR FIEIRA:\n"
+                corpo_email += "-" * 60 + "\n"
+                
+                for p in pedidos_criados:
+                    corpo_email += f"\nFieira: {p['serie_die']}\n"
+                    corpo_email += f"  Ø Atual: {p['diametro']}\n"
+                    corpo_email += f"  Ø Mínimo: {p['diametro_min']}\n"
+                    corpo_email += f"  Trabalhada: {p['trabalhado']}\n"
+                    corpo_email += f"  Observações: {p['observacoes'] or '-'}\n"
+
+                send_mail(
+                    subject=f"Inspeção Inicial Completa - Toma {qr_code.toma_order_nr}",
+                    message=corpo_email,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=emails,
+                )
+
+                messages.success(request, f'✓ Inspeção Final: {len(pedidos_criados)} fieira(s) inspecionada(s) com sucesso!')
+            except Exception as e:
+                messages.warning(request, f"Fieiras guardadas, mas falha ao enviar email: {str(e)}")
+
+            # Se houve falhas, mostrar aviso
+            if pedidos_falhas:
+                for falha in pedidos_falhas:
+                    messages.warning(request, f"⚠ {falha}")
+
+            return redirect('listarDies')
+
+        except Exception as e:
+            messages.error(request, f'Erro inesperado ao guardar inspeção: {str(e)}')
+            return render(request, 'theme/inspecao_inicial.html', {
+                'qr_code': qr_code, 
+                'grouped_data': grouped_data,
+                'total_fieiras': total_fieiras_pedido,
+                'total_qt': total_qt_pedido,
+                'choices': observation_choices, 
+                'email_choices': email_choices,
+                'form_data': request.POST
+            })
+            
+    # GET: Carregar o template com dados agrupados
+    return render(request, 'theme/inspecao_inicial.html', {
+        'qr_code': qr_code,
+        'grouped_data': grouped_data,
+        'total_fieiras': total_fieiras_pedido,
+        'total_qt': total_qt_pedido,
+        'choices': observation_choices,
+        'email_choices': email_choices,
+    })
+
+@csrf_exempt
+@login_required
+def diametroMenu(request, toma_order_full):
+    # 1. Proteger o acesso via URL
+    try:
+        qr_code = QRData.objects.get(toma_order_full=toma_order_full)
+    except QRData.DoesNotExist:
+        messages.error(request, 'QR Code não encontrado.')
+        return redirect('listarDies')
+
+    dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')
+    observation_choices = PedidosDiametro._meta.get_field('observations').choices
+
+    print(f'dies existentes: {dies_existentes}')
+    email_choices = [
+        ('anicetagraf@toma.tools','Aniceta Graf'),
+        ('danielapenagos@toma.tools','Daniela Penagos'),
+        ('patrickgraf@toma.tools','Patrick Graf'),
+        ('miguelfernandes@toma.tools','Miguel Fernandes'),
+        ('mariamacedo@toma.tools','Maria Macedo'),
+        ('qc@toma.tools','Alexandra Quesado'),
+        ('michaelgraf@toma.tools','Michael Graf'),
+        ('andrepimentel@toma.tools','Andre Pimentel')
+    ]
+
+    if request.method == 'POST':
+        # 2. Captura limpa
+        numero_str = request.POST.get('numeroAlterar', '').strip()
+        diametro = request.POST.get('diametroAtual', '').strip()
+        diametro_min = request.POST.get('diametroMin', '').strip()
+        pedido_por = request.POST.get('pedidoPor', '').strip()
+        observations = request.POST.get('observations', '').strip()
+        emails = request.POST.getlist('emails')  # Múltipla escolha retorna lista
+
+
+        if not emails:
+            messages.error(request, "O campo Emails é obrigatório.")
+            return render(request, 'theme/diametroMenu.html', {
+                'qr_code': qr_code, 'dies_existentes': dies_existentes,
+                'choices': observation_choices, 'form_data': request.POST
+            })
+
+        emails = [email.strip() for email in emails if email.strip()]  # Limpa espaços e remove vazios
+
+
+        # Checkboxes (Lista)
+        serie_dies_list = request.POST.getlist('serieDies')
+        serie_dies = ', '.join(serie_dies_list)
+        
+        # Booleano seguro
+        fieira_trabalhada_val = request.POST.get('fieiraTrabalhada', '').strip().lower()
+        fieira_trabalhada = fieira_trabalhada_val in {'true', 'sim', '1', 'on'}
+
+        # 3. Validação de Vazios (Protege a Base de Dados)
+        if not numero_str or not diametro or not diametro_min or not pedido_por:
+            messages.error(request, "Os campos Número de Fieiras, Diâmetro Atual, Diâmetro Mínimo e Pedido Por são obrigatórios.")
+            return render(request, 'theme/diametroMenu.html', {
+                'qr_code': qr_code, 'dies_existentes': dies_existentes, 
+                'choices': observation_choices, 'form_data': request.POST
+            })
+
+        if not serie_dies_list:
+            messages.error(request, "Tem de selecionar pelo menos uma fieira (matrícula) da lista.")
+            return render(request, 'theme/diametroMenu.html', {
+                'qr_code': qr_code, 'dies_existentes': dies_existentes, 
+                'choices': observation_choices, 'form_data': request.POST
+            })
+
+        # 4. Proteção de Tipos Numéricos
+        try:
+            numero = int(numero_str)
             if numero <= 0:
                 messages.error(request, 'O número de fieiras deve ser positivo.')
-            elif not diametro:
-                messages.error(request, 'Por favor, insira o valor do diâmetro.')
+                return render(request, 'theme/diametroMenu.html', {
+                    'qr_code': qr_code, 'dies_existentes': dies_existentes, 
+                    'choices': observation_choices, 'form_data': request.POST
+                })
+        except ValueError:
+            messages.error(request, 'O número de fieiras deve ser um número inteiro válido.')
+            return render(request, 'theme/diametroMenu.html', {
+                'qr_code': qr_code, 'dies_existentes': dies_existentes, 
+                'choices': observation_choices, 'form_data': request.POST
+            })
+
+        # 5. Criação e Envio de Email (Envolvido em try/except)
+        try:
+            PedidosDiametro.objects.create(
+                qr_code=qr_code,
+                diametro=diametro,
+                diametro_min=diametro_min,  # O teu FlexibleDecimalField vai tratar de converter a string "1.23" ou "1,23"
+                numero_fieiras=numero,
+                pedido_por=pedido_por,
+                serie_dies=serie_dies,
+                observations=observations,
+                trabalhado=fieira_trabalhada,
+            )
             
-            else:
-                PedidosDiametro.objects.create(
-                    qr_code=qr_code,
-                    diametro=diametro,
-                    diametro_min=diametro_min,
-                    numero_fieiras=numero,
-                    pedido_por=pedido_por,
-                    serie_dies=serie_dies,
-                    observations=observations,
-                    trabalhado=fieira_trabalhada,
-                )
-                
-                messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
-                
-                globalLogs.objects.create(
-                    user=request.user,
-                    action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
-                )
-                
-                # Bloco de Email
-                try:
-                    # Garantir que é uma lista
-                    lista_diametro = settings.EMAIL_DIAMETRO if isinstance(settings.EMAIL_DIAMETRO, list) else [settings.EMAIL_DIAMETRO]
-                    
-                    # Usar o EmailMessage em vez do send_mail
-                    email = EmailMessage(
-                        subject="Novo Pedido de Diâmetro",
-                        body=(
-                            f"Novo pedido de diâmetro criado:\n"
+            messages.success(request, f'Pedido de diâmetro {diametro} para {numero} fieiras adicionado com sucesso!')
+            
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
+            )
+            
+            # Bloco de Email (isolado para não impedir a criação do pedido se o email falhar)
+            try:
+
+                send_mail(
+                    subject=f"Novo Pedido de Diâmetro para {qr_code.toma_order_full}",
+                    message=(f"Novo pedido de diâmetro criado:\n"
                             f"Pedido criado por {request.user.username}\n"
                             f"- QR Code: {qr_code.toma_order_full}\n"
                             f"- Cliente: {qr_code.customer}\n"
                             f"- Diâmetro: {diametro}\n"
                             f"- Nº de fieiras: {numero}\n"
-                            f"- Pedido por: {pedido_por or '-'}\n"
-                            f"- Matrícula: {serie_dies or '-'}\n"
-                            f"- Observações: {observations or '-'}"
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[settings.DEFAULT_FROM_EMAIL], # Envia para o vosso email principal
-                        bcc=lista_diametro,               # E envia para as 9 pessoas em oculto
-                    )
-                    email.send(fail_silently=False)
-                    
-                except Exception as e:
-                    messages.error(request, f"Pedido adicionado, mas falha ao enviar email: {str(e)}")
-                return redirect('listarDies') 
+                            f"- Pedido por: {pedido_por}\n"
+                            f"- Matrícula: {serie_dies}\n"
+                            f"- Observações: {observations or '-'}"),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=emails,
+                    fail_silently=False,
+                )
+            except Exception as e:
+                messages.error(request, f"Pedido guardado, mas houve uma falha ao enviar o email de notificação: {str(e)}")
+            return redirect('listarDies') 
 
-        except ValueError:
-            messages.error(request, 'Número de fieiras inválido. Por favor, insira um número válido.')
         except Exception as e:
-            messages.error(request, f'Erro ao adicionar pedido: {str(e)}')
+            # Qualquer erro imprevisto da base de dados cai aqui
+            messages.error(request, f'Erro inesperado ao guardar o pedido: {str(e)}')
+            return render(request, 'theme/diametroMenu.html', {
+                'qr_code': qr_code, 'dies_existentes': dies_existentes, 
+                'choices': observation_choices, 'form_data': request.POST
+            })
             
+    # GET: Primeira vez que a página carrega
     return render(request, 'theme/diametroMenu.html', {
         'qr_code': qr_code,
         'dies_existentes': dies_existentes,
-        'choices' : observation_choices,
-    })
-                
+        'choices': observation_choices,
+        'email_choices': email_choices,
+    })         
 
 @login_required
 def listarPartidos(request):
@@ -2615,41 +3086,91 @@ def listar_calibracoes(request):
 
     if request.method == 'POST':
         maquina_id = request.POST.get('machine_id')
-        diam_original = Decimal(request.POST.get('diam_original'))
-        diam_calibrado = Decimal(request.POST.get('diam_calibrado'))
+        diam_original = request.POST.get('diam_original')
+        diam_calibrado = request.POST.get('diam_calibrado')
         
         diam_calibrado_min = request.POST.get('diam_calibrado_min')
         diam_calibrado_max = request.POST.get('diam_calibrado_max')
 
-        # converte vazio para None
-        diam_calibrado_min = Decimal(diam_calibrado_min) if diam_calibrado_min else None
-        diam_calibrado_max = Decimal(diam_calibrado_max) if diam_calibrado_max else None
-
         details = request.POST.get('details')
         data_calibracao = timezone.now()
         user = request.user
+        
+        # Validações básicas
+        errors = []
+        if not maquina_id:
+            errors.append("Selecione uma máquina.")
+        if not diam_original:
+            errors.append("O diâmetro original é obrigatório.")
+        if not diam_calibrado:
+            errors.append("O diâmetro calibrado é obrigatório.")
+        
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, 'theme/listar_calibracoes.html', {
+                'calibracoes': calibracoes,
+                'maquinas': maquinas,
+                'form_data': request.POST.dict()
+            })
 
         try:
+            # Converter Decimals com validação
+            try:
+                diam_original_dec = Decimal(diam_original)
+                diam_calibrado_dec = Decimal(diam_calibrado)
+            except (ValueError, TypeError):
+                messages.error(request, "Os diâmetros devem ser números válidos.")
+                return render(request, 'theme/listar_calibracoes.html', {
+                    'calibracoes': calibracoes,
+                    'maquinas': maquinas,
+                    'form_data': request.POST.dict()
+                })
+            
+            # converte vazio para None
+            diam_calibrado_min = Decimal(diam_calibrado_min) if diam_calibrado_min else None
+            diam_calibrado_max = Decimal(diam_calibrado_max) if diam_calibrado_max else None
+            
             maquina = Maquinas.objects.get(id=maquina_id)
             CalibracaoMaquina.objects.create(
                 machine=maquina,
-                diam_original=diam_original,
-                diam_calibrado=diam_calibrado,
+                diam_original=diam_original_dec,
+                diam_calibrado=diam_calibrado_dec,
                 diam_calibrado_min=diam_calibrado_min,
                 diam_calibrado_max=diam_calibrado_max,
                 date=data_calibracao,
                 operador=user,
                 details=details
             )
+            
+            globalLogs.objects.create(
+                user=user,
+                action=f"{user.username} adicionou calibração para a máquina {maquina.name}."
+            )
+            
             messages.success(request, "Calibração adicionada com sucesso!")
+            return redirect('listarCalibracoes')
+        
         except Maquinas.DoesNotExist:
             messages.error(request, "Máquina não encontrada. Por favor, selecione uma máquina válida.")
+            return render(request, 'theme/listar_calibracoes.html', {
+                'calibracoes': calibracoes,
+                'maquinas': maquinas,
+                'form_data': request.POST.dict()
+            })
         except Exception as e:
-            messages.error(request, str(e))
-
-        return redirect('listarCalibracoes')
+            messages.error(request, f"Erro ao adicionar calibração: {str(e)}")
+            return render(request, 'theme/listar_calibracoes.html', {
+                'calibracoes': calibracoes,
+                'maquinas': maquinas,
+                'form_data': request.POST.dict()
+            })
     
-    return render(request, 'theme/listar_calibracoes.html', {'calibracoes': calibracoes, 'maquinas': maquinas})
+    return render(request, 'theme/listar_calibracoes.html', {
+        'calibracoes': calibracoes,
+        'maquinas': maquinas,
+        'form_data': {}
+    })
 
 def charts(request):
     # --- Parte 1: Determinação do Intervalo de Tempo ---
@@ -3044,16 +3565,40 @@ def listarFornecedores(request):
     fornecedores = Fornecedor.objects.all().order_by('name')
 
     if request.method == 'POST':
-        # Lógica para adicionar um novo fornecedor
-        nome = request.POST.get('nome')
-        debito_direto = request.POST.get('debito_direto') == 'on'
-        email = request.POST.get('email')
-        telefone = request.POST.get('telefone')
-        dados_bancarios = request.POST.get('dados_bancarios')
-        vat = request.POST.get('vat')
-        morada = request.POST.get('morada')
-        estrangeiro = request.POST.get('estrangeiro') == 'on'
+        # 1. Captura e limpeza de dados
+        nome = request.POST.get('nome', '').strip()
+        
+        # Tratamento seguro para checkboxes
+        debito_direto_val = request.POST.get('debito_direto', '').strip().lower()
+        debito_direto = debito_direto_val in ['on', 'true', '1']
+        
+        email = request.POST.get('email', '').strip()
+        telefone = request.POST.get('telefone', '').strip()
+        dados_bancarios = request.POST.get('dados_bancarios', '').strip()
+        vat = request.POST.get('vat', '').strip()
+        morada = request.POST.get('morada', '').strip()
+        
+        estrangeiro_val = request.POST.get('estrangeiro', '').strip().lower()
+        estrangeiro = estrangeiro_val in ['on', 'true', '1']
 
+        # 2. Validação de campos obrigatórios
+        if not nome:
+            messages.error(request, "O nome do fornecedor é obrigatório.")
+            return render(request, 'theme/listarFornecedores.html', {
+                'fornecedores': fornecedores,
+                'form_data': request.POST  # Devolve os dados para o HTML
+            })
+
+        # 3. Validação de unicidade (Previne o IntegrityError do unique=True)
+        # Usamos __iexact para evitar que criem "Fornecedor A" se já existir "fornecedor a"
+        if Fornecedor.objects.filter(name__iexact=nome).exists():
+            messages.error(request, f"Já existe um fornecedor registado com o nome '{nome}'.")
+            return render(request, 'theme/listarFornecedores.html', {
+                'fornecedores': fornecedores,
+                'form_data': request.POST
+            })
+
+        # 4. Gravação Segura
         try:   
             Fornecedor.objects.create(
                 name=nome,
@@ -3065,11 +3610,26 @@ def listarFornecedores(request):
                 morada=morada,
                 estrangeiro=estrangeiro
             )
+            
+            # Bónus: Mantive a tua prática de usar o globalLogs noutras views, 
+            # adicionei aqui para manter o rasto de quem cria os fornecedores.
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} adicionou o fornecedor {nome}."
+            )
+
             messages.success(request, "Fornecedor adicionado com sucesso!")
             return redirect('listarFornecedores')
+            
         except Exception as e:
-            messages.error(request, f"Erro ao adicionar fornecedor: {e}")      
+            # Em caso de catástrofe na BD, devolvemos a vista com a mensagem exata
+            messages.error(request, f"Ocorreu um erro inesperado ao adicionar o fornecedor: {str(e)}")
+            return render(request, 'theme/listarFornecedores.html', {
+                'fornecedores': fornecedores,
+                'form_data': request.POST
+            })      
 
+    # GET: Carregamento inicial da página limpo
     return render(request, 'theme/listarFornecedores.html', {'fornecedores': fornecedores})
 
 @csrf_exempt
@@ -3145,74 +3705,135 @@ def upload_template_file(request, id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
+
 @admin_required
 @login_required
 def criarTemplate(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
-        description = request.POST.get('description')
-        department = request.POST.get('department')
+        # 1. Captura e limpeza de dados
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        department = request.POST.get('department', '').strip()
         
-        # 1. Pega na lista de ficheiros
-        files = request.FILES.getlist('file') 
+        # 2. Validação de campos obrigatórios (baseada no teu models.py)
+        if not name or not department:
+            messages.error(request, "O Nome e o Departamento são campos obrigatórios.")
+            return render(request, 'theme/criarTemplate.html', {
+                'form_data': request.POST  # Devolvemos os dados para o HTML
+            })
+
+        # 3. Lista de ficheiros
+        files = request.FILES.getlist('file')
 
         try:
-            # 2. Cria o Template (PAI) e guarda-o numa variável 'novo_template'
-            # Nota: Não precisas passar created_at/last_updated se tiveres auto_now_add no model
-            novo_template = Template.objects.create(
-                name=name, 
-                description=description, 
-                department=department
-            )
+            # 4. BLINDAGEM MÁXIMA: Transação Atómica
+            # Se o servidor for abaixo a criar os ficheiros, ele apaga o Template automaticamente
+            with transaction.atomic():
+                novo_template = Template.objects.create(
+                    name=name, 
+                    description=description, 
+                    department=department,
+                    editor=request.user # Registamos já quem criou
+                )
 
-            # 3. Agora fazemos o Loop para salvar os ficheiros (FILHOS)
-            if files:
-                for f in files:
-                    TemplateFiles.objects.create(
-                        template=novo_template, # Usa a variável que criaste acima
-                        file=f # Passa um ficheiro de cada vez
-                    )
+                if files:
+                    for f in files:
+                        TemplateFiles.objects.create(
+                            template=novo_template,
+                            file=f
+                        )
 
-            messages.success(request, "Template criado com sucesso!")
+            messages.success(request, f"Template '{name}' criado com sucesso!")
             return redirect('templateFiles')
 
         except Exception as e:
-            # Se der erro, convém apagar o template se ele chegou a ser criado (opcional, mas boa prática)
-            messages.error(request, f"Erro ao criar template: {e}")
+            # Se chegarmos aqui, nada foi gravado na BD graças ao transaction.atomic
+            messages.error(request, f"Erro crítico ao criar template: {str(e)}")
+            return render(request, 'theme/criarTemplate.html', {
+                'form_data': request.POST
+            })
 
+    # GET: Formulário limpo
     return render(request, 'theme/criarTemplate.html')
+
 
 @admin_required
 @login_required
 def editarTemplate(request, id):
-    template = get_object_or_404(Template, id=id)
+    # 1. Proteger contra IDs inválidos/manipulados no URL
+    try:
+        template = Template.objects.get(id=id)
+    except Template.DoesNotExist:
+        messages.error(request, "O template que tentou aceder não existe ou foi eliminado.")
+        return redirect('templateFiles')
 
     if request.method == 'POST':
-        template.name = request.POST.get('name')
-        template.description = request.POST.get('description')
-        template.department = request.POST.get('department')
+        # 2. Captura limpa de dados
+        name = request.POST.get('name', '').strip()
+        department = request.POST.get('department', '').strip()
+        description = request.POST.get('description', '').strip()
+        
+        # 3. Validação de campos obrigatórios (conforme o models.py)
+        if not name or not department:
+            messages.error(request, "Os campos 'Nome' e 'Departamento' são obrigatórios.")
+            # Mandamos o request.POST de volta como 'form_data' para não perderem o texto
+            return render(request, 'theme/editarTemplate.html', {
+                'template': template,
+                'form_data': request.POST 
+            })
 
-        template.created_at = request.POST.get('created_at') or template.created_at 
-        template.last_updated = request.POST.get('last_updated') or template.last_updated
+        # 4. Tratamento Seguro de Datas
+        created_at_str = request.POST.get('created_at', '').strip()
+        last_updated_str = request.POST.get('last_updated', '').strip()
+
+        if created_at_str:
+            parsed_created_at = parse_date(created_at_str)
+            if parsed_created_at:
+                template.created_at = parsed_created_at
+            else:
+                messages.error(request, "Formato de data inválido para 'Data de Criação'. Use o formato YYYY-MM-DD.")
+                return render(request, 'theme/editarTemplate.html', {'template': template, 'form_data': request.POST})
+        
+        if last_updated_str:
+            parsed_last_updated = parse_date(last_updated_str)
+            if parsed_last_updated:
+                template.last_updated = parsed_last_updated
+            else:
+                messages.error(request, "Formato de data inválido para 'Última Atualização'. Use o formato YYYY-MM-DD.")
+                return render(request, 'theme/editarTemplate.html', {'template': template, 'form_data': request.POST})
+
+        # 5. Atribuição de valores
+        template.name = name
+        template.description = description
+        template.department = department
         template.editor = request.user
         
-        # Converter string 'True'/'False' para Booleano
-        approved_val = request.POST.get('approved')
-        template.approved = True if approved_val == 'True' else False
-        template.approved_by = request.POST.get('approved_by') or template.approved_by
+        # Converter string para Booleano de forma super segura (apanha 'True', 'true', '1', 'on')
+        approved_val = request.POST.get('approved', '').strip().lower()
+        template.approved = approved_val in ['true', '1', 'on']
+        
+        template.approved_by = request.POST.get('approved_by', '').strip() or template.approved_by
 
-        # 1. Adicionar NOVOS ficheiros à lista existente
-        new_files = request.FILES.getlist('file')
-        for f in new_files:
-            TemplateFiles.objects.create(template=template, file=f)
+        # 6. Gravação Segura na Base de Dados e Upload de Ficheiros
+        try:
+            # Substituir o Ficheiro Aprovado (se for enviado um novo)
+            if 'approved_file' in request.FILES:
+                template.approved_file = request.FILES['approved_file']
 
-        # 2. Substituir o Ficheiro Aprovado (se for enviado um novo)
-        if 'approved_file' in request.FILES:
-            template.approved_file = request.FILES['approved_file']
+            template.save()
 
-        template.save()
-        messages.success(request, "Template atualizado com sucesso!")
-        return redirect('templateFiles')
+            # Adicionar NOVOS ficheiros à lista existente
+            new_files = request.FILES.getlist('file')
+            for f in new_files:
+                TemplateFiles.objects.create(template=template, file=f)
+
+            messages.success(request, "Template atualizado com sucesso!")
+            return redirect('templateFiles')
+            
+        except Exception as e:
+            # Apanha erros de base de dados ou falhas no upload de ficheiros
+            messages.error(request, f"Ocorreu um erro ao guardar o template ou os ficheiros: {str(e)}")
+            return render(request, 'theme/editarTemplate.html', {'template': template, 'form_data': request.POST})
 
     return render(request, 'theme/editarTemplate.html', {'template': template})
 
@@ -3231,14 +3852,73 @@ def delete_template_file(request, file_id):
 
 
 @login_required
+def editProduct(request, produto_id):
+    try:
+        product = Products.objects.get(id=produto_id)
+    except Products.DoesNotExist:
+        messages.error(request, "Produto não encontrado.")
+        return redirect('inputProduction')
+
+    if request.method == 'POST':
+        # Captura limpa
+        order_Nmber_str = request.POST.get('order_Nmber', '').strip()
+        box_Nmber_str = request.POST.get('box_Nmber', '').strip()
+        task = request.POST.get('task', '').strip()
+        qnt_str = request.POST.get('qnt', '').strip()
+
+        # Validação de Vazios (Campos Obrigatórios na Model)
+        if not order_Nmber_str or not box_Nmber_str or not task or not qnt_str:
+            messages.error(request, "Todos os campos (Número de Ordem, Caixa, Tarefa e Quantidade) são obrigatórios.")
+            return render(request, 'theme/editProduct.html', {'product': product})
+
+        # Proteção de Tipos (Inteiros)
+        try:
+            order_Nmber = int(order_Nmber_str)
+            box_Nmber = int(box_Nmber_str)
+            qnt = int(qnt_str)
+        except ValueError:
+            messages.error(request, "Número de Ordem, Caixa e Quantidade devem ser números inteiros válidos.")
+            return render(request, 'theme/editProduct.html', {'product': product})
+
+        # Recuperação Suave (Guarda se tudo estiver OK)
+        try:
+            product.order_Nmber = order_Nmber
+            product.box_Nmber = box_Nmber
+            product.task = task
+            product.qnt = qnt
+            product.edit_by = request.user
+            product.save()
+            
+            messages.success(request, "Produto atualizado com sucesso!")
+            return redirect('inputProduction')
+        except Exception as e:
+            messages.error(request, f"Erro ao atualizar o produto: {str(e)}")
+            return render(request, 'theme/editProduct.html', {'product': product})
+
+    return render(request, 'theme/editProduct.html', {'product': product})
+
+@login_required
 def observacoes_caixa(request, qr_id):
-    qr = get_object_or_404(QRData, id=qr_id)
+    # 1. Proteger contra IDs alterados no URL (Substitui o get_object_or_404)
+    try:
+        qr = QRData.objects.get(id=qr_id)
+    except QRData.DoesNotExist:
+        messages.error(request, "A caixa que tentou aceder não existe ou foi eliminada.")
+        return redirect('listarDies') # Volta para a lista em segurança
     
     if request.method == 'POST':
-        # Vamos buscar apenas o texto novo do formulário
+        # Vamos buscar apenas o texto novo do formulário com limpeza de espaços
         nova_observacao = request.POST.get('nova_observacao', '').strip()
         
-        if nova_observacao:
+        # Validar que a observação não está vazia
+        if not nova_observacao:
+            messages.error(request, "A observação não pode estar vazia.")
+            return render(request, 'theme/observacoes_caixa.html', {
+                'qr': qr,
+                'qr_id': qr.id
+            })
+        
+        try:
             # Se já existir texto antigo, juntamos o novo na linha de baixo
             if qr.observations_prod:
                 qr.observations_prod += f"\n\n{nova_observacao}"
@@ -3247,9 +3927,23 @@ def observacoes_caixa(request, qr_id):
                 qr.observations_prod = nova_observacao
                 
             qr.save()
-            messages.success(request, "Observações de produção atualizadas com sucesso!")
             
-        return redirect('listarDies')
+            # Log de auditoria
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} adicionou observação à caixa {qr.toma_order_full}."
+            )
+            
+            messages.success(request, "Observações de produção atualizadas com sucesso!")
+            return redirect('listarDies')
+        
+        except Exception as e:
+            messages.error(request, f"Erro ao guardar observações: {str(e)}")
+            return render(request, 'theme/observacoes_caixa.html', {
+                'qr': qr,
+                'qr_id': qr.id,
+                'nova_observacao': nova_observacao  # <-- SALVA-VIDAS: Devolvemos o texto para não se perder!
+            })
         
     return render(request, 'theme/observacoes_caixa.html', {'qr': qr, 'qr_id': qr.id})
 

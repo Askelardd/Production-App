@@ -1,0 +1,296 @@
+{% extends 'theme/base.html' %}
+{% block title %}
+  Inspeção Inicial - Pedido Inteiro
+{% endblock %}
+
+{% block content %}
+  <div class="max-w-6xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10">
+    <h1 class="text-3xl font-extrabold text-blue-700 mb-2 text-center">Inspeção Inicial - Pedido Inteiro</h1>
+
+    <!-- Resumo do Pedido -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <p class="text-xs text-gray-500 font-semibold uppercase">Toma</p>
+          <p class="text-lg font-bold text-gray-900">{{ qr_code.toma_order_nr }}/{{ qr_code.toma_order_year }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 font-semibold uppercase">Cliente</p>
+          <p class="text-lg font-bold text-gray-900">{{ qr_code.customer }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 font-semibold uppercase">Total Caixas</p>
+          <p class="text-lg font-bold text-blue-600">{{ grouped_data|length }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 font-semibold uppercase">Total Fieiras</p>
+          <p class="text-lg font-bold text-blue-600">{{ total_fieiras }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caixas Agrupadas -->
+    <div class="mb-8 border rounded-lg overflow-hidden">
+      <table class="w-full bg-white">
+        <thead class="bg-gray-100 border-b">
+          <tr>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Caixa</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Qt</th>
+            <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Fieiras (Matrículas)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for caixa_id, caixa_data in grouped_data.items %}
+            <tr class="border-b hover:bg-gray-50">
+              <td class="px-4 py-3 font-semibold text-gray-900">#{{ caixa_data.caixa.box_nr }}</td>
+              <td class="px-4 py-3 text-gray-700">{{ caixa_data.caixa.qt }}</td>
+              <td class="px-4 py-3 text-gray-700">
+                <div class="flex flex-wrap gap-2">
+                  {% for die in caixa_data.dies %}
+                    <span class="bg-gray-200 text-gray-800 px-2 py-1 rounded text-sm">{{ die.serial_number }}</span>
+                  {% empty %}
+                    <span class="text-gray-500 italic">Sem fieiras</span>
+                  {% endfor %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Formulário de Inspeção -->
+    <form id="inspecaoForm" method="POST" action="{% url 'inspecao_inicial' qr_code.toma_order_full %}">
+      {% csrf_token %}
+
+      <div class="mb-8 border-t-2 pt-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">Dados Gerais da Inspeção</h2>
+
+        <div>
+          <label class="block mb-2 font-semibold text-gray-700">Pedido feito por:</label>
+          <input id="pedidoPor" name="pedidoPor" type="text" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400" placeholder="Ex: João Silva" required />
+        </div>
+      </div>
+
+      <!-- Seleção de Fieiras -->
+      <div class="mb-8 border-t-2 pt-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Selecione as Fieiras para Inspeção</h2>
+        <p class="text-sm text-gray-600 mb-4">Clique nas fieiras que deseja inspecionar. As fieiras selecionadas aparecerão na tabela abaixo.</p>
+
+        <div class="space-y-3">
+          {% for caixa_id, caixa_data in grouped_data.items %}
+            <details class="border rounded-lg bg-gray-50 cursor-pointer group">
+              <summary class="px-4 py-3 font-semibold text-gray-900 hover:bg-gray-100 flex items-center justify-between">
+                <span>📦 Caixa #{{ caixa_data.caixa.box_nr }} ({{ caixa_data.dies|length }} fieiras)</span>
+                <span class="transform group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <div class="px-4 py-4 bg-white border-t">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {% for die in caixa_data.dies %}
+                    <label class="flex items-center space-x-2 bg-gray-50 rounded-lg p-3 border hover:border-blue-400 transition cursor-pointer">
+                      <input type="checkbox" name="serieDies" value="{{ die.serial_number }}" class="fieira-checkbox accent-blue-500" data-serial="{{ die.serial_number }}" />
+                      <span class="text-gray-800 font-mono font-semibold">{{ die.serial_number }}</span>
+                    </label>
+                  {% empty %}
+                    <p class="text-gray-500 italic col-span-full">Nenhuma fieira nesta caixa.</p>
+                  {% endfor %}
+                </div>
+              </div>
+            </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Tabela Dinâmica com Fieiras Selecionadas -->
+      <div class="mb-8 border-t-2 pt-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Dados de Inspeção das Fieiras Selecionadas</h2>
+        
+        <div class="overflow-x-auto border rounded-lg">
+          <table class="w-full bg-white">
+            <thead class="bg-blue-600 text-white">
+              <tr>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Serial Number</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Ø Atual</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Ø Mínimo</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Trabalhada</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold">Observações</th>
+                <th class="px-4 py-3 text-center text-sm font-semibold">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="fieiras-table-body">
+              <!-- Preenchido dinamicamente com JavaScript -->
+            </tbody>
+          </table>
+          <div id="empty-table-msg" class="text-center py-8 text-gray-500">
+            Nenhuma fieira selecionada. Selecione pelo menos uma fieira acima.
+          </div>
+        </div>
+      </div>
+
+<div id="error-msg" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mb-4"></div>
+
+    <!-- Emails -->
+    <div class="mb-8 border-t-2 pt-8">
+      <label class="block mb-2 font-semibold text-gray-700">Enviar notificação para:</label>
+      <select id="emails" name="emails" multiple size="5" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400">
+        {% for key, value in email_choices %}
+          <option value="{{ key }}">{{ value }}</option>
+        {% endfor %}
+      </select>
+      <p class="text-sm text-gray-500 mt-2">Segure Ctrl (Cmd no Mac) para selecionar múltiplos.</p>
+    </div>
+
+      <!-- Botões -->
+      <div class="flex justify-between items-center border-t-2 pt-8 gap-4">
+        <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold shadow hover:bg-blue-700 flex-1">✓ Submeter Inspeção</button>
+        <a href="{% url 'listarDies' %}" class="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-500 flex-1 text-center">✕ Sair</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const choicesData = {
+      {% for key, value in choices %}
+        '{{ key }}': '{{ value }}',
+      {% endfor %}
+    };
+
+    // Atualizar tabela quando checkbox é marcada/desmarcada
+    document.querySelectorAll('.fieira-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', function() {
+        const serial = this.value;
+        
+        if (this.checked) {
+          adicionarFieiraTabela(serial);
+        } else {
+          removerFieiraTabela(serial);
+        }
+        
+        atualizarMensagemVazia();
+      });
+    });
+
+    function adicionarFieiraTabela(serial) {
+      const tbody = document.getElementById('fieiras-table-body');
+      
+      // Verificar se já existe
+      if (document.getElementById(`row-${serial}`)) {
+        return;
+      }
+
+      const row = document.createElement('tr');
+      row.id = `row-${serial}`;
+      row.className = 'border-b hover:bg-gray-50';
+      
+      row.innerHTML = `
+        <input type="hidden" name="fieira_serial_${serial}" value="${serial}" />
+        <td class="px-4 py-3 font-mono font-bold text-gray-900">${serial}</td>
+        <td class="px-4 py-3">
+          <input type="number" step="0.0001" name="diametro_atual_${serial}" class="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-blue-400" placeholder="2.5" />
+        </td>
+        <td class="px-4 py-3">
+          <input type="number" step="0.0001" name="diametro_min_${serial}" class="border border-gray-300 rounded p-2 w-full focus:ring-2 focus:ring-blue-400" placeholder="2.0" />
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex gap-1">
+            <label class="flex items-center">
+              <input type="radio" name="trabalhada_${serial}" value="True" class="accent-blue-500" />
+              <span class="ml-1 text-sm">Sim</span>
+            </label>
+            <label class="flex items-center ml-2">
+              <input type="radio" name="trabalhada_${serial}" value="False" class="accent-blue-500" />
+              <span class="ml-1 text-sm">Não</span>
+            </label>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <select name="observacoes_${serial}" class="border border-gray-300 rounded p-2 w-full text-sm focus:ring-2 focus:ring-blue-400">
+            <option value="">-- Selecionar --</option>
+            ${Object.entries(choicesData).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}
+          </select>
+        </td>
+        <td class="px-4 py-3 text-center">
+          <button type="button" onclick="removerFieiraCheckbox('${serial}')" class="text-red-600 hover:text-red-800 font-bold">✕ Remover</button>
+        </td>
+      `;
+
+      tbody.appendChild(row);
+    }
+
+    function removerFieiraTabela(serial) {
+      const row = document.getElementById(`row-${serial}`);
+      if (row) {
+        row.remove();
+      }
+    }
+
+    function removerFieiraCheckbox(serial) {
+      const checkbox = document.querySelector(`input[name="serieDies"][value="${serial}"]`);
+      if (checkbox) {
+        checkbox.checked = false;
+        checkbox.dispatchEvent(new Event('change'));
+      }
+    }
+
+    function atualizarMensagemVazia() {
+      const tbody = document.getElementById('fieiras-table-body');
+      const emptyMsg = document.getElementById('empty-table-msg');
+      
+      if (tbody.children.length === 0) {
+        emptyMsg.style.display = 'block';
+      } else {
+        emptyMsg.style.display = 'none';
+      }
+    }
+
+    // Validação ao submeter
+    document.getElementById('inspecaoForm').addEventListener('submit', function (e) {
+      const errorMsg = document.getElementById('error-msg');
+      const checkboxes = document.querySelectorAll('input[name="serieDies"]:checked');
+      
+      // Resetar erro
+      errorMsg.classList.add('hidden');
+      errorMsg.innerHTML = '';
+
+      let errors = [];
+
+      // 1. Validação de Checkboxes
+      if (checkboxes.length === 0) {
+        errors.push('Selecione pelo menos uma <b>fieira</b> para inspecionar.');
+      } else {
+        // 2. Validar campos preenchidos para cada fieira selecionada
+        checkboxes.forEach(checkbox => {
+          const serialNumber = checkbox.value;
+          const row = document.getElementById(`row-${serialNumber}`);
+          
+          if (!row) return;
+
+          const diametroAtual = row.querySelector(`input[name="diametro_atual_${serialNumber}"]`).value;
+          const diametroMin = row.querySelector(`input[name="diametro_min_${serialNumber}"]`).value;
+          const trabalhada = row.querySelector(`input[name="trabalhada_${serialNumber}"]:checked`);
+          
+          if (!diametroAtual) {
+            errors.push(`Fieira <b>${serialNumber}</b>: Preencha o Ø Atual.`);
+          }
+          if (!diametroMin) {
+            errors.push(`Fieira <b>${serialNumber}</b>: Preencha o Ø Mínimo.`);
+          }
+          if (!trabalhada) {
+            errors.push(`Fieira <b>${serialNumber}</b>: Indique se foi trabalhada (Sim/Não).`);
+          }
+        });
+      }
+
+      // Se houver erros, cancela o envio
+      if (errors.length > 0) {
+        e.preventDefault();
+        errorMsg.innerHTML = errors.join('<br>');
+        errorMsg.classList.remove('hidden');
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+    });
+
+    // Inicializar mensagem vazia
+    atualizarMensagemVazia();
+  </script>
+{% endblock %}
