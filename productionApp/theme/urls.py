@@ -37,6 +37,7 @@ urlpatterns = [
     path('qrcode/<hashid:qr_id>/export-excel/', views.export_qrcode_excel, name='export_qrcode_excel'),
     path('die/<hashid:qr_id>/observacoesProd/', views.observacoes_caixa, name='observacoes_caixa'),
     path('listarQrcodes/ClonarLinha/<hashid:qr_id>/', views.clonar_linha, name='clonar_linha'),
+    path('die/inspecao-inicial/<str:toma_order_full>/', views.inspecao_inicial, name='inspecao_inicial'),
 
     # Dies
     path('dies/', views.listar_qrcodes_geral, name='listarDies'),
