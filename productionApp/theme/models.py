@@ -8,12 +8,35 @@ from django.contrib.auth.models import User # type: ignore
 from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError # type: ignore
     
+from decimal import Decimal, InvalidOperation
+from django.db import models
+
 class FlexibleDecimalField(models.DecimalField):
     def to_python(self, value):
         if isinstance(value, str):
-            value = value.replace(',', '.')
+            value = value.replace(',', '.')    
         try:
             return super().to_python(value)
+        except (InvalidOperation, ValueError):
+            return None
+        
+class DiameterDecimalField(models.DecimalField):
+    def to_python(self, value):
+        if value is None or value == '':
+            return None
+            
+        if isinstance(value, str):
+            value = value.replace(',', '.')
+        try: 
+            # Primeiro, deixa o Django converter para um objeto Decimal normal
+            dec_value = super().to_python(value)
+            
+            if dec_value is not None:
+                # O .quantize(Decimal('0.0000')) força que o valor tenha exatamente 4 casas decimais.
+                # Se entra "2.2", sai Decimal("2.2000"). Se entra "2", sai Decimal("2.0000").
+                return dec_value.quantize(Decimal('0.0000'))
+                
+            return dec_value
         except (InvalidOperation, ValueError):
             return None
         
@@ -76,8 +99,8 @@ class Tolerance(models.Model):
         return f"Tolerância: {self.min} - {self.max}"
 
 class Diameters(models.Model):
-    min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
-    max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    min = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    max = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
 
     def __str__(self):
         return f"Diametro: {self.min} - {self.max}"
@@ -161,7 +184,7 @@ class dieInstance(models.Model):
     cone = models.CharField(max_length=20)  
     bearing = models.CharField(max_length=100)  
     bearing_is_red = models.BooleanField(default=False)  
-    diam_requerido = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diam_requerido = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
     job = models.ForeignKey(Jobs, on_delete=models.CASCADE, related_name='die_instances')
     tolerance = models.ForeignKey(Tolerance, on_delete=models.CASCADE, related_name='die_instances', null=True, blank=True)
@@ -192,8 +215,8 @@ class NumeroPartidos(models.Model):
 
 class PedidosDiametro(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
-    diametro = models.CharField(max_length=50)
-    diametro_min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=False, blank=False)
+    diametro = DiameterDecimalField(max_digits=6, decimal_places=4)
+    diametro_min = DiameterDecimalField(max_digits=6, decimal_places=4, null=False, blank=False)
     novo_diametro = models.CharField(max_length=50, null=True, blank=True)
     numero_fieiras = models.IntegerField()
     trabalhado = models.BooleanField(default=False, verbose_name="Trabalhado")
@@ -224,7 +247,7 @@ class PedidosDiametro(models.Model):
 class InfoFieira(models.Model):
     serial_number = models.CharField(max_length=20)
     data_criacao = models.DateField(auto_now_add=True)
-    diametro_atual = models.DecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diametro_atual = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     angulo = models.CharField(max_length=30, null=True, blank=True)
     po = models.CharField(max_length=30, null=True, blank=True)
     tempo = models.CharField(max_length=8, null=True, blank=True)
@@ -458,7 +481,7 @@ class Maquinas(models.Model):
     
 class MedidasMaquinas(models.Model):
     serie_number = models.CharField(max_length=50) 
-    diameter = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    diameter = DiameterDecimalField(max_digits=6, decimal_places=4)
 
     def __str__(self):
         return f"Nr Série: {self.serie_number} - Diâmetro: {self.diameter}"
@@ -473,7 +496,7 @@ class Medicao(models.Model):
 
 class DetalhesMedicao(models.Model):
     read_number = models.IntegerField()
-    diameter = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    diameter = DiameterDecimalField(max_digits=6, decimal_places=4)
     bearing = models.CharField(max_length=100, blank=True, null=True)
     ovality = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     toleranciaMin = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
@@ -485,7 +508,7 @@ class DetalhesMedicao(models.Model):
     
 class CalibracaoMaquina(models.Model):
     machine = models.ForeignKey(Maquinas, on_delete=models.CASCADE, related_name='calibracoes')
-    diam_original = FlexibleDecimalField(max_digits=6, decimal_places=4)
+    diam_original = DiameterDecimalField(max_digits=6, decimal_places=4)
     diam_calibrado = FlexibleDecimalField(max_digits=6, decimal_places=4)
     diam_calibrado_max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     diam_calibrado_min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
