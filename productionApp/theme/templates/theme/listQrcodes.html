@@ -12,6 +12,7 @@
 
     {% if request.user.groups.all.0.name in 'Q-Office Administracao' %}
       <button type="button" id="insertCaixa" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 transition-all shadow font-medium">Criar Caixa</button>
+      <a href="{% url 'criar_caixa' %}" class="bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600 transition-all shadow font-medium">Caixa + Fieiras</a>
     {% endif %}
   </div>
 

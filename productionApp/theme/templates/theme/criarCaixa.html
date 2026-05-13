@@ -1,0 +1,335 @@
+﻿{% extends 'theme/base.html' %}
+{% block title %}Adicionar Caixas e Fieiras{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6 relative z-10 pb-12">
+    <form method="POST" action="{% url 'criar_caixa' %}" id="criarCaixaForm">
+        {% csrf_token %}
+
+        <div class="bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-600 text-black rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-5 border-b border-black/15">
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Adicionar Caixas e Fieiras</h1>
+                <p class="mt-1 text-sm text-black/80">Preenche os dados gerais no topo e adiciona as fieiras nos cartões abaixo.</p>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="customer" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Customer</label>
+                        <input type="text" id="customer" name="customer" required value="{{ form_data.customer|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div>
+                        <label for="customer_order_nr" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Customer Order Nr</label>
+                        <input type="text" id="customer_order_nr" name="customer_order_nr" required value="{{ form_data.customer_order_nr|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div>
+                        <label for="toma_order_nr" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Toma Order Nº</label>
+                        <input type="text" id="toma_order_nr" name="toma_order_nr" required value="{{ form_data.toma_order_nr|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div>
+                        <label for="toma_order_year" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Year</label>
+                        <input type="text" id="toma_order_year" name="toma_order_year" required value="{{ form_data.toma_order_year|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div>
+                        <label for="numerofieiras" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Número de Fieiras</label>
+                        <input type="number" id="numerofieiras" name="numerofieiras" min="1" required value="{{ form_data.numerofieiras|default:'1' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div class="md:col-span-3 flex items-end gap-3">
+                        <button type="button" id="buildRowsBtn"
+                            class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white text-cyan-700 font-semibold shadow-md hover:bg-cyan-50 transition">
+                            Gerar Cartões de Fieiras
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden mt-6">
+            <div class="px-6 py-4 border-b border-gray-200 bg-white flex items-center justify-between gap-4 sticky top-0 z-20">
+                <div>
+                    <h2 class="text-lg font-bold text-gray-900">Fieiras a inserir</h2>
+                    <p class="text-sm text-gray-500">Preenche os dados para cada fieira individualmente.</p>
+                </div>
+                <div class="flex gap-3">
+                    <a href="{% url 'listarDies' %}" class="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 font-semibold hover:bg-gray-50 transition">
+                        Cancelar
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center px-5 py-2 rounded-lg bg-emerald-600 text-black font-semibold shadow-md hover:bg-emerald-700 transition">
+                        Guardar Tudo
+                    </button>
+                </div>
+            </div>
+
+            <div id="fieirasContainer" class="p-6 space-y-6 bg-gray-50/50">
+                </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ prefilled_data|json_script:"prefilled-data" }}
+<script>
+  (function () {
+    const totalInput = document.getElementById('numerofieiras');
+    const buildRowsBtn = document.getElementById('buildRowsBtn');
+    const container = document.getElementById('fieirasContainer');
+    const form = document.getElementById('criarCaixaForm');
+    const prefilledDataScript = document.getElementById('prefilled-data');
+    const initialPrefilledData = prefilledDataScript ? JSON.parse(prefilledDataScript.textContent || '[]') : [];
+
+    const dies = [{% for d in dies_list %}{ id: '{{ d.id }}', label: '{{ d.get_die_type_display|escapejs }}' }{% if not forloop.last %},{% endif %}{% endfor %}];
+    const jobs = [{% for j in jobs_list %}{ id: '{{ j.id }}', label: '{{ j.get_job_display|escapejs }}' }{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    function selectOptions(items, placeholder, selectedId = '') {
+      let html = `<option value="">${placeholder}</option>`;
+      items.forEach(item => {
+        const selected = String(item.id) === String(selectedId) ? ' selected' : '';
+        html += `<option value="${item.id}"${selected}>${item.label}</option>`;
+      });
+      return html;
+    }
+
+    function cardTemplate(index, data = {}) {
+      const caixaValue = data.caixa ?? index;
+      const nrSerieValue = data.nr_serie ?? '';
+      const diametroValue = data.diametro ?? '';
+      const diamReqValue = data.diam_req ?? '';
+      const tipoFieiraValue = data.tipo_fieira ?? '';
+      const trabalhoValue = data.trabalho ?? '';
+      const tolMinValue = data.tol_min ?? '';
+      const tolMaxValue = data.tol_max ?? '';
+      const coneValue = data.cone ?? '';
+      const bearingValue = data.bearing ?? '';
+      const bearingRedValue = data.bearing_red ? 'checked' : '';
+      const obsValue = data.obs ?? '';
+
+      return `
+        <div class="bg-white border border-gray-200 shadow-sm rounded-xl relative overflow-hidden transition-all hover:shadow-md" data-card-index="${index}">
+          <div class="absolute top-0 right-0 flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-black px-3 py-1.5 rounded-bl-xl font-bold text-sm shadow-sm">
+            <span>Fieira #${index}</span>
+            <button type="button" data-clone-card class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/80 text-cyan-700 text-xs font-black hover:bg-white transition" title="Clonar esta fieira">
+              +
+            </button>
+          </div>
+
+          <div class="p-5 md:p-6 pt-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Caixa *</label>
+                <input type="text" name="caixa_${index}" value="${caixaValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Nº de Série *</label>
+                <input type="text" name="nr_serie_${index}" value="${nrSerieValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Diâmetro Orig. *</label>
+                <input type="text" name="diametro_${index}" value="${diametroValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Diam. Requerido</label>
+                <input type="text" name="diam_req_${index}" value="${diamReqValue}"
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tipo Fieira *</label>
+                <select name="tipo_fieira_${index}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+                  ${selectOptions(dies, 'Selecione', tipoFieiraValue)}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Trabalho *</label>
+                <select name="trabalho_${index}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+                  ${selectOptions(jobs, 'Selecione', trabalhoValue)}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tol. Min *</label>
+                <input type="text" name="tol_min_${index}" value="${tolMinValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Tol. Max *</label>
+                <input type="text" name="tol_max_${index}" value="${tolMaxValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Cone *</label>
+                <input type="text" name="cone_${index}" value="${coneValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Calibre (Bearing) *</label>
+                <input type="text" name="bearing_${index}" value="${bearingValue}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+              <div class="flex flex-col justify-center items-start pt-2">
+                <label class="flex items-center gap-2 cursor-pointer mt-4">
+                  <input type="checkbox" name="bearing_red_${index}" ${bearingRedValue} class="w-5 h-5 rounded border-gray-300 text-red-600 focus:ring-red-500 cursor-pointer">
+                  <span class="text-sm font-semibold text-red-600">Calibre a Vermelho</span>
+                </label>
+              </div>
+
+              <div class="sm:col-span-2 lg:col-span-1">
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Observações</label>
+                <input type="text" name="obs_${index}" value="${obsValue}"
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+              </div>
+
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getNextIndex() {
+      const cards = container.querySelectorAll('[data-card-index]');
+      if (!cards.length) {
+        return 1;
+      }
+
+      const indexes = Array.from(cards)
+        .map(card => parseInt(card.dataset.cardIndex || '0', 10))
+        .filter(Number.isFinite);
+
+      return (indexes.length ? Math.max(...indexes) : cards.length) + 1;
+    }
+
+    function extractCardData(card) {
+      const data = {};
+      card.querySelectorAll('input, select, textarea').forEach(field => {
+        const nameMatch = field.name && field.name.match(/^(.+)_\d+$/);
+        if (!nameMatch) {
+          return;
+        }
+
+        const fieldName = nameMatch[1];
+        if (field.type === 'checkbox') {
+          data[fieldName] = field.checked;
+          return;
+        }
+
+        data[fieldName] = field.value;
+      });
+
+      data.nr_serie = '';
+      return data;
+    }
+
+    function appendClones(sourceCard, count) {
+      const safeCount = Math.max(parseInt(count || '0', 10), 0);
+      if (!safeCount) {
+        return;
+      }
+
+      const data = extractCardData(sourceCard);
+      const startIndex = getNextIndex();
+
+      for (let offset = 0; offset < safeCount; offset++) {
+        container.insertAdjacentHTML('beforeend', cardTemplate(startIndex + offset, data));
+      }
+    }
+
+    function collectCardDataByIndex() {
+      const dataByIndex = {};
+
+      container.querySelectorAll('[data-card-index]').forEach(card => {
+        const index = parseInt(card.dataset.cardIndex || '0', 10);
+        if (!index) {
+          return;
+        }
+
+        dataByIndex[index] = extractCardData(card);
+      });
+
+      return dataByIndex;
+    }
+
+    function buildRows() {
+      const total = Math.max(parseInt(totalInput.value || '0', 10), 0);
+      const hasRenderedCards = container.querySelector('[data-card-index]');
+      const existingData = hasRenderedCards ? collectCardDataByIndex() : initialPrefilledData.reduce((acc, item, index) => {
+        acc[index + 1] = item;
+        return acc;
+      }, {});
+      container.innerHTML = '';
+
+      if (!total) {
+        container.innerHTML = `
+          <div class="py-12 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-xl">
+            Indica o número de fieiras acima para gerar os campos de preenchimento.
+          </div>
+        `;
+        return;
+      }
+
+      // Adiciona todos os cartões
+      for (let i = 1; i <= total; i++) {
+        container.insertAdjacentHTML('beforeend', cardTemplate(i, existingData[i] || {}));
+      }
+    }
+
+    buildRowsBtn.addEventListener('click', buildRows);
+    totalInput.addEventListener('change', buildRows);
+    totalInput.addEventListener('keyup', buildRows);
+
+    container.addEventListener('click', function (event) {
+      const button = event.target.closest('[data-clone-card]');
+      if (!button) {
+        return;
+      }
+
+      const sourceCard = button.closest('[data-card-index]');
+      if (!sourceCard) {
+        return;
+      }
+
+      const copies = window.prompt('Quantas cópias quer criar desta fieira?', '1');
+      if (copies === null) {
+        return;
+      }
+
+      appendClones(sourceCard, copies);
+      totalInput.value = container.querySelectorAll('[data-card-index]').length;
+    });
+
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (!container.children.length || container.innerHTML.includes('border-dashed')) {
+          buildRows();
+        }
+      });
+    }
+
+    // Inicializa a primeira vez
+    buildRows();
+  })();
+</script>
+{% endblock %}

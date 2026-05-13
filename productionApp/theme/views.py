@@ -226,27 +226,21 @@ def orders(request):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
 
-        # 1. Garante que as variáveis são listas (como já estavas a fazer bem)
-        lista_to = settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL]
-        lista_bcc = settings.DEFAULT_BCC_EMAIL if isinstance(settings.DEFAULT_BCC_EMAIL, list) else [settings.DEFAULT_BCC_EMAIL]
-
-        
-        email = EmailMessage(
+        send_mail(
             subject=f"Novo pedido criado: {order.tracking_number} de {order.plant_fk.name}",
-            body=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
-                f"Plant: {order.plant_fk.name}, shipping date: {order.shipping_date}\n"),
+            message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
+                     f"Plant: {order.plant_fk.name}, shipping date: {order.shipping_date}\n"),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            to=lista_to,       # Vai para o EMAIL_TO_EMAIL
-            bcc=lista_bcc,     # Vai para o EMAIL_DIAMETRO (BCC)
+            recipient_list=settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL],  # lista de emails
         )
-
-        # 3. Envia!
-        #email.send()
 
         globalLogs.objects.create(
             user=request.user,
             action=f"{request.user.username} criou o pedido {order.tracking_number}.",
         )
+
+
+
 
         messages.success(request, "Pedido criado com sucesso!")
         return redirect('listarOrders')
@@ -1254,6 +1248,249 @@ def showDetails(request, qr_id):
         'pessoal': pessoal
         
     })
+
+
+
+@login_required
+@group_required('Comercial', 'Administracao', 'Q-Office')
+def criarCaixa(request):
+    def render_form(form_data=None, prefilled_data=None):
+        return render(request, 'theme/criarCaixa.html', {
+            'dies_list': Die.objects.all(),
+            'jobs_list': Jobs.objects.all(),
+            'form_data': form_data or {},
+            'prefilled_data': prefilled_data or [],
+        })
+
+    if request.method == 'POST':
+        try:
+            # 1. Obter e validar o número total de fieiras do formulário
+            numerofieiras_str = request.POST.get('numerofieiras', '').strip()
+            if not numerofieiras_str.isdigit() or int(numerofieiras_str) <= 0:
+                messages.error(request, "Número de fieiras inválido.")
+                return render_form({
+                    'customer': request.POST.get('customer', '').strip(),
+                    'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
+                    'toma_order_nr': request.POST.get('toma_order_nr', '').strip(),
+                    'toma_order_year': request.POST.get('toma_order_year', '').strip(),
+                    'numerofieiras': request.POST.get('numerofieiras', '').strip(),
+                }, [])
+
+            total_fieiras = int(numerofieiras_str)
+
+            form_data = {
+                'customer': request.POST.get('customer', '').strip(),
+                'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
+                'toma_order_nr': request.POST.get('toma_order_nr', '').strip(),
+                'toma_order_year': request.POST.get('toma_order_year', '').strip(),
+                'numerofieiras': numerofieiras_str,
+            }
+
+            prefilled_data = []
+            for i in range(1, total_fieiras + 1):
+                prefilled_data.append({
+                    'caixa': request.POST.get(f'caixa_{i}', '').strip() or str(i),
+                    'nr_serie': request.POST.get(f'nr_serie_{i}', '').strip(),
+                    'diametro': request.POST.get(f'diametro_{i}', '').strip(),
+                    'diam_req': request.POST.get(f'diam_req_{i}', '').strip(),
+                    'tipo_fieira': request.POST.get(f'tipo_fieira_{i}', '').strip(),
+                    'trabalho': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
+                    'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
+                    'cone': request.POST.get(f'cone_{i}', '').strip(),
+                    'bearing': request.POST.get(f'bearing_{i}', '').strip(),
+                    'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
+                    'obs': request.POST.get(f'obs_{i}', '').strip(),
+                })
+
+            # Dados globais do pedido (Cabeçalho)
+            customer = form_data['customer']
+            customer_order_nr = form_data['customer_order_nr']
+            toma_order_nr = form_data['toma_order_nr']
+            toma_order_year = form_data['toma_order_year']
+
+            # --- VALIDAÇÃO DE SÉRIES DUPLICADAS NO FORMULÁRIO ---
+            posted_serials = []
+            for i in range(1, total_fieiras + 1):
+                s = (request.POST.get(f'nr_serie_{i}') or '').strip()
+                if s: posted_serials.append(s)
+
+            dups = [s for s, cnt in Counter(posted_serials).items() if cnt > 1]
+            if dups:
+                raise ValueError(f"Números de série repetidos no formulário: {', '.join(dups)}")
+
+            # 2. Agrupar dados por número de caixa para criar os QRData
+            caixas_dict = {}
+            for i in range(1, total_fieiras + 1):
+                caixa_nr = request.POST.get(f'caixa_{i}', '').strip()
+                nr_serie = request.POST.get(f'nr_serie_{i}', '').strip()
+
+                if not caixa_nr or not nr_serie:
+                    raise ValueError(f"Fieira {i}: Número de Série e Caixa são obrigatórios.")
+
+                # Verificar se o número de série já existe no Banco de Dados
+                if dieInstance.objects.filter(serial_number=nr_serie).exists():
+                    raise ValueError(f"O número de série '{nr_serie}' já está registado no sistema.")
+
+                # Estrutura de dados para cada fieira
+                dados_fieira = {
+                    'serial': nr_serie,
+                    'diameter_text': request.POST.get(f'diametro_{i}', '').strip(),
+                    'diam_req': request.POST.get(f'diam_req_{i}', '').strip() or None,
+                    'die_id': request.POST.get(f'tipo_fieira_{i}', '').strip(),
+                    'job_id': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'cone': request.POST.get(f'cone_{i}', '').strip(),
+                    'bearing': request.POST.get(f'bearing_{i}', '').strip(),
+                    'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
+                    'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
+                    'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
+                    'obs': request.POST.get(f'obs_{i}', '').strip(),
+                }
+
+                if caixa_nr not in caixas_dict:
+                    caixas_dict[caixa_nr] = []
+                caixas_dict[caixa_nr].append(dados_fieira)
+
+            # 3. Gravação Atómica (Tudo ou Nada)
+            with transaction.atomic():
+                for caixa_nr, fieiras_na_caixa in caixas_dict.items():
+                    # Criar o QRData (A Caixa)
+                    qr_data = QRData.objects.create(
+                        customer=customer,
+                        customer_order_nr=customer_order_nr,
+                        toma_order_nr=toma_order_nr,
+                        toma_order_year=toma_order_year,
+                        box_nr=caixa_nr,
+                        qt=len(fieiras_na_caixa),
+                        created_by=request.user
+                    )
+
+                    # Criar cada dieInstance associada a esta caixa
+                    for f in fieiras_na_caixa:
+                        # Gerir Tolerância
+                        tolerance_obj = None
+                        if f['tol_max'] and f['tol_min']:
+                            tolerance_obj = Tolerance.objects.create(
+                                min=f['tol_min'], 
+                                max=f['tol_max']
+                            )
+
+                        # Criar a instância da Fieira
+                        dieInstance.objects.create(
+                            customer=qr_data,
+                            serial_number=f['serial'],
+                            diameter_text=f['diameter_text'],
+                            diam_requerido=f['diam_req'],
+                            die_id=f['die_id'] if f['die_id'] else None,
+                            job_id=f['job_id'] if f['job_id'] else None,
+                            tolerance=tolerance_obj,
+                            cone=f['cone'],
+                            bearing=f['bearing'],
+                            bearing_is_red=f['bearing_red'],
+                            observations=f['obs'],
+                            modified_by=request.user.username
+                        )
+
+                # Log da ação
+                globalLogs.objects.create(
+                    user=request.user,
+                    action=f"Criou pedido para {customer} com {total_fieiras} fieiras em {len(caixas_dict)} caixas."
+                )
+
+            messages.success(request, f"Sucesso! {total_fieiras} fieiras e {len(caixas_dict)} caixas criadas.")
+            return redirect('listQrcodes') # Ou a sua view de listagem
+
+        except ValueError as ve:
+            messages.error(request, str(ve))
+            total_fieiras = 0
+            try:
+                total_fieiras = int((request.POST.get('numerofieiras', '') or '0').strip())
+            except ValueError:
+                total_fieiras = 0
+
+            prefilled_data = [
+                {
+                    'caixa': request.POST.get(f'caixa_{i}', '').strip() or str(i),
+                    'nr_serie': request.POST.get(f'nr_serie_{i}', '').strip(),
+                    'diametro': request.POST.get(f'diametro_{i}', '').strip(),
+                    'diam_req': request.POST.get(f'diam_req_{i}', '').strip(),
+                    'tipo_fieira': request.POST.get(f'tipo_fieira_{i}', '').strip(),
+                    'trabalho': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
+                    'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
+                    'cone': request.POST.get(f'cone_{i}', '').strip(),
+                    'bearing': request.POST.get(f'bearing_{i}', '').strip(),
+                    'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
+                    'obs': request.POST.get(f'obs_{i}', '').strip(),
+                }
+                for i in range(1, total_fieiras + 1)
+            ]
+            return render_form({
+                'customer': request.POST.get('customer', '').strip(),
+                'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
+                'toma_order_nr': request.POST.get('toma_order_nr', '').strip(),
+                'toma_order_year': request.POST.get('toma_order_year', '').strip(),
+                'numerofieiras': request.POST.get('numerofieiras', '').strip(),
+            }, prefilled_data)
+        except IntegrityError:
+            messages.error(request, "Erro de integridade: Verifique se os números de série são únicos.")
+            prefilled_data = []
+            for i in range(1, total_fieiras + 1):
+                prefilled_data.append({
+                    'caixa': request.POST.get(f'caixa_{i}', '').strip() or str(i),
+                    'nr_serie': request.POST.get(f'nr_serie_{i}', '').strip(),
+                    'diametro': request.POST.get(f'diametro_{i}', '').strip(),
+                    'diam_req': request.POST.get(f'diam_req_{i}', '').strip(),
+                    'tipo_fieira': request.POST.get(f'tipo_fieira_{i}', '').strip(),
+                    'trabalho': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
+                    'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
+                    'cone': request.POST.get(f'cone_{i}', '').strip(),
+                    'bearing': request.POST.get(f'bearing_{i}', '').strip(),
+                    'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
+                    'obs': request.POST.get(f'obs_{i}', '').strip(),
+                })
+            return render_form({
+                'customer': request.POST.get('customer', '').strip(),
+                'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
+                'toma_order_nr': request.POST.get('toma_order_nr', '').strip(),
+                'toma_order_year': request.POST.get('toma_order_year', '').strip(),
+                'numerofieiras': request.POST.get('numerofieiras', '').strip(),
+            }, prefilled_data)
+        except Exception as e:
+            messages.error(request, f"Erro inesperado: {str(e)}")
+            prefilled_data = []
+            try:
+                total_fieiras = int((request.POST.get('numerofieiras', '') or '0').strip())
+            except ValueError:
+                total_fieiras = 0
+
+            for i in range(1, total_fieiras + 1):
+                prefilled_data.append({
+                    'caixa': request.POST.get(f'caixa_{i}', '').strip() or str(i),
+                    'nr_serie': request.POST.get(f'nr_serie_{i}', '').strip(),
+                    'diametro': request.POST.get(f'diametro_{i}', '').strip(),
+                    'diam_req': request.POST.get(f'diam_req_{i}', '').strip(),
+                    'tipo_fieira': request.POST.get(f'tipo_fieira_{i}', '').strip(),
+                    'trabalho': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
+                    'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
+                    'cone': request.POST.get(f'cone_{i}', '').strip(),
+                    'bearing': request.POST.get(f'bearing_{i}', '').strip(),
+                    'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
+                    'obs': request.POST.get(f'obs_{i}', '').strip(),
+                })
+            return render_form({
+                'customer': request.POST.get('customer', '').strip(),
+                'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
+                'toma_order_nr': request.POST.get('toma_order_nr', '').strip(),
+                'toma_order_year': request.POST.get('toma_order_year', '').strip(),
+                'numerofieiras': request.POST.get('numerofieiras', '').strip(),
+            }, prefilled_data)
+            
+    # GET: Carregar dados para os selects do formulário
+    return render_form()
+
 
 @login_required
 def adicionar_dies(request, qr_id):
