@@ -41,7 +41,10 @@
                         </button>
                         <span id="feedback-{{ forloop.counter }}" class="text-green-600 text-xs font-bold opacity-0 transition-opacity duration-300">OK</span>
                         <span class="mx-2 text-gray-400">|</span>
-                        
+
+                        <span class="font-bold text-blue-900">Caixa:</span> {{ die.customer.box_nr }}
+                        <span class="mx-2 text-gray-400">|</span>
+
                         <span class="font-bold text-blue-900">Local:</span> 
                         {% with latest_loc=die.locations.last %}
                             {% if latest_loc %}
