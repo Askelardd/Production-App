@@ -19,9 +19,9 @@
   </select>
 
   <label class="block mb-2 font-medium">Subtipo:</label>
-  <select name="subtipo" id="subtipo" required class="border rounded p-2 mb-4 w-full">
-    <option value="">-- Escolher o tipo primeiro --</option>
-  </select>
+  <div id="subtipo" class="border rounded p-2 mb-4 w-full">
+    <p id="subtipoPlaceholder" class="text-gray-500">-- Escolher o tipo primeiro --</p>
+  </div>
 
   <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" disabled>
     Criar Trabalho
@@ -55,6 +55,7 @@
 
   const tipoSelect = document.getElementById('tipo_trabalho');
   const subtipoSelect = document.getElementById('subtipo');
+  const subtipoPlaceholder = document.getElementById('subtipoPlaceholder');
   const submitBtn = document.getElementById('submitBtn');
 
   // abre popup em vez de enviar diretamente
@@ -85,22 +86,39 @@
 
   tipoSelect.addEventListener('change', () => {
     const tipo = tipoSelect.value;
-    subtipoSelect.innerHTML = '<option value="">-- Escolher --</option>';
+    subtipoSelect.innerHTML = '';
     if (subtipoMap[tipo]) {
       subtipoMap[tipo].forEach(([value, label]) => {
-        const opt = document.createElement('option');
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex items-center gap-2 mb-2';
+
+        const opt = document.createElement('input');
+        opt.type = 'checkbox';
+        opt.name = 'subtipo';
         opt.value = value;
-        opt.textContent = label;
-        subtipoSelect.appendChild(opt);
+
+        const text = document.createElement('span');
+        text.textContent = label;
+
+        wrapper.appendChild(opt);
+        wrapper.appendChild(text);
+        subtipoSelect.appendChild(wrapper);
       });
+    } else {
+      subtipoSelect.innerHTML = '<p class="text-gray-500">-- Escolher o tipo primeiro --</p>';
     }
     checkForm();
   });
 
-  subtipoSelect.addEventListener('change', checkForm);
   function checkForm() {
-    submitBtn.disabled = tipoSelect.value === "" || subtipoSelect.value === "";
+    const subtipoCount = subtipoSelect.querySelectorAll('input[type="checkbox"]:checked').length;
+    submitBtn.disabled = tipoSelect.value === "" || subtipoCount === 0;
+    if (subtipoPlaceholder) {
+      subtipoPlaceholder.classList.toggle('hidden', tipoSelect.value !== '' || subtipoCount > 0);
+    }
   }
+
+  subtipoSelect.addEventListener('change', checkForm);
 </script>
 
 {% endblock %}

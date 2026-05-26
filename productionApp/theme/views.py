@@ -13,7 +13,7 @@ from django.conf import settings
 from django.contrib import messages  
 from django.contrib.auth import authenticate, login  
 from django.contrib.auth import logout as auth_logout
-from django.core.mail import EmailMessage, send_mail
+from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required  
 from django.contrib.auth.models import User  
 from django.db.models.functions import TruncMonth, TruncDay
@@ -1295,6 +1295,7 @@ def criarCaixa(request):
                     'diam_req': request.POST.get(f'diam_req_{i}', '').strip(),
                     'tipo_fieira': request.POST.get(f'tipo_fieira_{i}', '').strip(),
                     'trabalho': request.POST.get(f'trabalho_{i}', '').strip(),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', '').strip() == 'True',
                     'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
                     'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
                     'cone': request.POST.get(f'cone_{i}', '').strip(),
@@ -1345,6 +1346,7 @@ def criarCaixa(request):
                     'tol_max': request.POST.get(f'tol_max_{i}', '').strip(),
                     'tol_min': request.POST.get(f'tol_min_{i}', '').strip(),
                     'obs': request.POST.get(f'obs_{i}', '').strip(),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', '').strip() == 'True',
                 }
 
                 if caixa_nr not in caixas_dict:
@@ -1384,6 +1386,7 @@ def criarCaixa(request):
                             die_id=f['die_id'] if f['die_id'] else None,
                             job_id=f['job_id'] if f['job_id'] else None,
                             tolerance=tolerance_obj,
+                            fieira_final=f['fieira_final'],
                             cone=f['cone'],
                             bearing=f['bearing'],
                             bearing_is_red=f['bearing_red'],
@@ -1422,6 +1425,7 @@ def criarCaixa(request):
                     'bearing': request.POST.get(f'bearing_{i}', '').strip(),
                     'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
                     'obs': request.POST.get(f'obs_{i}', '').strip(),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', '').strip() == 'True',
                 }
                 for i in range(1, total_fieiras + 1)
             ]
@@ -1449,6 +1453,7 @@ def criarCaixa(request):
                     'bearing': request.POST.get(f'bearing_{i}', '').strip(),
                     'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
                     'obs': request.POST.get(f'obs_{i}', '').strip(),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', '').strip() == 'True',
                 })
             return render_form({
                 'customer': request.POST.get('customer', '').strip(),
@@ -1479,7 +1484,9 @@ def criarCaixa(request):
                     'bearing': request.POST.get(f'bearing_{i}', '').strip(),
                     'bearing_red': request.POST.get(f'bearing_red_{i}') == 'on',
                     'obs': request.POST.get(f'obs_{i}', '').strip(),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', '').strip() == 'True', 
                 })
+
             return render_form({
                 'customer': request.POST.get('customer', '').strip(),
                 'customer_order_nr': request.POST.get('customer_order_nr', '').strip(),
@@ -1553,6 +1560,7 @@ def adicionar_dies(request, qr_id):
                     'diam_requerido': request.POST.get(f'diam_requerido_{i}', ''),
                     'die': request.POST.get(f'die_{i}', ''),
                     'job': request.POST.get(f'job_{i}', ''),
+                    'fieira_final': request.POST.get(f'fieira_final_{i}', ''),
                     'tol_max': request.POST.get(f'tol_max_{i}', ''),
                     'tol_min': request.POST.get(f'tol_min_{i}', ''),
                     'observations': request.POST.get(f'observations_{i}', ''),
@@ -1581,12 +1589,15 @@ def adicionar_dies(request, qr_id):
                     diam_requerido = request.POST.get(f'diam_requerido_{i}')
                     die_id = request.POST.get(f'die_{i}')
                     job_id = request.POST.get(f'job_{i}')
+                    fieira_final = request.POST.get(f'fieira_final_{i}')
                     tol_max = request.POST.get(f'tol_max_{i}')
                     tol_min = request.POST.get(f'tol_min_{i}')
                     observations = request.POST.get(f'observations_{i}')
                     cone = request.POST.get(f'cone_{i}')
                     bearing = request.POST.get(f'bearing_{i}')
                     bearing_red = (request.POST.get(f'bearing_red_{i}') == 'on')
+                    fieira_final_str = request.POST.get(f'fieira_final_{i}', '')
+                    fieira_final = fieira_final_str.lower() == 'true' if fieira_final_str else False
                     # Decide whether this existing die was changed; only then update `modified_by`
                     if i <= len(existing_dies):
                         # Atualizar existente
@@ -1598,6 +1609,7 @@ def adicionar_dies(request, qr_id):
                         orig_diam_requerido = die_obj.diam_requerido or ''
                         orig_die_id = str(die_obj.die_id) if die_obj.die_id else ''
                         orig_job_id = str(die_obj.job_id) if die_obj.job_id else ''
+                        orig_fieira_final = die_obj.fieira_final if die_obj.fieira_final is not None else ''
                         orig_observations = die_obj.observations or ''
                         orig_cone = die_obj.cone or ''
                         orig_bearing = die_obj.bearing or ''
@@ -1617,7 +1629,8 @@ def adicionar_dies(request, qr_id):
                             str(bearing or '') != str(orig_bearing) or
                             str(tol_min or '') != str(orig_tol_min) or
                             str(tol_max or '') != str(orig_tol_max) or
-                            bearing_red != orig_bearing_red
+                            bearing_red != orig_bearing_red or
+                            fieira_final != orig_fieira_final
                         )
 
                         # Now apply incoming values
@@ -1630,7 +1643,7 @@ def adicionar_dies(request, qr_id):
                         die_obj.cone = cone
                         die_obj.bearing = bearing
                         die_obj.bearing_is_red = bearing_red
-
+                        die_obj.fieira_final = fieira_final
                         if changed:
                             die_obj.modified_by = current_user
 
@@ -1661,7 +1674,8 @@ def adicionar_dies(request, qr_id):
                             observations=observations,
                             cone=cone,
                             bearing=bearing,
-                            bearing_is_red=bearing_red,  # <-- aqui é o booleano
+                            bearing_is_red=bearing_red,
+                            fieira_final=fieira_final,
                             modified_by=current_user
                         )
 
@@ -1689,6 +1703,7 @@ def adicionar_dies(request, qr_id):
                 'diam_requerido': die.diam_requerido,
                 'die': die.die_id,
                 'job': die.job_id,
+                'fieira_final': die.fieira_final if die.fieira_final is not None else '',
                 'tol_max': getattr(die.tolerance, 'max', ''),
                 'tol_min': getattr(die.tolerance, 'min', ''),
                 'observations': die.observations,
@@ -1704,6 +1719,7 @@ def adicionar_dies(request, qr_id):
                 'diam_requerido': diameters_list[i] if i < len(diameters_list) else '',
                 'die': '',
                 'job': '',
+                'fieira_final': '',
                 'tol_max': '',
                 'tol_min': '',
                 'observations': '',
@@ -1722,12 +1738,8 @@ def adicionar_dies(request, qr_id):
 
 @login_required
 def listar_qrcodes_geral(request):
-    print("A entrar na view listar_qrcodes_geral...")
     estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
     user_group = request.user.groups.first().name
-
-    print(f"User Group: {user_group}, Estado: {estado}")
-
 
     all_qrcodes = QRData.objects.prefetch_related('die_instances', 'where_boxes').all().order_by('-created_at')
 
@@ -1964,7 +1976,7 @@ def create_die_work(request, die_id):
 
     if request.method == 'POST':
         tipo_trabalho = request.POST.get('tipo_trabalho')
-        subtipo = request.POST.get('subtipo')
+        subtipo = request.POST.getlist('subtipo')
         add_another = request.POST.get('add_another') # Capturamos a variável aqui
 
         # Validações - renderizar com contexto ao invés de redirect
@@ -1983,12 +1995,12 @@ def create_die_work(request, die_id):
                 'subtipo': subtipo
             })
 
-        # Criação do trabalho
-        DieWork.objects.create(
-            die=die,
-            work_type=tipo_trabalho,
-            subtype=subtipo
-        )
+        for st in subtipo:
+            DieWork.objects.create(
+                die=die,
+                work_type=tipo_trabalho,
+                subtype=st
+            )
 
         messages.success(request, f"Trabalho '{tipo_trabalho}' adicionado com sucesso ao Die {die.serial_number}.")
         
@@ -2014,7 +2026,7 @@ def add_multiple_works_workers(request, qr_id):
     dies = work.die_instances.all()
     users = User.objects.filter(groups__name='Producao').distinct().order_by('username')
 
-    pedido = work.toma_order_full or f"{work.toma_order_year}-{work.toma_order_nr}"
+    pedido = f"{work.toma_order_year}-{work.toma_order_nr} - Caixa {work.box_nr}"
 
     if request.method == 'POST':
         die_ids = request.POST.getlist('serieDies')  # ← Pega vários IDs
@@ -2119,6 +2131,7 @@ def add_worker_to_die_work(request, work_id):
         return redirect('listarDies') # Redireciona para um local seguro
 
     users = User.objects.all()
+    users = users.filter(groups__name='Producao').distinct().order_by('username')
 
     if request.method == 'POST':
         # 2. Captura limpa de dados

@@ -244,10 +244,23 @@
                                             <span class="text-gray-500">Tolerância:</span>
                                             <span>{{ die.tolerance.min|default:'-' }} a {{ die.tolerance.max|default:'-' }}</span>
                                           </div>
+
                                           <div class="flex justify-between items-center border-b border-gray-50 pb-1">
-                                            <span class="text-gray-500">Calibre:</span>
+                                            <span class="text-gray-500">Cone:</span>
+                                            <span class="{% if die.cone %}text-green-800 px-1.5 rounded font-bold{% endif %}">{{ die.cone }}</span>
+                                          </div>
+
+                                          <div class="flex justify-between items-center border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Calibre</span>
                                             <span class="{% if die.bearing_is_red %}bg-red-100 text-red-800 px-1.5 rounded font-bold{% endif %}">{{ die.bearing }}</span>
                                           </div>
+
+                                          <div class="flex justify-between items-center border-b border-gray-50 pb-1">
+                                            <span class="text-gray-500">Fieira Final:</span>
+                                            <span class="{% if die.fieira_final %}bg-green-100 text-green-800 px-1.5 rounded font-bold{% endif %}">{{ die.fieira_final|yesno:"Sim,Não" }}</span>
+                                          </div>
+
+                                          
                                           {% if die.new_diameter %}
                                             <div class="bg-yellow-50 p-2 rounded text-yellow-800 mt-2">
                                               <svg class="fa-solid fa-circle-info mr-1 font-bold text-black-800 w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">

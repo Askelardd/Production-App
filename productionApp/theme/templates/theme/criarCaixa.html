@@ -107,6 +107,7 @@
       const diamReqValue = data.diam_req ?? '';
       const tipoFieiraValue = data.tipo_fieira ?? '';
       const trabalhoValue = data.trabalho ?? '';
+      const fieraFinalValue = data.fieira_final ? 'selected' : '';
       const tolMinValue = data.tol_min ?? '';
       const tolMaxValue = data.tol_max ?? '';
       const coneValue = data.cone ?? '';
@@ -163,6 +164,16 @@
                 <select name="trabalho_${index}" required
                   class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
                   ${selectOptions(jobs, 'Selecione', trabalhoValue)}
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">Fieira Final *</label>
+                <select name="fieira_final_${index}" required
+                  class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
+                  <option value="" ${!fieraFinalValue ? 'selected' : ''}>Selecione</option>
+                  <option value="True" ${fieraFinalValue === 'selected' ? 'selected' : ''}>Sim</option>
+                  <option value="False" ${fieraFinalValue === '' ? 'selected' : ''}>Não</option>
                 </select>
               </div>
 

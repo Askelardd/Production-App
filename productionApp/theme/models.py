@@ -188,6 +188,7 @@ class dieInstance(models.Model):
     die = models.ForeignKey(Die, on_delete=models.CASCADE, related_name='instances')
     job = models.ForeignKey(Jobs, on_delete=models.CASCADE, related_name='die_instances')
     tolerance = models.ForeignKey(Tolerance, on_delete=models.CASCADE, related_name='die_instances', null=True, blank=True)
+    fieira_final = models.BooleanField(default=False)
     new_diameter = models.CharField(max_length=50, blank=True, null=True)  
     partida = models.BooleanField(default=False)
     diam_max_min = models.ForeignKey(Diameters, on_delete=models.CASCADE, related_name='die_instances_max_min', null=True, blank=True) 
