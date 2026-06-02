@@ -48,7 +48,7 @@ def home(request):
         # Vai buscar os utilizadores que pertencem a este grupo, ordenados por nome
         usuarios = User.objects.filter(groups__name=nome_grupo).order_by('username')
         
-        # Se houver utilizadores neste grupo, adicionamos à nossa lista final
+        # Se houver utilizadores neste grupo, Adiciona à  lista final
         if usuarios.exists():
             usuarios_por_grupo.append({
                 'nome_grupo': nome_grupo,
@@ -820,6 +820,156 @@ def deleteProduct(request, produto_id):
 
     return render(request, 'theme/confirmDelete.html', {'product': product})
 
+
+@group_required('Comercial', 'Administracao', 'Q-Office')
+@require_POST
+def trocarTomaOrder(request, codigo):
+    
+    qr = get_object_or_404(QRData, id=codigo) 
+
+    new_customer_order_nr = request.POST.get('new_customer_order_nr', '').strip()
+
+    if not new_customer_order_nr:
+        return JsonResponse({'success': False, 'error': "O campo é obrigatório."}, status=400)
+
+    if QRData.objects.filter(customer_order_nr=new_customer_order_nr).exclude(id=codigo).exists():
+        return JsonResponse({'success': False, 'error': "Já existe um pedido com esta ordem do cliente."}, status=400)
+
+    qr.customer_order_nr = new_customer_order_nr
+    qr.save()
+    
+    # Atualiza automaticamente todas as outras caixas do mesmo grupo
+    QRData.objects.filter(
+        toma_order_nr=qr.toma_order_nr, 
+        toma_order_year=qr.toma_order_year
+    ).update(customer_order_nr=new_customer_order_nr)
+
+    return JsonResponse({'success': True, 'message': "Atualizado com sucesso!"})
+
+def trocarCaixaFieiras(request):
+    listarDies = None 
+    form_data = {}
+
+    if request.method == 'POST':
+        toma_order_nr = request.POST.get('toma_order_nr', '').strip()
+        toma_order_year = request.POST.get('toma_order_year', '').strip()
+        
+        form_data = {
+            'toma_order_nr': toma_order_nr,
+            'toma_order_year': toma_order_year
+        }
+    
+        pedido = QRData.objects.filter(toma_order_nr=toma_order_nr, toma_order_year=toma_order_year)
+
+        if not pedido.exists():
+            messages.error(request, "Pedido não encontrado.")
+            return render(request, 'theme/trocarCaixa.html', {'form_data': form_data})
+        
+        query_dies = dieInstance.objects.filter(
+            customer__toma_order_nr=toma_order_nr,
+            customer__toma_order_year=toma_order_year
+        ).select_related('customer')
+
+
+        listarDies = list(query_dies)
+
+        listarDies.sort(key=lambda x: int(x.customer.box_nr) if x.customer.box_nr.isdigit() else 0)
+
+    return render(request, 'theme/trocarCaixa.html', {
+        'listarDies': listarDies,
+        'form_data': form_data,
+    })
+
+@login_required
+@group_required('Administracao', 'Q-Office')
+def edit_nrbox_inline(request, die_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': "Método não permitido."}, status=405)
+
+    die = get_object_or_404(dieInstance, id=die_id)
+    
+    # Captura os dados enviados pelo AJAX
+    box_nr = request.POST.get('box_nr', '').strip()
+    diam_requerido = request.POST.get('diam_requerido', '').strip()
+
+    if not box_nr:
+        return JsonResponse({'success': False, 'error': "O número da caixa é obrigatório."}, status=400)
+
+    # Referências originais para comparação e gestão de quantidades
+    old_customer_qr = die.customer
+    old_box_nr = old_customer_qr.box_nr
+
+    # Atualiza o diâmetro requerido diretamente na fieira
+    die.diam_requerido = diam_requerido
+
+    try:
+        # Usamos transação atómica para garantir consistência perfeita no banco de dados
+        with transaction.atomic():
+            
+            # Se o utilizador alterou o número da caixa, gerimos a movimentação
+            if old_box_nr != box_nr:
+                
+                # 1. Procurar se já existe a caixa de destino (QRData) para este pedido
+                # CORREÇÃO: Removemos o filtro de 'qt' para encontrar a caixa pela sua identidade real!
+                existing_qr = QRData.objects.filter(
+                    toma_order_nr=old_customer_qr.toma_order_nr,
+                    toma_order_year=old_customer_qr.toma_order_year,
+                    box_nr=box_nr
+                ).first()
+
+                # Double-check de segurança: tentamos encontrar também pela chave única 'toma_order_full'
+                target_toma_order_full = f"{old_customer_qr.toma_order_nr}-{old_customer_qr.toma_order_year}-{box_nr}"
+                if not existing_qr:
+                    existing_qr = QRData.objects.filter(toma_order_full=target_toma_order_full).first()
+
+                if existing_qr:
+                    # A caixa de destino já existe. Associamos a fieira a ela e incrementamos a sua quantidade (qt)
+                    die.customer = existing_qr
+                    existing_qr.qt += 1
+                    existing_qr.save()
+                else:
+                    # A caixa não existe. Criamos uma nova caixa com qt inicializado em 1
+                    new_qr = QRData.objects.create(
+                        customer=old_customer_qr.customer,
+                        diameters=old_customer_qr.diameters,
+                        customer_order_nr=old_customer_qr.customer_order_nr,
+                        toma_order_nr=old_customer_qr.toma_order_nr,
+                        toma_order_year=old_customer_qr.toma_order_year,
+                        qt=1,
+                        box_nr=box_nr,
+                        toma_order_full=target_toma_order_full,
+                        created_at=timezone.now()
+                    )
+                    die.customer = new_qr
+
+                # Decrementamos a quantidade da caixa antiga de onde a fieira saiu
+                old_customer_qr.qt -= 1
+                old_customer_qr.save()
+
+            # Guardamos a alteração definitiva da fieira específica
+            die.save()
+
+            # 2. Limpeza pós-vínculo: Se a caixa antiga ficou vazia (sem fieiras), apagamo-la
+            if old_box_nr != box_nr:
+                if not old_customer_qr.die_instances.exists():
+                    old_customer_qr.delete()
+
+        # Criação do log global após a transação ser concluída com sucesso
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} moveu a fieira {die.serial_number} da caixa {old_box_nr} para a caixa {box_nr}.",
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f"Fieira {die.serial_number} atualizada com sucesso!"
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': f"Erro ao atualizar: {str(e)}"}, status=500)
+
+
+@login_required
 @group_required('Comercial', 'Administracao', 'Q-Office')
 def listQrcodes(request):
     # 1. Buscar todos os dados ordenados
@@ -832,7 +982,7 @@ def listQrcodes(request):
     for qr in all_qrcodes:
         # Criamos uma chave única para o grupo
         key = (qr.toma_order_nr, qr.toma_order_year)
-
+        
         if key not in grouped_data:
             grouped_data[key] = {
                 'toma_order_nr': qr.toma_order_nr,
@@ -843,10 +993,14 @@ def listQrcodes(request):
                 'boxes': [] # Aqui guardamos os objetos originais
             }
         
-        # Adicionamos a quantidade ao total do grupo
+        # Adiciona a quantidade ao total do grupo
         grouped_data[key]['total_qt'] += qr.qt
-        # Adicionamos a caixa à lista deste grupo
+        # Adiciona  a caixa à lista deste grupo
         grouped_data[key]['boxes'].append(qr)
+
+        #Ordena por numero de caixa
+        for group in grouped_data.values():
+            group['boxes'].sort(key=lambda x: int(x.box_nr) if x.box_nr.isdigit() else 0)
 
     # Convertemos o dicionário numa lista para o template ler facilmente
     # Ordenamos pela data de criação da primeira caixa (opcional)
@@ -892,6 +1046,19 @@ def edit_qr_inline(request, qr_id):
         
     return redirect(request.META.get('HTTP_REFERER', 'listarDies'))
 
+@login_required
+def excluir_qrcode(request, qr_id):
+    
+    print(f"QR Code {qr_id} will be deleted.")  # Debug
+
+    if request.method == 'POST':
+        print(f"QR Code {qr_id} will be deleted.")  # Debug
+        qr = get_object_or_404(QRData, id=qr_id)
+        qr.delete()
+        messages.success(request, "QR Code eliminado com sucesso.")
+    else:
+        messages.error(request, "Requisição inválida.")
+    return redirect('listQrcodes')
 
 @login_required
 def clonar_linha(request, qr_id):
@@ -907,20 +1074,21 @@ def clonar_linha(request, qr_id):
 
     try:
         # novo número de caixa dentro do mesmo pedido
-        last_box = (
-            QRData.objects
-            .filter(
-                toma_order_nr=original.toma_order_nr,
-                toma_order_year=original.toma_order_year
-            )
-            .order_by('-box_nr')
-            .first()
-        )
+        import re
 
-        try:
-            next_box_nr = int(last_box.box_nr) + 1 if last_box and str(last_box.box_nr).isdigit() else 1
-        except Exception:
-            next_box_nr = 1
+        existing_box_numbers = []
+        for box_nr_value in QRData.objects.filter(
+            toma_order_nr=original.toma_order_nr,
+            toma_order_year=original.toma_order_year,
+        ).values_list('box_nr', flat=True):
+            matches = re.findall(r"\d+", str(box_nr_value or ''))
+            if matches:
+                try:
+                    existing_box_numbers.append(int(matches[-1]))
+                except ValueError:
+                    pass
+
+        next_box_nr = (max(existing_box_numbers) + 1) if existing_box_numbers else 1
 
         nova_caixa = QRData.objects.create(
             customer=original.customer,
@@ -1164,7 +1332,8 @@ def showDetails(request, qr_id):
         'work__die__serial_number', # Precisamos saber a qual die se refere
         'work__die_id',
         'work__work_type',
-        'work__subtype'
+        'work__subtype',
+        'work__created_at'
     ).annotate(total_vezes=Count('id')) # Conta quantas vezes fez este trabalho específico        
 
     # 2. Organizar a informação
@@ -1193,7 +1362,8 @@ def showDetails(request, qr_id):
             subtipo = trab['work__subtype'] if trab['work__subtype'] else 'Geral'
             serie = trab['work__die__serial_number']
             vezes = trab['total_vezes']
-            
+            date = trab['work__created_at'].strftime('%Y-%m-%d %H:%M')
+
             mensagem = f"Fez {vezes - 1} correção de {tipo} ({subtipo}) na fieira {serie}"
             die_workers[worker_id]['repeticoes'].append(mensagem)
             
@@ -1203,22 +1373,24 @@ def showDetails(request, qr_id):
             tipo = trab['work__work_type']
             subtipo = trab['work__subtype'] if trab['work__subtype'] else 'Geral'
             serie = trab['work__die__serial_number']
+            date = trab['work__created_at'].strftime('%Y-%m-%d %H:%M')
             vezes = trab['total_vezes']
             
             for i in range(vezes):
-                trabalhos_relizados = f"{tipo} ({subtipo}) na fieira {serie}"
+                trabalhos_relizados = f"{tipo} ({subtipo}) na fieira {serie} na data {date}"
                 die_workers[worker_id]['trabalhos_realizados'].append(trabalhos_relizados)
 
     # 3. Preparar a lista final para o template
     workers_stats_list = []
-    trabalhos_Realizado_limpo = []
     pessoal = None
-
-    for trabalhos_realizados in die_workers[worker_id]['trabalhos_realizados']:
-        trabalhos_Realizado_limpo.append(trabalhos_realizados.replace('[', '').replace(']', '').replace("'", "").replace('_', ' ').title())
     
     for worker in die_workers.values():
         total_dies = len(worker['dies_worked'])
+        trabalhos_realizado_limpo = [
+            trabalho.replace('[', '').replace(']', '').replace("'", "").replace('_', ' ').title()
+            for trabalho in worker['trabalhos_realizados']
+        ]
+
         if total_dies > 0:
             workers_stats_list.append({
                 'name': worker['name'],
@@ -1226,7 +1398,7 @@ def showDetails(request, qr_id):
                 'total_dies': total_dies,
                 'repeticoes': worker['repeticoes'], # Passamos a lista de repetições
                 'total_trabalhos': worker['total_trabalhos'], # Lista de Trabalhos absolutos
-                'trabalhos_realizados': trabalhos_Realizado_limpo # Lista de trabalhos realizados (com repetições)
+                'trabalhos_realizados': trabalhos_realizado_limpo # Lista de trabalhos realizados (com repetições)
             })
 
         # Verifica o utilizador atual (logado)
@@ -1698,6 +1870,7 @@ def adicionar_dies(request, qr_id):
         if i < len(existing_dies):
             die = existing_dies[i]
             prefilled_data.append({
+                'id': die.id,
                 'serial': die.serial_number,
                 'diameter': die.diameter_text,
                 'diam_requerido': die.diam_requerido,
@@ -1737,20 +1910,58 @@ def adicionar_dies(request, qr_id):
     })
 
 @login_required
+@group_required('Administracao', 'Q-Office')
+def remove_die(request, die_id):
+    die = get_object_or_404(dieInstance, id=die_id)
+    qr_code = die.customer
+
+    if request.method == 'POST':
+        serial_number = die.serial_number
+        die.delete()
+        globalLogs.objects.create(
+            user=request.user,
+            action=f"{request.user.username} removeu a die {serial_number} do QR Code {qr_code.toma_order_nr}.",
+        )
+        messages.success(request, "Die removida com sucesso.")
+        return redirect('adicionar_dies', qr_id=qr_code.id)
+
+    return redirect('adicionar_dies', qr_id=qr_code.id)
+
+
+@login_required
 def listar_qrcodes_geral(request):
     estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
-    user_group = request.user.groups.first().name
+    search_query = (request.GET.get('q') or '').strip()
+    user_first_group = request.user.groups.first()
+    user_group = user_first_group.name if user_first_group else ''
 
-    all_qrcodes = QRData.objects.prefetch_related('die_instances', 'where_boxes').all().order_by('-created_at')
+    # Para escalar com muitos registos, só pesquisamos quando houver query.
+    # Também limitamos o número de caixas retornadas para evitar páginas pesadas.
+    all_qrcodes = QRData.objects.none()
+    if search_query:
+        all_qrcodes = (
+            QRData.objects
+            .prefetch_related('die_instances', 'where_boxes')
+            .filter(
+                Q(customer__icontains=search_query) |
+                Q(customer_order_nr__icontains=search_query) |
+                Q(toma_order_nr__icontains=search_query) |
+                Q(toma_order_year__icontains=search_query) |
+                Q(box_nr__icontains=search_query) |
+                Q(die_instances__serial_number__icontains=search_query)
+            )
+            .distinct()
+            .order_by('-created_at')[:200]
+        )
 
     pedidos_fechados = []
-    if estado in ['abertos', 'fechados']:
-        pedidos_unicos = QRData.objects.values('toma_order_nr', 'toma_order_year').distinct()
+    if search_query and estado in ['abertos', 'fechados']:
+        pedidos_unicos = all_qrcodes.values('toma_order_nr', 'toma_order_year').distinct()
         for pedido in pedidos_unicos:
             nr = pedido['toma_order_nr']
             ano = pedido['toma_order_year']
             
-            tem_caixas_abertas = QRData.objects.filter(
+            tem_caixas_abertas = all_qrcodes.filter(
                 toma_order_nr=nr, 
                 toma_order_year=ano
             ).exclude(where_boxes__where='FECHADO').exists()
@@ -1788,27 +1999,106 @@ def listar_qrcodes_geral(request):
 
     tipo_choices = Polimentos._meta.get_field('tipo').choices
 
-    if request.method == "POST":
-        numero_fieiras = request.POST.get('numero_fieiras')
-        tipo = request.POST.get('tipo')
-        cliente = request.POST.get('cliente')
-        user = request.user
-        created_at = timezone.now()
-        observations = request.POST.get('observations', '')
+    qr_ids = list(all_qrcodes.values_list('id', flat=True))
+    dies = dieInstance.objects.filter(customer_id__in=qr_ids)
 
-        try:
-            Polimentos.objects.create(
-                numero_fieiras=numero_fieiras,
-                tipo=tipo,
-                cliente=cliente,
-                created_at=created_at,
-                user=user,
-                observations=observations
-            )
-            messages.success(request, "Polimento criado com sucesso!")
+    # Construir um mapa die_id -> lista de trabalhos (tipo, subtipo, trabalhador)
+    work_qs = DieWorkWorker.objects.filter(work__die__in=dies).select_related('worker', 'work', 'work__die')
+    work_entries_map = defaultdict(list)
+    for rel in work_qs:
+        die_id = rel.work.die_id
+        work_label = rel.work.get_work_type_display() if hasattr(rel.work, 'get_work_type_display') else rel.work.work_type
+        worker_name = (rel.worker.get_full_name() or rel.worker.username) if rel.worker else ''
+        
+        if work_label == 'Polimento':
+            work_label = 'Pol.'
+        elif work_label == 'Desbaste Calibre':
+            work_label = 'DesbCal.'
+        elif work_label == 'Desbaste Agulha':
+            work_label = 'DesbAg.'
+        elif work_label == 'Afinação':
+            work_label = 'Afi.'
+
+        if rel.work.subtype == 'entrada':
+            work_label += ' (E)'
+        elif rel.work.subtype == 'saida':
+            work_label += ' (S)'
+        elif rel.work.subtype == 'cone':
+            work_label += ' (C) '
+        elif rel.work.subtype == 'polimento_de_calibre':
+            work_label += ' (PCal.)'
+        elif rel.work.subtype == 'desbaste_de_calibre':
+            work_label += ' (DCal.)'
+        elif rel.work.subtype == 'Calibre':
+            work_label += ' (Cal.)'
+        elif rel.work.subtype == 'afinacao':
+            work_label += ' (Afi.)'
+
+        work_entry = {
+            'work_type': work_label,
+            'worker': worker_name,
+
+        }
+        work_entries_map[die_id].append(work_entry)
+
+    # Anexar `work_entries` a cada instância `die` usada no template
+    for group in final_list:
+        for qr in group['boxes']:
+            for die in qr.die_instances.all():
+                die.work_entries = work_entries_map.get(die.id, [])
+
+    # Mensagem de fallback global (opcional)
+    times_worked = None
+  
+     
+    if request.method == "POST":
+        numero_serie = request.POST.get('numero_serie', '').strip()
+        work_type = request.POST.get('tipo_trabalho', '').strip()
+        work_subtypes = [subtipo for subtipo in request.POST.getlist('subtipo', []) if subtipo]
+
+        errors = []
+
+
+        if not numero_serie:
+            errors.append("Número de série é obrigatório.")
+        else:
+            numero_serie = numero_serie.upper()
+
+        die_serie = dieInstance.objects.filter(serial_number=numero_serie).first()
+        if not die_serie:
+            errors.append(f"Número de série '{numero_serie}' não encontrado.")
+        if not work_type:
+            errors.append("Tipo de trabalho é obrigatório.")
+        if not work_subtypes:
+            errors.append("Selecione pelo menos um subtipo.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return redirect('listarDies')
+        
+        try: 
+            created_work_types = []
+            for subtype in work_subtypes:
+                work = DieWork.objects.create(
+                    die=die_serie,
+                    work_type=work_type,
+                    subtype=subtype,
+                    created_at = timezone.now()
+                )
+
+                DieWorkWorker.objects.create(
+                    work=work,
+                    worker=request.user,
+                    added_at = timezone.now()
+                )
+                created_work_types.append(work.get_work_type_display())
+            
+            messages.success(request, f"Trabalho(s) '{', '.join(created_work_types)}' adicionado(s) à die {numero_serie}.")
             return redirect('listarDies')
         except Exception as e:
-            messages.error(request, f"Erro ao criar polimento: {e}")
+            messages.error(request, f"Erro ao adicionar trabalho: {str(e)}")
+
             return redirect('listarDies')
 
     # Passamos o 'estado_atual' para o HTML para podermos pintar o botão ativo!
@@ -1816,14 +2106,55 @@ def listar_qrcodes_geral(request):
         'grouped_qrcodes': final_list,
         'estado_atual': estado,
         'tipo_choices': tipo_choices,
-        'user_group': user_group
+        'user_group': user_group,
+        'times_worked': times_worked,
+        'search_query': search_query,
     }
     
     # Mantemos apenas 1 ficheiro HTML! Podes apagar os outros 2.
     return render(request, 'theme/listarDies.html', context)
 
 
+@login_required
+@require_POST
+def update_dies_inline(request, die_id):
+    die = get_object_or_404(dieInstance, id=die_id)
+    field = (request.POST.get('field') or '').strip()
+    value = (request.POST.get('value') or '').strip()
 
+    if field not in {'diam_desbastado', 'diam_min', 'diam_max'}:
+        return JsonResponse({'status': 'error', 'message': 'Campo inválido.'}, status=400)
+
+    if not value:
+        return JsonResponse({'status': 'error', 'message': 'Valor obrigatório.'}, status=400)
+
+    try:
+        decimal_value = Decimal(value.replace(',', '.'))
+    except (InvalidOperation, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Valor numérico inválido.'}, status=400)
+
+
+    if field == 'diam_desbastado':
+        die.diam_desbastado = decimal_value
+    elif field == 'diam_min':
+        die.diam_min = decimal_value
+    elif field == 'diam_max':
+        die.diam_max = decimal_value
+    die.modified_by = request.user.username
+    die.save(update_fields=['diam_min', 'diam_max', 'diam_desbastado', 'modified_by'])
+
+    
+
+    globalLogs.objects.create(
+        user=request.user,
+        action=f"O utilizador {request.user.username} atualizou {field} para {decimal_value} no die {die.serial_number} (ID: {die.id}).",
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'field': field,
+        'value': str(decimal_value),
+    })
 
 @login_required
 def create_caixa(request):
@@ -1882,7 +2213,7 @@ def create_caixa(request):
                 production_start=p_start,
                 envio=envio,
                 created_by=user,  
-                observations=data.get('observations', ''),
+                observations=data.get('observacoes_caixa', ''),
             )
 
 
@@ -1969,7 +2300,6 @@ def die_details(request, die_id):
 
     return render(request, 'theme/die_details.html', {'die': die, 'works': works})
     
-
 @login_required
 def create_die_work(request, die_id):
     die = get_object_or_404(dieInstance, id=die_id)
@@ -2024,34 +2354,59 @@ def create_die_work(request, die_id):
 def add_multiple_works_workers(request, qr_id):
     work = get_object_or_404(QRData, id=qr_id)
     dies = work.die_instances.all()
-    users = User.objects.filter(groups__name='Producao').distinct().order_by('username')
+    users = User.objects.filter(id=request.user.id)
+    user_groups = list(request.user.groups.values_list('name', flat=True))
+    user_group = user_groups[0] if user_groups else ''
+
+    work_type_options_by_group = {
+        'Polimento': [('polimento', 'Polimento')],
+        'Desbaste': [('desbaste_agulha', 'Desbaste Agulha')],
+        'FioFino': [
+            ('desbaste_calibre', 'Desbaste Calibre'),
+            ('afinacao', 'Afinação'),
+        ],
+        'FioGrosso': [('desbaste_calibre', 'Desbaste Calibre')],
+    }
+    work_type_options = []
+    seen_work_types = set()
+    for group_name in user_groups:
+        for option_value, option_label in work_type_options_by_group.get(group_name, []):
+            if option_value not in seen_work_types:
+                work_type_options.append((option_value, option_label))
+                seen_work_types.add(option_value)
+
+    if not work_type_options:
+        work_type_options = [
+            ('polimento', 'Polimento'),
+            ('desbaste_agulha', 'Desbaste Agulha'),
+            ('desbaste_calibre', 'Desbaste Calibre'),
+            ('afinacao', 'Afinação'),
+        ]
+
+    selected_work_type = work_type_options[0][0] if len(work_type_options) == 1 else ''
 
     pedido = f"{work.toma_order_year}-{work.toma_order_nr} - Caixa {work.box_nr}"
 
     if request.method == 'POST':
-        die_ids = request.POST.getlist('serieDies')  # ← Pega vários IDs
+        die_ids = [die_id for die_id in request.POST.getlist('serieDies') if str(die_id).isdigit()]
         work_type = request.POST.get('tipo_trabalho')
-        subtype = request.POST.get('subtipo')
-        worker_ids = request.POST.getlist('workers')  # ← Pega vários IDs de trabalhadores
+        subtypes = request.POST.getlist('subtipo')
         add_another = request.POST.get('add_another')
 
-        diam_min = 0.0000
-        diam_max = 0.0000
-
+        
         # Validações com mensagens individuais
         errors = []
         if not die_ids:
             errors.append("Selecione pelo menos uma fieira.")
         if not work_type:
             errors.append("Escolha um tipo de trabalho.")
-        if not subtype:
+        if not subtypes:
             errors.append("Escolha um subtipo.")
-        if not worker_ids:
-            errors.append("Selecione pelo menos um trabalhador.")
 
         if errors:
             for error in errors:
                 messages.error(request, error)
+                print(error)  # Debug: Imprime o erro no console para verificar
             
             # Renderizar com dados preenchidos para o utilizador corrigir
             return render(request, 'theme/add_multiple_works_workers.html', {
@@ -2059,49 +2414,42 @@ def add_multiple_works_workers(request, qr_id):
                 'dies': dies,
                 'users': users,
                 'pedido': pedido,
+                'user_group': user_group,
+                'work_type_options': work_type_options,
+                'selected_work_type': selected_work_type,
                 'form_data': request.POST.dict()
             })
 
-        # Validação de segurança
-        selected_workers = list(users.filter(id__in=worker_ids))
-        if len(selected_workers) != len(set(worker_ids)):
-            messages.error(request, "Só é permitido selecionar trabalhadores do grupo Producao.")
-            return render(request, 'theme/add_multiple_works_workers.html', {
-                'qr_id': qr_id,
-                'dies': dies,
-                'users': users,
-                'pedido': pedido,
-                'form_data': request.POST.dict()
-            })
+        selected_worker = request.user
 
         # Agora temos certeza que todos os dados estão válidos
         try:
+            total_created = 0
             for die_id in die_ids:
                 die = get_object_or_404(dieInstance, id=die_id)
 
-                # Cria o trabalho
-                new_work = DieWork.objects.create(
-                    die=die, work_type=work_type, subtype=subtype
-                )
-
-                # Associa os trabalhadores ao trabalho
-                for user in selected_workers:
-                    DieWorkWorker.objects.create(work=new_work, worker=user, diam_min=diam_min, diam_max=diam_max)
-
-                    # Log individual para cada trabalhador
-                    globalLogs.objects.create(
-                        user=request.user,
-                        action=f"{request.user.username} criou um trabalho '{work_type}' para o Die {die.serial_number} com o trabalhador {user.username}.",
+                for st in subtypes:
+                    new_work = DieWork.objects.create(
+                        die=die, work_type=work_type, subtype=st
                     )
 
-            messages.success(request, f"{len(die_ids)} trabalho(s) adicionados com sucesso para {len(worker_ids)} trabalhador(es).")
+                    # Associa automaticamente o utilizador autenticado a cada trabalho criado
+                    DieWorkWorker.objects.create(work=new_work, worker=selected_worker)
+                    total_created += 1
+
+                    globalLogs.objects.create(
+                        user=request.user,
+                        action=f"{request.user.username} criou um trabalho '{work_type}' para o Die {die.serial_number}.",
+                    )
+
+            messages.success(request, f"{total_created} trabalho(s) adicionados com sucesso para o trabalhador {selected_worker.username}.")
 
             # Se o campo hidden add_another estiver presente → volta pro mesmo formulário
             if add_another:
                 return redirect('add_multiple_works_workers', qr_id=qr_id)
 
             # Caso contrário, redireciona para os detalhes do último die
-            return redirect('die_details', die_id=die_ids[-1])
+            return redirect('listarDies')
         
         except Exception as e:
             messages.error(request, f"Erro ao criar trabalhos: {str(e)}")
@@ -2110,16 +2458,26 @@ def add_multiple_works_workers(request, qr_id):
                 'dies': dies,
                 'users': users,
                 'pedido': pedido,
-                'form_data': request.POST.dict()
+                'user_group': user_group,
+                'work_type_options': work_type_options,
+                'selected_work_type': selected_work_type,
+                'form_data': request.POST.dict(),
             })
 
     return render(
         request,
         'theme/add_multiple_works_workers.html',
-        {'qr_id': qr_id, 'dies': dies, 'users': users, 'pedido': pedido},
+        {
+            'qr_id': qr_id,
+            'dies': dies,
+            'users': users,
+            'pedido': pedido,
+            'user_group': user_group,
+            'work_type_options': work_type_options,
+            'selected_work_type': selected_work_type,
+        },
     )
 
-from django.db import IntegrityError
 
 @login_required
 def add_worker_to_die_work(request, work_id):
@@ -2598,6 +2956,7 @@ def inspecao_inicial(request, toma_order_full):
         ('miguelfernandes@toma.tools','Miguel Fernandes'),
         ('mariamacedo@toma.tools','Maria Macedo'),
         ('qc@toma.tools','Alexandra Quesado'),
+        ('qc2@toma.tools','Jadna D Avila'),
         ('michaelgraf@toma.tools','Michael Graf'),
         ('andrepimentel@toma.tools','Andre Pimentel')
     ]
@@ -2789,7 +3148,6 @@ def diametroMenu(request, toma_order_full):
     dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')
     observation_choices = PedidosDiametro._meta.get_field('observations').choices
 
-    print(f'dies existentes: {dies_existentes}')
     email_choices = [
         ('anicetagraf@toma.tools','Aniceta Graf'),
         ('danielapenagos@toma.tools','Daniela Penagos'),
@@ -2797,6 +3155,7 @@ def diametroMenu(request, toma_order_full):
         ('miguelfernandes@toma.tools','Miguel Fernandes'),
         ('mariamacedo@toma.tools','Maria Macedo'),
         ('qc@toma.tools','Alexandra Quesado'),
+        ('qc2@toma.tools','Jadna D Avila'),
         ('michaelgraf@toma.tools','Michael Graf'),
         ('andrepimentel@toma.tools','Andre Pimentel')
     ]
@@ -4686,6 +5045,108 @@ def relatorio_data(request):
         # Se foi um carregamento normal da página (F5 ou escrever o link)
     return render(request, 'theme/relatorio_data.html', context)
 
+def upload_excel_view(request):
+    if request.method == 'POST' and request.FILES.get('file'):
+        excel_file = request.FILES['file']
+        
+        try:
+            # 1. Ler os dados gerais da Encomenda (linha 3 do Excel -> skiprows=1, nrows=1)
+            df_order = pd.read_excel(excel_file, skiprows=1, nrows=1)
+            order_row = df_order.iloc[0]
+            
+            # 2. Ler os dados das Fieiras (a partir da linha 5 -> skiprows=3)
+            df_dies = pd.read_excel(excel_file, skiprows=3)
+
+            # Extrair Informação do Cabeçalho
+            year = str(order_row.get('Year', timezone.now().year))
+            toma_order_nr = str(order_row.get('Toma Order NR', ''))
+            customer_name = str(order_row.get('Customer', ''))
+            customer_order_nr = str(order_row.get('Customer Order NR', ''))
+            
+            reception_date = order_row.get('Reception Date')
+            shipping_date = order_row.get('Shipping Date')
+
+            # Agrupar itens pela coluna BoxNR para criar os QRData respetivos
+            for box_nr, group in df_dies.groupby('BoxNR'):
+                qt = len(group) # Quantidade de fieiras nesta caixa
+                
+                # Tratar as datas (Reception Date -> created_at / Shipping Date -> envio)
+                created_at = pd.to_datetime(reception_date) if not pd.isna(reception_date) else timezone.now()
+                envio = pd.to_datetime(shipping_date) if not pd.isna(shipping_date) else None
+                
+                # Criar ou obter a Encomenda (QRData)
+                qr_data, created = QRData.objects.get_or_create(
+                    toma_order_year=year,
+                    toma_order_nr=toma_order_nr,
+                    box_nr=str(box_nr),
+                    defaults={
+                        'customer': customer_name,
+                        'customer_order_nr': customer_order_nr,
+                        'qt': qt,
+                        'diameters': 'Vários', # Substituir pela lógica que preferires
+                        'created_at': created_at,
+                        'envio': envio,
+                    }
+                )
+
+                # Iterar sobre as linhas desta caixa para criar as dieInstances
+                for index, row in group.iterrows():
+                    # Obter/Criar Job (Ex: 'R')
+                    job_val = str(row.get('Type of Job', '')).strip()
+                    job_instance, _ = Jobs.objects.get_or_create(job=job_val)
+                    
+                    # Obter/Criar Die Type (Ex: 'ND')
+                    die_val = str(row.get('Type of Die', '')).strip()
+                    die_instance, _ = Die.objects.get_or_create(die_type=die_val)
+                    
+                    # Obter/Criar Tolerância
+                    # Obter/Criar Tolerância de forma segura contra duplicados
+                    min_tol = row.get('Min Tol')
+                    max_tol = row.get('Max Tol')
+                    
+                    min_val = None if pd.isna(min_tol) else min_tol
+                    max_val = None if pd.isna(max_tol) else max_tol
+
+                    # Vai buscar o primeiro que encontrar. Se não existir nenhum, cria um.
+                    tolerance_instance = Tolerance.objects.filter(min=min_val, max=max_val).first()
+                    if not tolerance_instance:
+                        tolerance_instance = Tolerance.objects.create(min=min_val, max=max_val)
+                    
+                    # Tratar "Final Die" (Se F = True, senão False)
+                    final_die_val = str(row.get('Final Die', '')).strip().upper()
+                    fieira_final = True if final_die_val == 'F' else False
+                    
+                    # Tratar Min Ø / Max Ø (Se for 0 ou vazio, fica nulo)
+                    min_dia = row.get('Min Ø')
+                    min_dia = None if pd.isna(min_dia) or min_dia == 0 else min_dia
+                    
+                    max_dia = row.get('Max Ø')
+                    max_dia = None if pd.isna(max_dia) or max_dia == 0 else max_dia
+
+                    # Criar a instância da Fieira
+                    dieInstance.objects.create(
+                        customer=qr_data,
+                        serial_number=row.get('SerialNr'),
+                        diameter_text=row.get('Original Ø'),
+                        diam_requerido=row.get('Required Ø'),
+                        job=job_instance,
+                        die=die_instance,
+                        tolerance=tolerance_instance,
+                        fieira_final=fieira_final,
+                        diam_min=min_dia,
+                        diam_max=max_dia,
+                        observations=row.get('Observations'),
+                        # Campos obrigatórios definidos temporariamente:
+                        cone='N/A', 
+                        bearing='N/A'
+                    )
+            
+            return JsonResponse({'status': 'success', 'message': 'Ficheiro importado com sucesso!'})
+        
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Erro ao processar ficheiro: {str(e)}'}, status=400)
+            
+    return render(request, 'theme/upload_excel.html')
     
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

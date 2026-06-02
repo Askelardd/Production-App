@@ -180,7 +180,7 @@ class globalLogs(models.Model):
 class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
     serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
-    diameter_text = models.CharField(max_length=50, blank=True, null=True)  # <-- Novo campo
+    diameter_text = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)  # <-- Novo campo
     cone = models.CharField(max_length=20)  
     bearing = models.CharField(max_length=100)  
     bearing_is_red = models.BooleanField(default=False)  
@@ -189,17 +189,21 @@ class dieInstance(models.Model):
     job = models.ForeignKey(Jobs, on_delete=models.CASCADE, related_name='die_instances')
     tolerance = models.ForeignKey(Tolerance, on_delete=models.CASCADE, related_name='die_instances', null=True, blank=True)
     fieira_final = models.BooleanField(default=False)
-    new_diameter = models.CharField(max_length=50, blank=True, null=True)  
+    new_diameter = DiameterDecimalField(max_digits=6, decimal_places=4, blank=True, null=True)  
     partida = models.BooleanField(default=False)
     diam_max_min = models.ForeignKey(Diameters, on_delete=models.CASCADE, related_name='die_instances_max_min', null=True, blank=True) 
     observations = models.TextField(blank=True, null=True)
     observations_prod = models.TextField(blank=True, null=True)
+    diam_desbastado = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diam_min = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    diam_max = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     modified_by = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f" Custumer {self.customer.customer} -  Die {self.serial_number} - {self.die.get_die_type_display()} - Trabalho - {self.job.get_job_display()} ({self.created_at.strftime('%Y-%m-%d %H:%M')})"
 
+    
 
 class NumeroPartidos(models.Model):
     qr_code = models.ForeignKey(QRData, on_delete=models.CASCADE)
@@ -363,8 +367,6 @@ class DieWork(models.Model):
 class DieWorkWorker(models.Model):
     work = models.ForeignKey('DieWork', on_delete=models.CASCADE, related_name='workers')
     worker = models.ForeignKey(User, on_delete=models.CASCADE)
-    diam_min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=False, blank=False)
-    diam_max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=False, blank=False)
     added_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -506,16 +508,30 @@ class DetalhesMedicao(models.Model):
     operador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return f"Medicao ID: {self.medicao.id} - Operador: {self.operador.get_full_name() if self.operador else 'N/A'}"
-    
+
+class Lentes(models.Model):
+    calibreMaquina = models.ForeignKey(Maquinas, on_delete=models.CASCADE, related_name='lentes')
+    tamanho_lente = models.CharField(max_length=100)
+    data = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"Calibre: {self.calibreMaquina.machine_name} - Tamanho Lente: {self.tamanho_lente} - Data: {self.data.strftime('%Y-%m-%d %H:%M')}"
+
+
 class CalibracaoMaquina(models.Model):
     machine = models.ForeignKey(Maquinas, on_delete=models.CASCADE, related_name='calibracoes')
     diam_original = DiameterDecimalField(max_digits=6, decimal_places=4)
     diam_calibrado = FlexibleDecimalField(max_digits=6, decimal_places=4)
     diam_calibrado_max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     diam_calibrado_min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    bearing = models.CharField(max_length=100, blank=True, null=True)
+    ovality = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
+    angle = models.CharField(max_length=30, blank=True, null=True)
     date = models.DateTimeField(default=timezone.now)
     operador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     details = models.TextField(blank=True, null=True)
+    mec_cal = models.CharField(max_length=100, blank=True, null=True)
+    lev_obj = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"Calibração da Máquina: {self.machine.machine_name} - Data: {self.date.strftime('%Y-%m-%d %H:%M')} - Operador: {self.operador.get_full_name() if self.operador else 'N/A'}"

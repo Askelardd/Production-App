@@ -13,7 +13,10 @@
     {% if request.user.groups.all.0.name in 'Q-Office Administracao' %}
       <button type="button" id="insertCaixa" class="bg-blue-500 text-white px-6 py-3 rounded hover:bg-blue-600 transition-all shadow font-medium">Criar Caixa</button>
       <a href="{% url 'criar_caixa' %}" class="bg-green-500 text-white px-6 py-3 rounded hover:bg-green-600 transition-all shadow font-medium">Caixa + Fieiras</a>
+      <a href="{% url 'trocarCaixa' %}" class="bg-gray-500 text-white px-6 py-3 rounded hover:bg-gray-600 transition-all shadow font-medium">Trocar Caixas</a>
+      <a href="{% url 'upload_excel_view' %}" class="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition-all shadow font-medium">Upload Excel</a>
     {% endif %}
+
   </div>
 
   <div class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden z-50" id="insertCaixaForm">
@@ -93,7 +96,7 @@
       <thead class="bg-gray-100 border-b-2 border-gray-200">
         <tr>
           <th class="px-4 py-4 text-gray-700 font-bold uppercase w-10"></th> <th class="px-4 py-4 text-gray-700 font-bold uppercase">Cliente</th>
-          <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ordem Cliente</th>
+          <th class="px-4 py-4 text-gray-700 font-bold uppercase ">Ordem Cliente</th>
           <th class="px-4 py-4 text-gray-700 font-bold uppercase">Toma Ordem</th>
           <th class="px-4 py-4 text-gray-700 font-bold uppercase">Ano</th>
           <th class="px-4 py-4 text-gray-700 font-bold uppercase text-right">Qtd Total</th>
@@ -109,7 +112,11 @@
               </svg>
             </td>
             <td class="px-4 py-5 font-medium">{{ group.customer }}</td>
-            <td class="px-4 py-5">{{ group.customer_order_nr }}</td>
+            <td class="px-4 py-5 editable-field" 
+                data-url="{% url 'trocarTomaOrder' group.boxes.0.id %}" 
+                ondblclick="makeEditable(this)">
+                {{ group.customer_order_nr }}
+            </td>
             <td class="px-4 py-5 font-bold text-blue-700">{{ group.toma_order_nr }}</td>
             <td class="px-4 py-5">{{ group.toma_order_year }}</td>
             <td class="px-4 py-5 font-bold text-right text-green-600">{{ group.total_qt }}</td>
@@ -196,6 +203,20 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m-2-3h4" />
                                   </svg>
                                 </button>
+
+                                <button type="submit" 
+                                        formaction="{% url 'excluir_qrcode' qr.id %}" 
+                                        formmethod="post" 
+                                        formnovalidate 
+                                        title="Excluir Caixa" 
+                                        class="group p-2 rounded-full text-red-500 hover:bg-red-100 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-all duration-200" 
+                                        onclick="event.stopPropagation(); return confirm('Tens a certeza que queres eliminar esta caixa?\nEsta ação apaga as fieiras caso tenham sido inseridas.');">
+                                  
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="w-5 h-5 transition-transform duration-200 group-hover:scale-110 group-active:scale-95">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.5 4v1h5V4a1.5 1.5 0 1 1 3 0v1H19a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-.42l-1.01 10.15A2.5 2.5 0 0 1 15.08 21H8.92a2.5 2.5 0 0 1-2.49-2.25L5.42 10H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h1.5V4a1.5 1.5 0 1 1 3 0Zm1 1h7V4a.5.5 0 1 0-1 0v1h-5V4a.5.5 0 1 0-1 0v1ZM6 7v2h12V7H6Zm11.5 3H6.5l.98 9.8a1.5 1.5 0 0 0 1.49 1.35h6.16a1.5 1.5 0 0 0 1.49-1.35L17.5 10ZM10 12h1v6h-1v-6Zm3 0h1v6h-1v-6Z"/>
+                                  </svg>
+                                </button>
+
                               </div>
                               <div class="edit-mode hidden flex items-center justify-center gap-2">
                                 <button type="submit" onclick="event.stopPropagation();" class="text-green-600 hover:text-green-800 transition-colors">
@@ -368,5 +389,97 @@
         }
       })
     }
+
+    // Tornar editavel a duplo toque no boxes
+      function makeEditable(element) {
+        // Evita duplicar o input se o utilizador clicar várias vezes
+        if (element.querySelector('input')) return;
+
+        const originalValue = element.textContent.trim();
+        const url = element.getAttribute('data-url');
+
+        // Cria o campo de texto dinamicamente
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = originalValue;
+        // Classes utilitárias (ajusta se não usares Tailwind)
+        input.className = 'border rounded px-2 py-1 text-black w-full focus:outline-none focus:ring-2 focus:ring-blue-500'; 
+
+        // Substitui o texto pelo input e foca-o
+        element.innerHTML = '';
+        element.appendChild(input);
+        input.focus();
+
+        // Função interna para submeter a alteração
+          async function saveChanges() {
+            const newValue = input.value.strip ? input.value.strip() : input.value.trim();
+
+            // Se não mudou nada, volta ao texto original sem fazer pedido ao servidor
+            if (newValue === originalValue) {
+                element.innerHTML = originalValue;
+                return;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-CSRFToken': getCookie('csrftoken') // Função auxiliar abaixo
+                    },
+                    body: new URLSearchParams({ 'new_customer_order_nr': newValue })
+                });
+
+                if (!response.ok) {
+                      // Se o servidor responder com 500, 404, etc., entra aqui
+                      alert(`Erro no servidor (${response.status}). Espreita o terminal do teu Django para ver o log do erro.`);
+                      element.innerHTML = originalValue;
+                      return;
+                  }
+
+                  const data = await response.json();
+
+                  if (data.success) {
+                      element.innerHTML = newValue;
+                  } else {
+                      alert(data.error || 'Erro ao atualizar.');
+                      element.innerHTML = originalValue;
+                  }
+            } catch (error) {
+                console.error('Erro de rede:', error);
+                alert('Erro de comunicação com o servidor.');
+                element.innerHTML = originalValue;
+          }
+        }
+        
+
+        // Atalhos do teclado e perda de foco
+        input.addEventListener('blur', saveChanges);
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                input.blur(); // Dispara o evento 'blur' acima para guardar
+            }
+            if (e.key === 'Escape') {
+                element.innerHTML = originalValue; // Cancela e descarta alterações
+            }
+        });
+    }
+
+    // Função padrão do Django para obter o CSRF token dos cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
   </script>
 {% endblock %}

@@ -44,6 +44,12 @@
                             class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
                     </div>
 
+                    <div>
+                      <label for="observacoes_caixa" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Observações da Caixa</label>
+                      <input type="text" id="observacoes_caixa" name="observacoes_caixa" value="{{ form_data.observacoes_caixa|default:'' }}"
+                          class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
                     <div class="md:col-span-3 flex items-end gap-3">
                         <button type="button" id="buildRowsBtn"
                             class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white text-cyan-700 font-semibold shadow-md hover:bg-cyan-50 transition">
@@ -118,7 +124,7 @@
       return `
         <div class="bg-white border border-gray-200 shadow-sm rounded-xl relative overflow-hidden transition-all hover:shadow-md" data-card-index="${index}">
           <div class="absolute top-0 right-0 flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-black px-3 py-1.5 rounded-bl-xl font-bold text-sm shadow-sm">
-            <span>Fieira #${index}</span>
+            <span data-card-label>Fieira #${index}</span>
             <button type="button" data-clone-card class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-white/80 text-cyan-700 text-xs font-black hover:bg-white transition" title="Clonar esta fieira">
               +
             </button>
@@ -214,6 +220,15 @@
                   class="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-colors">
               </div>
 
+              <div>
+                <button title="Remover esta fieira" type="button" data-remove-card
+                  class="absolute bottom-2 right-4 inline-flex items-center justify-center h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600 transition" aria-label="Remover esta fieira">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4" aria-hidden="true">
+                    <path d="M9 3.75A.75.75 0 0 1 9.75 3h4.5a.75.75 0 0 1 .75.75V5h4.5a.75.75 0 0 1 0 1.5h-.75v11.25A2.25 2.25 0 0 1 16.5 20H7.5a2.25 2.25 0 0 1-2.25-2.25V6.5H4.5a.75.75 0 0 1 0-1.5H9V3.75Zm1.5 1.5h3V5h-3v.25Zm-2.25 1.75v11A.75.75 0 0 0 9 17.5h6a.75.75 0 0 0 .75-.75v-11h-7.5Zm2 2.25c.414 0 .75.336.75.75v4.5a.75.75 0 0 1-1.5 0v-4.五年c0-.414.336-.7五十 . seventy-five-. seventy-fiveZm3 zeroc.414 zero . seventy-five thirty-six . seventy-five . seventy-fivev4 fifty-a . seventy-five . seventy-five zero v-4 fifty-c zero-. forty-one-four . thirty-three-six -. seventy-five . seventy-fiveZ"/>
+                  </svg>
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
@@ -283,15 +298,87 @@
       return dataByIndex;
     }
 
-    function buildRows() {
-      const total = Math.max(parseInt(totalInput.value || '0', 10), 0);
-      const hasRenderedCards = container.querySelector('[data-card-index]');
-      const existingData = hasRenderedCards ? collectCardDataByIndex() : initialPrefilledData.reduce((acc, item, index) => {
+    function getCurrentCardCount() {
+      return container.querySelectorAll('[data-card-index]').length;
+    }
+
+    function getInitialDataByIndex() {
+      return initialPrefilledData.reduce((acc, item, index) => {
         acc[index + 1] = item;
         return acc;
       }, {});
+    }
+
+    function normalizeCards() {
+      container.querySelectorAll('[data-card-index]').forEach((card, position) => {
+        const index = position + 1;
+        card.dataset.cardIndex = String(index);
+
+        const label = card.querySelector('[data-card-label]');
+        if (label) {
+          label.textContent = `Fieira #${index}`;
+        }
+
+        card.querySelectorAll('input, select, textarea').forEach(field => {
+          if (!field.name) {
+            return;
+          }
+
+          field.name = field.name.replace(/_\d+$/, `_${index}`);
+        });
+      });
+    }
+
+    function renderRows(total, dataByIndex = {}) {
       container.innerHTML = '';
 
+      for (let i = 1; i <= total; i++) {
+        container.insertAdjacentHTML('beforeend', cardTemplate(i, dataByIndex[i] || {}));
+      }
+    }
+
+    function syncRows() {
+      const rawTotal = (totalInput.value || '').trim();
+
+      if (!rawTotal) {
+        return;
+      }
+
+      const total = Number.parseInt(rawTotal, 10);
+      if (!Number.isInteger(total) || total < 1) {
+        totalInput.value = String(Math.max(getCurrentCardCount(), 1));
+        return;
+      }
+
+      const currentTotal = getCurrentCardCount();
+
+      if (!currentTotal) {
+        renderRows(total, getInitialDataByIndex());
+        totalInput.value = String(total);
+        return;
+      }
+
+      const existingData = collectCardDataByIndex();
+
+      if (total > currentTotal) {
+        for (let i = currentTotal + 1; i <= total; i++) {
+          container.insertAdjacentHTML('beforeend', cardTemplate(i, existingData[i] || {}));
+        }
+      } else if (total < currentTotal) {
+        for (let i = currentTotal; i > total; i--) {
+          const card = container.querySelector(`[data-card-index="${i}"]`);
+          if (card) {
+            card.remove();
+          }
+        }
+      }
+
+      normalizeCards();
+      totalInput.value = String(total);
+    }
+
+    function buildRows() {
+      const total = Math.max(parseInt(totalInput.value || '0', 10), 0);
       if (!total) {
         container.innerHTML = `
           <div class="py-12 text-center text-gray-500 border-2 border-dashed border-gray-300 rounded-xl">
@@ -301,17 +388,26 @@
         return;
       }
 
-      // Adiciona todos os cartões
-      for (let i = 1; i <= total; i++) {
-        container.insertAdjacentHTML('beforeend', cardTemplate(i, existingData[i] || {}));
-      }
+      renderRows(total, getInitialDataByIndex());
     }
 
-    buildRowsBtn.addEventListener('click', buildRows);
-    totalInput.addEventListener('change', buildRows);
-    totalInput.addEventListener('keyup', buildRows);
+    buildRowsBtn.addEventListener('click', syncRows);
+    totalInput.addEventListener('change', syncRows);
 
     container.addEventListener('click', function (event) {
+      const removeButton = event.target.closest('[data-remove-card]');
+      if (removeButton) {
+        const cardToRemove = removeButton.closest('[data-card-index]');
+        if (!cardToRemove) {
+          return;
+        }
+
+        cardToRemove.remove();
+        normalizeCards();
+        totalInput.value = String(getCurrentCardCount());
+        return;
+      }
+
       const button = event.target.closest('[data-clone-card]');
       if (!button) {
         return;
@@ -328,7 +424,8 @@
       }
 
       appendClones(sourceCard, copies);
-      totalInput.value = container.querySelectorAll('[data-card-index]').length;
+      normalizeCards();
+      totalInput.value = String(getCurrentCardCount());
     });
 
     if (form) {

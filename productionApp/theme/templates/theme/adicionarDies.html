@@ -87,6 +87,13 @@
                 <label class="block text-sm">Inspecionado Por </label>
                 <input type="text" name="modified_by_{{ forloop.counter }}" value="{{ die.modified_by }}" class="border p-2 w-full" readonly>
             </div>
+            <div>
+                {% if die.id %}
+                <button type="button" data-delete-die-url="{% url 'remove_die' die.id %}" class="inline-block bg-red-500 text-white px-2 py-1 rounded mt-4 hover:bg-red-600">
+                    Remover
+                </button>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -139,6 +146,34 @@ document.getElementById('diesForm').addEventListener('submit', function(e) {
 });
 document.addEventListener('DOMContentLoaded', () => {
     const total = parseInt(document.querySelector('input[name="total"]').value);
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+
+    document.addEventListener('click', async (event) => {
+        const deleteButton = event.target.closest('[data-delete-die-url]');
+        if (!deleteButton) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!window.confirm('Tem certeza que deseja remover esta fieira?')) {
+            return;
+        }
+
+        const response = await fetch(deleteButton.dataset.deleteDieUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+            },
+        });
+
+        if (response.redirected) {
+            window.location.href = response.url;
+            return;
+        }
+
+        window.location.reload();
+    });
 
     const camposParaCopiar = [
         'diameter',

@@ -65,7 +65,7 @@ class DieInstanceInline(admin.TabularInline):
 
 @admin.register(QRData)
 class QRDataAdmin(admin.ModelAdmin):
-    list_display = ['customer', 'toma_order_nr', 'customer_order_nr', 'qt', 'production_start', 'envio', 'created_at']
+    list_display = ['customer', 'toma_order_nr','toma_order_year', 'customer_order_nr', 'qt', 'production_start', 'envio', 'created_at']
     search_fields = ['customer', 'toma_order_nr', 'customer_order_nr', 'toma_order_full']
     list_filter = ['created_at', 'production_start', 'envio']
     inlines = [DieInstanceInline]
@@ -98,14 +98,13 @@ class DieInstanceAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at']
     list_per_page = 20
 
-
 # -------------------
 # DieWork + Inline DieWorkWorker
 # -------------------
 class DieWorkWorkerInline(admin.TabularInline):
     model = DieWorkWorker
     extra = 2
-    fields = ['worker', 'diam_min', 'diam_max', 'added_at']
+    fields = ['worker', 'added_at']
     readonly_fields = ['added_at']
 
 
@@ -123,7 +122,7 @@ class DieWorkAdmin(admin.ModelAdmin):
 # -------------------
 @admin.register(DieWorkWorker)
 class DieWorkWorkerAdmin(admin.ModelAdmin):
-    list_display = ['worker', 'work', 'diam_min', 'diam_max', 'added_at']
+    list_display = ['worker', 'work', 'added_at']
     search_fields = ['worker__username', 'work__die__serial_number', 'work__work_type']
     list_filter = ['work__work_type', 'added_at', 'worker']
     readonly_fields = ['added_at']

@@ -1,0 +1,110 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}
+Importar Pedido Exel
+{% endblock %}
+
+{% block content %}
+<div class="py-12 bg-slate-50 min-h-screen">
+    <div id="drop-zone" class="max-w-xl mx-auto p-12 border-[3px] border-dashed border-slate-300 rounded-xl text-center bg-white cursor-pointer transition-all duration-300 ease-in-out hover:border-blue-450">
+        <p class="text-slate-500 text-lg font-medium">
+            Arraste e largue o ficheiro Excel (.xlsx) aqui<br>
+            <span class="text-sm text-slate-400 block mt-2">ou clique para selecionar o ficheiro</span>
+        </p>
+        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="hidden">
+    </div>
+
+    <div id="message" class="mt-6 text-center font-bold text-slate-700 text-base transition-all"></div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const messageDiv = document.getElementById('message');
+
+    // Abre o seletor de ficheiros nativo ao clicar na área
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    // Evento quando o ficheiro está a ser arrastado POR CIMA da área (Altera estilo para Ativo)
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-slate-300', 'bg-white');
+        dropZone.classList.add('border-blue-500', 'bg-blue-50', 'scale-[1.01]');
+    });
+
+    // Evento quando o utilizador arrasta o ficheiro para FORA da área (Volta ao estilo original)
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'scale-[1.01]');
+        dropZone.classList.add('border-slate-300', 'bg-white');
+    });
+
+    // Evento quando o utilizador SOLTA o ficheiro na área
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        // Repõe o estilo original
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50', 'scale-[1.01]');
+        dropZone.classList.add('border-slate-300', 'bg-white');
+        
+        if (e.dataTransfer.files.length > 0) {
+            uploadFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Evento de seleção tradicional de ficheiros (pelo clique)
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            uploadFile(e.target.files[0]);
+        }
+    });
+
+    // Função assíncrona para envio do ficheiro ao Django via Fetch API
+    function uploadFile(file) {
+        messageDiv.innerHTML = "A carregar e a processar dados... ⏳";
+        messageDiv.className = "mt-6 text-center font-bold text-blue-600";
+
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Obtém o token CSRF obrigatório do Django
+        const csrfToken = getCookie('csrftoken'); 
+
+        fetch('', { // Envia o pedido POST para a rota atual da View
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                messageDiv.innerHTML = "✅ " + data.message;
+                messageDiv.className = "mt-6 text-center font-bold text-green-600";
+            } else {
+                messageDiv.innerHTML = "❌ " + data.message;
+                messageDiv.className = "mt-6 text-center font-bold text-red-600";
+            }
+        })
+        .catch(error => {
+            messageDiv.innerHTML = "❌ Ocorreu um erro inesperado no servidor.";
+            messageDiv.className = "mt-6 text-center font-bold text-red-600";
+        });
+    }
+
+    // Função utilitária para capturar os cookies do Django (CSRF Token)
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
