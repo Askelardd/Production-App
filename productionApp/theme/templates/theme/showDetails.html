@@ -52,7 +52,7 @@
           </svg>
         </div>
         <p class="text-blue-800 font-semibold text-lg">
-          Fieiras pessoais trabalhadas por ti nesta caixa: <span class="font-extrabold text-blue-600 text-xl ml-1">{{ pessoal }}</span>
+          Fieiras trabalhadas por ti nesta caixa: <span class="font-extrabold text-blue-600 text-xl ml-1">{{ pessoal }}</span>
         </p>
       </div>
     {% endif %}
@@ -102,7 +102,13 @@
               <td class="px-6 py-4 text-center">
                 <span class="text-lg font-bold text-green-600">{{ stat.total_trabalhos }}</span>
               </td>
-              <td class="px-6 py-4 text-gray-600 font-medium">{{ stat.trabalhos_realizados|join:", " }}</td>
+              <td class="px-6 py-4 text-gray-600 font-medium">
+                <ul class="list-disc list-inside">
+                  {% for trabalho in stat.trabalhos_realizados %}
+                    <li>{{ trabalho }}</li>
+                  {% endfor %}
+                </ul>
+              </td>
             </tr>
           {% empty %}
             <tr>

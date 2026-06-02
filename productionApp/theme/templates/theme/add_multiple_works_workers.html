@@ -29,40 +29,34 @@
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Tipo de Trabalho</span></label>
               <select name="tipo_trabalho" id="tipo_trabalho" required class="select select-bordered w-full bg-white transition-all">
-                <option value="" disabled selected>-- Escolher --</option>
-                <option value="polimento">Polimento</option>
+                <option value="" disabled {% if not selected_work_type %}selected{% endif %}>-- Escolher --</option>
+                {% for value, label in work_type_options %}
+                  <option value="{{ value }}" {% if selected_work_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+                {% if not work_type_options %}
+                  <option value="polimento">Polimento</option>
+                  <option value="desbaste_agulha">Desbaste Agulha</option>
+                  <option value="desbaste_calibre">Desbaste Calibre</option>
+                  <option value="afinacao">Afinação</option>
+                {% endif %}
               </select>
             </div>
 
             <div class="form-control w-full">
               <label class="label"><span class="label-text font-bold text-gray-700">Subtipo</span></label>
-              <select name="subtipo" id="subtipo" required class="select select-bordered w-full bg-white/50 focus:border-neutral focus:ring-neutral transition-all">
+              <select name="subtipo" id="subtipo" multiple required class="select select-bordered w-full bg-white/50 focus:border-neutral focus:ring-neutral transition-all">
                 <option value="" disabled selected>-- Escolher o tipo primeiro --</option>
               </select>
             </div>
           </div>
 
           <div class="form-control w-full">
-            <label class="label">
-              <span class="label-text font-bold text-gray-700">Equipa / Trabalhadores</span>
-              <span class="label-text-alt text-gray-500 hidden sm:inline-block">Segure <kbd class="kbd kbd-sm">Ctrl</kbd> para seleção múltipla</span>
-            </label>
-            <select name="workers" id="workers" multiple required class="select select-bordered w-full min-h-[140px] py-3 bg-white/50 focus:border-neutral transition-all">
-              {% for user in users|dictsort:'username' %}
-                <option value="{{ user.id }}" class="p-2 mb-1 rounded hover:bg-gray-100 cursor-pointer">{{ user.get_full_name|default:user.username }}</option>
-              {% endfor %}
-            </select>
-            <span class="label-text-alt text-gray-500 mt-2 sm:hidden block">Segure Ctrl (ou Control) para selecionar vários trabalhadores.</span>
-          </div>
-
-          <div class="form-control w-full">
             <div class="flex justify-between items-center mb-2">
-
-                <label class="label"><span class="label-text font-bold text-gray-700">Números de Série das Fieiras</span></label>
-                <div>
-                    <label for="select_all_dies" class="text-sm text-gray-600 cursor-pointer select-none">Selecionar Todos</label>
-                    <input type="checkbox" name="serieDies" id="select_all_dies" class="checkbox checkbox-sm accent-blue-500" />
-                </div>
+              <label class="label"><span class="label-text font-bold text-gray-700">Números de Série das Fieiras</span></label>
+              <div>
+                <label for="select_all_dies" class="text-sm text-gray-600 cursor-pointer select-none">Selecionar Todos</label>
+                <input type="checkbox" id="select_all_dies" class="checkbox checkbox-sm accent-blue-500" />
+              </div>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-gray-50/50 border border-gray-100 shadow-inner">
               {% for die in dies %}
@@ -86,6 +80,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>Adicionar Trabalhos
             </button>
+            <button type="button" onclick="window.location.href='{% url 'listarDies' %}'" class="btn btn-ghost w-full sm:w-auto px-8">Cancelar</button>
           </div>
         </form>
       </div>
@@ -98,6 +93,7 @@
       const subtipoSelect = document.getElementById('subtipo')
       const selectAllCheckbox = document.getElementById('select_all_dies')
       const dieCheckboxes = document.querySelectorAll('input[name="serieDies"][type="checkbox"]:not(#select_all_dies)')
+      const initialType = tipoSelect ? tipoSelect.value : ''
     
       // Mapa de subtipos
       const subtipoMap = {
@@ -105,6 +101,20 @@
           ['entrada', 'Entrada'],
           ['saida', 'Saída'],
           ['cone', 'Cone']
+        ],
+    
+        desbaste_agulha: [
+          ['entrada', 'Entrada'],
+          ['saida', 'Saída'],
+          ['cone', 'Cone']
+        ],
+        desbaste_calibre: [
+          ['polimento_de_calibre', 'Polimento de Calibre'],
+          ['desbaste_de_calibre', 'Desbaste de Calibre']
+        ],
+        afinacao: [
+          ['calibre', 'Calibre'],
+          ['afinacao', 'Afinação']
         ]
       }
     
@@ -122,6 +132,10 @@
           })
         }
       })
+
+      if (initialType) {
+        tipoSelect.dispatchEvent(new Event('change'))
+      }
     
       // Funcionalidade "Selecionar Todos"
       selectAllCheckbox.addEventListener('change', () => {

@@ -39,16 +39,23 @@ urlpatterns = [
     path('listarQrcodes/ClonarLinha/<hashid:qr_id>/', views.clonar_linha, name='clonar_linha'),
     path('die/inspecao-inicial/<str:toma_order_full>/', views.inspecao_inicial, name='inspecao_inicial'),
     path('criar-caixa/', views.criarCaixa, name='criar_caixa'),
-
+    path('die/<hashid:qr_id>/excluir/', views.excluir_qrcode, name='excluir_qrcode'),
+    path('qrdata/upload_exel/', views.upload_excel_view, name='upload_excel_view'),
+    path('qrdata/editar-campo/<int:codigo>/', views.trocarTomaOrder, name='trocarTomaOrder'),
+    
     # Dies
     path('dies/', views.listar_qrcodes_geral, name='listarDies'),
     path('die/<hashid:die_id>/', views.die_details, name='die_details'),
+    path('die/<hashid:die_id>/inline-update/', views.update_dies_inline, name='update_dies_inline'),
     path('die/<hashid:die_id>/novo-trabalho/', views.create_die_work, name='create_die_work'),
     path('die-work/<hashid:work_id>/add-worker/', views.add_worker_to_die_work, name='add_worker_to_die_work'),
     path('die/work/workers/<hashid:qr_id>/', views.add_multiple_works_workers, name='add_multiple_works_workers'),
     path('infoFieira/<hashid:die_id>/', views.info_fieira, name='infoFieira'),
     path('enviar-fieira/<hashid:die_id>/', views.enviar_fieira, name='enviar_fieira'),
     path('localizarFieira/', views.localizarFieira, name='localizarFieira'),
+    path('die/<hashid:die_id>/delete/', views.remove_die, name='remove_die'),
+    path('trocarCaixa', views.trocarCaixaFieiras, name='trocarCaixa'),
+    path('editarCaixa/<hashid:die_id>/', views.edit_nrbox_inline, name='edit_nrbox_inline'),
 
     # Orders
     path('orders/', views.orders, name='orders'),

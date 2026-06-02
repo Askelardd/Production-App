@@ -1,0 +1,143 @@
+@login_required
+def add_multiple_works_workers(request, qr_id):
+    work = get_object_or_404(QRData, id=qr_id)
+    dies = work.die_instances.all()
+    users = User.objects.filter(groups__name='Producao').distinct().order_by('username')
+    user_groups = list(request.user.groups.values_list('name', flat=True))
+    user_group = user_groups[0] if user_groups else ''
+
+    work_type_options_by_group = {
+        'Polimento': [('polimento', 'Polimento')],
+        'Desbaste': [('desbaste_agulha', 'Desbaste Agulha')],
+        'FioFino': [
+            ('desbaste_calibre', 'Desbaste Calibre'),
+            ('afinacao', 'Afinação'),
+        ],
+        'FioGrosso': [('desbaste_calibre', 'Desbaste Calibre')],
+    }
+    work_type_options = []
+    seen_work_types = set()
+    for group_name in user_groups:
+        for option_value, option_label in work_type_options_by_group.get(group_name, []):
+            if option_value not in seen_work_types:
+                work_type_options.append((option_value, option_label))
+                seen_work_types.add(option_value)
+
+    if not work_type_options:
+        work_type_options = [
+            ('polimento', 'Polimento'),
+            ('desbaste_agulha', 'Desbaste Agulha'),
+            ('desbaste_calibre', 'Desbaste Calibre'),
+            ('afinacao', 'Afinação'),
+        ]
+
+    selected_work_type = work_type_options[0][0] if len(work_type_options) == 1 else ''
+
+    pedido = f"{work.toma_order_year}-{work.toma_order_nr} - Caixa {work.box_nr}"
+
+    if request.method == 'POST':
+        die_ids = [die_id for die_id in request.POST.getlist('serieDies') if str(die_id).isdigit()]
+        work_type = request.POST.get('tipo_trabalho')
+        subtype = request.POST.get('subtipo')
+        worker_ids = request.POST.getlist('workers')  # ← Pega vários IDs de trabalhadores
+        add_another = request.POST.get('add_another')
+
+        
+        # Validações com mensagens individuais
+        errors = []
+        if not die_ids:
+            errors.append("Selecione pelo menos uma fieira.")
+        if not work_type:
+            errors.append("Escolha um tipo de trabalho.")
+        if not subtype:
+            errors.append("Escolha um subtipo.")
+        if not worker_ids:
+            errors.append("Selecione pelo menos um trabalhador.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+                print(error)  # Debug: Imprime o erro no console para verificar
+            
+            # Renderizar com dados preenchidos para o utilizador corrigir
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'user_group': user_group,
+                'work_type_options': work_type_options,
+                'selected_work_type': selected_work_type,
+                'form_data': request.POST.dict()
+            })
+
+        # Validação de segurança
+        selected_workers = list(users.filter(id__in=worker_ids))
+        if len(selected_workers) != len(set(worker_ids)):
+            messages.error(request, "Só é permitido selecionar trabalhadores do grupo Producao.")
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'user_group': user_group,
+                'work_type_options': work_type_options,
+                'selected_work_type': selected_work_type,
+                'form_data': request.POST.dict()
+            })
+
+        # Agora temos certeza que todos os dados estão válidos
+        try:
+            for die_id in die_ids:
+                die = get_object_or_404(dieInstance, id=die_id)
+
+                # Cria o trabalho
+                new_work = DieWork.objects.create(
+                    die=die, work_type=work_type, subtype=subtype
+                )
+
+                # Associa os trabalhadores ao trabalho
+                for user in selected_workers:
+                    DieWorkWorker.objects.create(work=new_work, worker=user)
+
+                    # Log individual para cada trabalhador
+                    globalLogs.objects.create(
+                        user=request.user,
+                        action=f"{request.user.username} criou um trabalho '{work_type}' para o Die {die.serial_number} com o trabalhador {user.username}.",
+                    )
+
+            messages.success(request, f"{len(die_ids)} trabalho(s) adicionados com sucesso para {len(worker_ids)} trabalhador(es).")
+
+            # Se o campo hidden add_another estiver presente → volta pro mesmo formulário
+            if add_another:
+                return redirect('add_multiple_works_workers', qr_id=qr_id)
+
+            # Caso contrário, redireciona para os detalhes do último die
+            return redirect('die_details', die_id=die_ids[-1])
+        
+        except Exception as e:
+            messages.error(request, f"Erro ao criar trabalhos: {str(e)}")
+            return render(request, 'theme/add_multiple_works_workers.html', {
+                'qr_id': qr_id,
+                'dies': dies,
+                'users': users,
+                'pedido': pedido,
+                'user_group': user_group,
+                'work_type_options': work_type_options,
+                'selected_work_type': selected_work_type,
+                'form_data': request.POST.dict(),
+            })
+
+    return render(
+        request,
+        'theme/add_multiple_works_workers.html',
+        {
+            'qr_id': qr_id,
+            'dies': dies,
+            'users': users,
+            'pedido': pedido,
+            'user_group': user_group,
+            'work_type_options': work_type_options,
+            'selected_work_type': selected_work_type,
+        },
+    )

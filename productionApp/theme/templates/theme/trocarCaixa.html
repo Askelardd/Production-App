@@ -1,0 +1,238 @@
+﻿{% extends 'theme/base.html' %}
+{% block title %}Trocar Fieiras das Caixas{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6 relative z-10 pb-12">
+    <!-- Container de Notificações Toast (Para mostrar mensagens de sucesso/erro dinâmicas) -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2"></div>
+
+    <form method="POST" action="" id="trocarCaixaForm" class="card bg-white/70 backdrop-blur-md shadow-2xl border border-gray-100 p-6 sm:p-10">
+        {% csrf_token %}
+
+        <div class="bg-gradient-to-r from-sky-600 via-cyan-600 to-teal-600 text-black rounded-2xl shadow-lg overflow-hidden">
+            <div class="px-6 py-5 border-b border-black/15">
+                <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Trocar Fieiras das Caixas</h1>
+                <p class="mt-1 text-sm text-black/80">Preenche os dados e clica em "Gerar Fieiras"</p>
+            </div>
+
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="toma_order_nr" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Toma Order Nº</label>
+                        <input type="text" id="toma_order_nr" name="toma_order_nr" required value="{{ form_data.toma_order_nr|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div>
+                        <label for="toma_order_year" class="block text-xs font-semibold uppercase tracking-wider text-black/80 mb-2">Year</label>
+                        <input type="text" id="toma_order_year" name="toma_order_year" required value="{{ form_data.toma_order_year|default:'' }}"
+                            class="w-full bg-white/95 text-gray-900 px-4 py-2.5 rounded-lg border border-black/20 focus:outline-none focus:ring-2 focus:ring-white/70">
+                    </div>
+
+                    <div class="md:col-span-3 flex items-end gap-3">
+                        <button type="submit" id="buildRowsBtn"
+                            class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white text-cyan-700 font-semibold shadow-md hover:bg-cyan-50 transition">
+                            Gerar Fieiras
+                        </button>
+                        <a href="{% url 'listQrcodes' %}" class="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-white text-gray-700 font-semibold shadow-md hover:bg-gray-50 transition">
+                            Voltar à Lista
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <div class="mb-8 flex items-center gap-4">
+      <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..." class="w-full md:w-1/2 px-4 py-3 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+    </div>
+
+    {% if listarDies %}
+    <div class="overflow-x-auto w-full bg-white rounded-lg shadow-lg p-6">
+        <table class="min-w-full table-auto text-xs md:text-sm text-left border-collapse" id="qrcodeTable">
+            <thead class="bg-gray-100 border-b-2 border-gray-200">
+                <tr>
+                    <th class="px-4 py-4 text-gray-700 font-bold uppercase">Caixa</th>
+                    <th class="px-4 py-4 text-gray-700 font-bold uppercase">Nº Serie</th>
+                    <th class="px-4 py-4 text-gray-700 font-bold uppercase">Diam.Orig</th>
+                    <th class="px-4 py-4 text-gray-700 font-bold uppercase">Diam.Req</th>
+                    <th class="px-4 py-4 text-gray-700 font-bold uppercase text-center w-28">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody" class="divide-y divide-gray-200">
+                {% for die in listarDies %}
+                <tr id="row-{{ die.id }}" class="transition-colors">
+                    <td class="px-4 py-4">
+                      <!-- Adicionados IDs únicos nos spans de visualização para atualização instantânea via JS -->
+                      <span id="span-box-nr-{{ die.id }}" class="view-mode">{{ die.customer.box_nr }}</span>
+                      <input type="text" form="form-{{ die.id }}" name="box_nr" value="{{ die.customer.box_nr }}" class="edit-mode hidden w-full bg-yellow-50 border border-yellow-300 rounded-md px-3 py-1 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                    </td>
+
+                    <td class="px-4 py-4 font-mono">{{ die.serial_number }}</td>
+                    <td class="px-4 py-4">{{ die.diameter_text }}</td>
+
+                    <td class="px-4 py-4">
+                      <span id="span-diam-req-{{ die.id }}" class="view-mode">{{ die.diam_requerido }}</span>
+                      <input type="text" form="form-{{ die.id }}" name="diam_requerido" value="{{ die.diam_requerido }}" class="edit-mode hidden w-full bg-yellow-50 border border-yellow-300 rounded-md px-3 py-1 text-gray-900 focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+                    </td>
+
+                    <td class="px-4 py-4 text-center">
+                      <div class="flex items-center justify-center gap-2">
+                        
+                        <!-- MODO VISUALIZAÇÃO: Botão Editar (Lápis) -->
+                        <button type="button" onclick="enableEdit('{{ die.id }}');" class="view-mode text-blue-500 hover:text-blue-700 transition-colors" title="Editar">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+                          </svg>
+                        </button>
+
+                        <!-- MODO EDIÇÃO: Formulário invisível com interceção para submissão AJAX (onsubmit) -->
+                        <form id="form-{{ die.id }}" method="POST" action="{% url 'edit_nrbox_inline' die.id %}" class="inline" onsubmit="saveInlineRow(event, '{{ die.id }}')">
+                          {% csrf_token %}
+                          <button type="submit" class="edit-mode hidden text-green-500 hover:text-green-700 transition-colors" title="Salvar">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                          </button>
+                        </form>
+
+                        <!-- MODO EDIÇÃO: Botão Cancelar (X) -->
+                        <button type="button" onclick="disableEdit('{{ die.id }}');" class="edit-mode hidden text-red-500 hover:text-red-700 transition-colors" title="Cancelar">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+
+                      </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 1. ATIVAR MODO EDIÇÃO NA LINHA
+    function enableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+        
+        row.classList.add('bg-yellow-50/50');
+        row.querySelectorAll('.view-mode').forEach((el) => el.classList.add('hidden'));
+        row.querySelectorAll('.edit-mode').forEach((el) => el.classList.remove('hidden'));
+    }
+    
+    // 2. DESATIVAR MODO EDIÇÃO NA LINHA (CANCELAR)
+    function disableEdit(id) {
+        const row = document.getElementById(`row-${id}`);
+        if (!row) return;
+        
+        row.classList.remove('bg-yellow-50/50');
+        row.querySelectorAll('.view-mode').forEach((el) => el.classList.remove('hidden'));
+        row.querySelectorAll('.edit-mode').forEach((el) => el.classList.add('hidden'));
+    }
+    
+    // 3. PESQUISA NA TABELA
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function () {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#qrcodeTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // 4. SUBMISSÃO DE CADA LINHA VIA AJAX (PREVINE RELOAD)
+    async function saveInlineRow(event, id) {
+        event.preventDefault(); // Impede o envio do formulário tradicional
+
+        const form = event.target;
+        const url = form.action;
+
+        // Selecionar os inputs associados a este formulário específico
+        const boxNrInput = document.querySelector(`input[name="box_nr"][form="form-${id}"]`);
+        const diamReqInput = document.querySelector(`input[name="diam_requerido"][form="form-${id}"]`);
+
+        if (!boxNrInput || !diamReqInput) return;
+
+        // Construir os dados do formulário a enviar via POST
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+        formData.append('box_nr', boxNrInput.value.trim());
+        formData.append('diam_requerido', diamReqInput.value.trim());
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                // Atualiza visualmente os textos originais sem recarregar a página
+                document.getElementById(`span-box-nr-${id}`).textContent = boxNrInput.value.trim();
+                document.getElementById(`span-diam-req-${id}`).textContent = diamReqInput.value.trim();
+
+                // Fecha o modo de edição desta linha
+                disableEdit(id);
+
+                // Mostra notificação flutuante de sucesso
+                showToast(data.message || 'Dados atualizados com sucesso!', 'success');
+            } else {
+                // Erro de validação retornado pelo Django
+                showToast(data.error || 'Erro ao guardar dados.', 'error');
+            }
+        } catch (error) {
+            console.error('Erro de rede:', error);
+            showToast('Erro de comunicação com o servidor.', 'error');
+        }
+    }
+
+    // Função utilitária para criar alertas flutuantes elegantes temporários (Toasts)
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `px-4 py-3 rounded-lg shadow-lg text-white font-semibold flex items-center gap-2 transform translate-y-2 transition-all duration-300 opacity-0`;
+        
+        if (type === 'success') {
+            toast.classList.add('bg-green-600');
+        } else {
+            toast.classList.add('bg-red-600');
+        }
+
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Animação de entrada
+        setTimeout(() => {
+            toast.classList.remove('opacity-0', 'translate-y-2');
+        }, 10);
+
+        // Desaparecer após 4 segundos
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'translate-y-2');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 4000);
+    }
+</script>
+{% endblock %}
