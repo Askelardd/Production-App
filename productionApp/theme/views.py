@@ -909,15 +909,13 @@ def edit_nrbox_inline(request, die_id):
             # Se o utilizador alterou o número da caixa, gerimos a movimentação
             if old_box_nr != box_nr:
                 
-                # 1. Procurar se já existe a caixa de destino (QRData) para este pedido
-                # CORREÇÃO: Removemos o filtro de 'qt' para encontrar a caixa pela sua identidade real!
+                # Procurar se já existe a caixa de destino (QRData) para este pedido
                 existing_qr = QRData.objects.filter(
                     toma_order_nr=old_customer_qr.toma_order_nr,
                     toma_order_year=old_customer_qr.toma_order_year,
                     box_nr=box_nr
                 ).first()
 
-                # Double-check de segurança: tentamos encontrar também pela chave única 'toma_order_full'
                 target_toma_order_full = f"{old_customer_qr.toma_order_nr}-{old_customer_qr.toma_order_year}-{box_nr}"
                 if not existing_qr:
                     existing_qr = QRData.objects.filter(toma_order_full=target_toma_order_full).first()
@@ -1024,6 +1022,7 @@ def edit_qr_inline(request, qr_id):
         qr.box_nr = request.POST.get('box_nr')
         qr.qt = request.POST.get('qt')
         qr.inspected_by = request.POST.get('inspected_by')
+        qr.observations = request.POST.get('observations')
         
         # Datas precisam de atenção se vierem vazias
         p_start = request.POST.get('production_start')
@@ -1562,7 +1561,6 @@ def criarCaixa(request):
                             cone=f['cone'],
                             bearing=f['bearing'],
                             bearing_is_red=f['bearing_red'],
-                            observations=f['obs'],
                             modified_by=request.user.username
                         )
 
@@ -1735,7 +1733,6 @@ def adicionar_dies(request, qr_id):
                     'fieira_final': request.POST.get(f'fieira_final_{i}', ''),
                     'tol_max': request.POST.get(f'tol_max_{i}', ''),
                     'tol_min': request.POST.get(f'tol_min_{i}', ''),
-                    'observations': request.POST.get(f'observations_{i}', ''),
                     'cone': request.POST.get(f'cone_{i}', ''),
                     'bearing': request.POST.get(f'bearing_{i}', ''),
                     'bearing_red': (request.POST.get(f'bearing_red_{i}') == 'on'),
@@ -1764,7 +1761,6 @@ def adicionar_dies(request, qr_id):
                     fieira_final = request.POST.get(f'fieira_final_{i}')
                     tol_max = request.POST.get(f'tol_max_{i}')
                     tol_min = request.POST.get(f'tol_min_{i}')
-                    observations = request.POST.get(f'observations_{i}')
                     cone = request.POST.get(f'cone_{i}')
                     bearing = request.POST.get(f'bearing_{i}')
                     bearing_red = (request.POST.get(f'bearing_red_{i}') == 'on')
@@ -1782,7 +1778,6 @@ def adicionar_dies(request, qr_id):
                         orig_die_id = str(die_obj.die_id) if die_obj.die_id else ''
                         orig_job_id = str(die_obj.job_id) if die_obj.job_id else ''
                         orig_fieira_final = die_obj.fieira_final if die_obj.fieira_final is not None else ''
-                        orig_observations = die_obj.observations or ''
                         orig_cone = die_obj.cone or ''
                         orig_bearing = die_obj.bearing or ''
                         orig_bearing_red = bool(getattr(die_obj, 'bearing_is_red', False))
@@ -1796,7 +1791,6 @@ def adicionar_dies(request, qr_id):
                             str(diam_requerido or '') != str(orig_diam_requerido) or
                             (die_id or '') != orig_die_id or
                             (job_id or '') != orig_job_id or
-                            str(observations or '') != str(orig_observations) or
                             str(cone or '') != str(orig_cone) or
                             str(bearing or '') != str(orig_bearing) or
                             str(tol_min or '') != str(orig_tol_min) or
@@ -1811,7 +1805,6 @@ def adicionar_dies(request, qr_id):
                         die_obj.diam_requerido = diam_requerido or None
                         die_obj.die_id = die_id if die_id else None
                         die_obj.job_id = job_id if job_id else None
-                        die_obj.observations = observations
                         die_obj.cone = cone
                         die_obj.bearing = bearing
                         die_obj.bearing_is_red = bearing_red
@@ -1843,7 +1836,6 @@ def adicionar_dies(request, qr_id):
                             die_id=die_id if die_id else None,
                             job_id=job_id if job_id else None,
                             tolerance=tolerance,
-                            observations=observations,
                             cone=cone,
                             bearing=bearing,
                             bearing_is_red=bearing_red,
@@ -1879,7 +1871,6 @@ def adicionar_dies(request, qr_id):
                 'fieira_final': die.fieira_final if die.fieira_final is not None else '',
                 'tol_max': getattr(die.tolerance, 'max', ''),
                 'tol_min': getattr(die.tolerance, 'min', ''),
-                'observations': die.observations,
                 'cone': die.cone,
                 'bearing': die.bearing,
                 'bearing_red': getattr(die, 'bearing_is_red', False),  # <-- reflete BD
@@ -1895,7 +1886,6 @@ def adicionar_dies(request, qr_id):
                 'fieira_final': '',
                 'tol_max': '',
                 'tol_min': '',
-                'observations': '',
                 'cone': '',
                 'bearing': '',
                 'bearing_red': False,
@@ -1930,13 +1920,32 @@ def remove_die(request, die_id):
 
 @login_required
 def listar_qrcodes_geral(request):
-    estado = request.GET.get('estado', 'todos') # Pode ser 'todos', 'abertos' ou 'fechados'
-    search_query = (request.GET.get('q') or '').strip()
+    
+    #memorizar o 'q' e 'estado' para não perder a pesquisa ao navegar entre páginas ou fazer refresh
+    if request.method == "GET":
+        raw_q = request.GET.get('q')
+        raw_estado = request.GET.get('estado')
+
+        if raw_q is not None:
+
+            request.session['saved_q'] = raw_q.strip()
+            if raw_estado:
+                request.session['saved_estado'] = raw_estado
+        else:
+
+            saved_q = request.session.get('saved_q')
+            saved_estado = request.session.get('saved_estado', 'todos')
+
+            if saved_q:
+                return redirect(f"{request.path}?estado={saved_estado}&q={saved_q}")
+
+    search_query = request.session.get('saved_q', '')
+    estado = request.GET.get('estado', request.session.get('saved_estado', 'todos'))
+
     user_first_group = request.user.groups.first()
     user_group = user_first_group.name if user_first_group else ''
 
     # Para escalar com muitos registos, só pesquisamos quando houver query.
-    # Também limitamos o número de caixas retornadas para evitar páginas pesadas.
     all_qrcodes = QRData.objects.none()
     if search_query:
         all_qrcodes = (
@@ -1976,11 +1985,10 @@ def listar_qrcodes_geral(request):
 
         # 3. A MAGIA DO FILTRO: Saltar as iterações que não interessam consoante o estado
         if estado == 'fechados' and key not in pedidos_fechados:
-            continue # Salta para o próximo qr se quisermos os fechados e este não for
+            continue
             
         if estado == 'abertos' and key in pedidos_fechados:
-            continue # Salta para o próximo qr se quisermos os abertos e este estiver fechado
-
+            continue
 
         if key not in grouped_data:
             grouped_data[key] = {
@@ -1997,12 +2005,13 @@ def listar_qrcodes_geral(request):
 
     final_list = list(grouped_data.values())
 
+    # Garantir que importaste o Polimentos, ou usar uma alternativa se der erro
     tipo_choices = Polimentos._meta.get_field('tipo').choices
 
     qr_ids = list(all_qrcodes.values_list('id', flat=True))
     dies = dieInstance.objects.filter(customer_id__in=qr_ids)
 
-    # Construir um mapa die_id -> lista de trabalhos (tipo, subtipo, trabalhador)
+    # Construir um mapa die_id -> lista de trabalhos
     work_qs = DieWorkWorker.objects.filter(work__die__in=dies).select_related('worker', 'work', 'work__die')
     work_entries_map = defaultdict(list)
     for rel in work_qs:
@@ -2037,7 +2046,6 @@ def listar_qrcodes_geral(request):
         work_entry = {
             'work_type': work_label,
             'worker': worker_name,
-
         }
         work_entries_map[die_id].append(work_entry)
 
@@ -2047,17 +2055,14 @@ def listar_qrcodes_geral(request):
             for die in qr.die_instances.all():
                 die.work_entries = work_entries_map.get(die.id, [])
 
-    # Mensagem de fallback global (opcional)
     times_worked = None
   
-     
     if request.method == "POST":
         numero_serie = request.POST.get('numero_serie', '').strip()
         work_type = request.POST.get('tipo_trabalho', '').strip()
         work_subtypes = [subtipo for subtipo in request.POST.getlist('subtipo', []) if subtipo]
 
         errors = []
-
 
         if not numero_serie:
             errors.append("Número de série é obrigatório.")
@@ -2098,10 +2103,8 @@ def listar_qrcodes_geral(request):
             return redirect('listarDies')
         except Exception as e:
             messages.error(request, f"Erro ao adicionar trabalho: {str(e)}")
-
             return redirect('listarDies')
 
-    # Passamos o 'estado_atual' para o HTML para podermos pintar o botão ativo!
     context = {
         'grouped_qrcodes': final_list,
         'estado_atual': estado,
@@ -2111,9 +2114,7 @@ def listar_qrcodes_geral(request):
         'search_query': search_query,
     }
     
-    # Mantemos apenas 1 ficheiro HTML! Podes apagar os outros 2.
     return render(request, 'theme/listarDies.html', context)
-
 
 @login_required
 @require_POST
@@ -2122,39 +2123,70 @@ def update_dies_inline(request, die_id):
     field = (request.POST.get('field') or '').strip()
     value = (request.POST.get('value') or '').strip()
 
-    if field not in {'diam_desbastado', 'diam_min', 'diam_max'}:
-        return JsonResponse({'status': 'error', 'message': 'Campo inválido.'}, status=400)
+    if field not in {'diam_desbastado', 'diam_min', 'diam_max', 'diam_sugerido', 'observations'}:
+        return JsonResponse({'status': 'error', 'message': 'Campo não permitido.'}, status=400)
 
-    if not value:
-        return JsonResponse({'status': 'error', 'message': 'Valor obrigatório.'}, status=400)
+    # 1. TRATAMENTO PARA DIÂMETROS (Decimais)
+    if field != 'observations':
+        if not value:
+            return JsonResponse({'status': 'error', 'message': 'Valor obrigatório.'}, status=400)
+            
+        try:
+            valor_final = Decimal(value.replace(',', '.'))
+        except (InvalidOperation, TypeError):
+            return JsonResponse({'status': 'error', 'message': 'Valor numérico inválido.'}, status=400)
 
-    try:
-        decimal_value = Decimal(value.replace(',', '.'))
-    except (InvalidOperation, TypeError):
-        return JsonResponse({'status': 'error', 'message': 'Valor numérico inválido.'}, status=400)
+        if field == 'diam_desbastado':
+            die.diam_desbastado = valor_final
+        elif field == 'diam_min':
+            die.diam_min = valor_final
+        elif field == 'diam_max':
+            die.diam_max = valor_final
+        elif field == 'diam_sugerido':
+            die.diam_sugerido = valor_final
 
+    # 2. TRATAMENTO PARA OBSERVAÇÕES (Texto cumulativo)
+    else:
+        novo_texto = value.strip()
+        
+        if novo_texto: 
+            if die.observations:
+                valor_final = f"{die.observations} | {novo_texto}"
+            else:
+                valor_final = novo_texto
+                
+            die.observations = valor_final
+        else:
+            valor_final = die.observations or ''
+            novo_texto = "Nada" # Fallback apenas para o log não ficar vazio
 
-    if field == 'diam_desbastado':
-        die.diam_desbastado = decimal_value
-    elif field == 'diam_min':
-        die.diam_min = decimal_value
-    elif field == 'diam_max':
-        die.diam_max = decimal_value
     die.modified_by = request.user.username
-    die.save(update_fields=['diam_min', 'diam_max', 'diam_desbastado', 'modified_by'])
+    die.save(update_fields=[field, 'modified_by'])
 
-    
+    # 3. REGISTO NO LOG (Protegido contra textos gigantes)
+    if field == 'observations':
+        # Cortamos a nova observação aos 50 caracteres só para o registo no log
+        texto_log = novo_texto[:50] + '...' if len(novo_texto) > 50 else novo_texto
+        mensagem_log = f"O utilizador {request.user.username} adicionou a obs '{texto_log}' ao die {die.serial_number}."
+    else:
+        mensagem_log = f"O utilizador {request.user.username} atualizou {field} para {valor_final} no die {die.serial_number}."
 
-    globalLogs.objects.create(
-        user=request.user,
-        action=f"O utilizador {request.user.username} atualizou {field} para {decimal_value} no die {die.serial_number} (ID: {die.id}).",
-    )
+    # Boa prática: Envolver os logs num try/except para que um erro no log NUNCA impeça 
+    # o utilizador de trabalhar (e limitamos sempre a frase a 250 chars).
+    try:
+        globalLogs.objects.create(
+            user=request.user,
+            action=mensagem_log[:100] 
+        )
+    except Exception as e:
+        print(f"Erro ao gravar log: {e}")
 
     return JsonResponse({
         'status': 'success',
         'field': field,
-        'value': str(decimal_value),
+        'value': str(valor_final),
     })
+
 
 @login_required
 def create_caixa(request):
@@ -2568,17 +2600,18 @@ def export_qrcode_excel(request, qr_id):
             "Customer Order NR": qr.customer_order_nr,
             "Reception Date": qr.created_at.strftime("%d/%m/%Y"),
             "Shipping Date": "",  # Se existir no modelo, coloca aqui
-            "Diameter": qr.diameters,
-            "Tech Spec": die.diameter_text,
-            "SerialNr": die.serial_number,
+            "Diameter": '',
+            "Tech Spec": '',
+            "SerialNr": f"'{die.serial_number}",
+            "Original Ø": die.diameter_text or "",
             "Required Ø": die.diam_requerido or "",
-            "Suggested Ø": "",
+            "Suggested Ø": die.diam_sugerido or "",
             "Type of Die": die.die.get_die_type_display(),
             "Type of Job": die.job.get_job_display(),
             "Min Tol": die.tolerance.min if die.tolerance else "",
             "Max Tol": die.tolerance.max if die.tolerance else "",
-            "Min Ø": die.diam_max_min.min if die.diam_max_min else "",
-            "Max Ø": die.diam_max_min.max if die.diam_max_min else "",
+            "Min Ø": '',
+            "Max Ø": '',
             "Observations": die.observations or "",
             "BoxNR": qr.box_nr,
         })
@@ -2603,8 +2636,6 @@ def export_qrcode_excel(request, qr_id):
     return response
 
  
-
-
 @login_required
 def info_fieira(request, die_id):
     die = get_object_or_404(dieInstance, id=die_id)
@@ -2711,8 +2742,11 @@ def contar_dies_por_usuario(qr_id, user_id):
 @login_required
 def editar_pedido_inline(request, id):
     pedido = get_object_or_404(PedidosDiametro, id=id)
-    # Procuramos a instância da fieira associada ao QR Code do pedido
-    die = dieInstance.objects.filter(customer=pedido.qr_code).first()
+    serial_nr = pedido.serie_dies 
+
+    die = dieInstance.objects.filter(serial_number=serial_nr).first()
+    
+    print(f"Serial number da fieira associada ao pedido {pedido.id}: {serial_nr}")
     
     if request.method == "POST":
         novo_diametro_valor = request.POST.get('novo_diametro')
@@ -2721,43 +2755,34 @@ def editar_pedido_inline(request, id):
         # Validações
         if not novo_diametro_valor:
             messages.error(request, "O novo diâmetro é obrigatório.")
-            return render(request, 'theme/editar_pedido.html', {
-                'pedido': pedido,
-                'die': die,
-                'form_data': request.POST.dict()
-            })
+            return redirect('listarPedidosDiametro') # Sugestão: redirect costuma ser melhor aqui para não perderes o contexto
         
         if not diametro_min_valor:
             messages.error(request, "O diâmetro mínimo é obrigatório.")
-            return render(request, 'theme/editar_pedido.html', {
-                'pedido': pedido,
-                'die': die,
-                'form_data': request.POST.dict()
-            })
+            return redirect('listarPedidosDiametro')
         
         try:
+            # 1. Atualizar e guardar o pedido
             pedido.diametro_min = diametro_min_valor
             pedido.novo_diametro = novo_diametro_valor
             pedido.save()
 
+            # 2. Validar se a fieira foi encontrada
             if not die:
                 messages.error(request, "Fieira associada ao pedido não encontrada.")
-                return render(request, 'theme/editar_pedido.html', {
-                    'pedido': pedido,
-                    'die': die,
-                    'form_data': request.POST.dict()
-                })
+                return redirect('listarPedidosDiametro')
 
+            # 3. Atualizar e guardar a fieira (agora já vai funcionar!)
             die.new_diameter = novo_diametro_valor
             die.save()
 
-            # Tenta enviar email, mas não impede a continuação se falhar
+            # Tenta enviar email
             try:
                 send_mail(
                     subject=f"Novo diâmetro para o pedido {pedido.qr_code.toma_order_full}",
                     message=(f"Um novo pedido foi criado para o QR Code {pedido.qr_code.toma_order_full} com o novo diâmetro {novo_diametro_valor} e diâmetro mínimo {diametro_min_valor}."),
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=['qc1@toma.tools'],
+                    recipient_list=['qc@toma.tools'],
                 )
             except Exception as e:
                 messages.error(request, f"Erro ao enviar email: {str(e)}")
@@ -2772,19 +2797,14 @@ def editar_pedido_inline(request, id):
 
         except Exception as e:
             messages.error(request, f"Erro ao atualizar pedido: {str(e)}")
-            return render(request, 'theme/editar_pedido.html', {
-                'pedido': pedido,
-                'die': die,
-                'form_data': request.POST.dict()
-            })
-
-
+            return redirect('listarPedidosDiametro')
     
     return render(request, 'theme/editar_pedido.html', {
         'pedido': pedido,
         'die': die,
         'form_data': {}
     })
+
 
 @login_required
 def exportar_pedido_excel(request, id):
@@ -3162,7 +3182,7 @@ def diametroMenu(request, toma_order_full):
 
     if request.method == 'POST':
         # 2. Captura limpa
-        numero_str = request.POST.get('numeroAlterar', '').strip()
+        numero_str = 1
         diametro = request.POST.get('diametroAtual', '').strip()
         diametro_min = request.POST.get('diametroMin', '').strip()
         pedido_por = request.POST.get('pedidoPor', '').strip()
@@ -3181,8 +3201,7 @@ def diametroMenu(request, toma_order_full):
 
 
         # Checkboxes (Lista)
-        serie_dies_list = request.POST.getlist('serieDies')
-        serie_dies = ', '.join(serie_dies_list)
+        serie_dies = request.POST.get('serieDies')
         
         # Booleano seguro
         fieira_trabalhada_val = request.POST.get('fieiraTrabalhada', '').strip().lower()
@@ -3196,7 +3215,7 @@ def diametroMenu(request, toma_order_full):
                 'choices': observation_choices, 'form_data': request.POST
             })
 
-        if not serie_dies_list:
+        if not serie_dies:
             messages.error(request, "Tem de selecionar pelo menos uma fieira (matrícula) da lista.")
             return render(request, 'theme/diametroMenu.html', {
                 'qr_code': qr_code, 'dies_existentes': dies_existentes, 
@@ -4508,6 +4527,8 @@ def editProduct(request, produto_id):
 
 @login_required
 def observacoes_caixa(request, qr_id):
+    user=request.user
+
     # 1. Proteger contra IDs alterados no URL (Substitui o get_object_or_404)
     try:
         qr = QRData.objects.get(id=qr_id)
@@ -4530,10 +4551,10 @@ def observacoes_caixa(request, qr_id):
         try:
             # Se já existir texto antigo, juntamos o novo na linha de baixo
             if qr.observations_prod:
-                qr.observations_prod += f"\n\n{nova_observacao}"
+                qr.observations_prod += f"\n\n{nova_observacao} - ({user.username})"
             # Se a caixa ainda não tiver observações, guarda apenas o texto novo
             else:
-                qr.observations_prod = nova_observacao
+                qr.observations_prod = nova_observacao + f" - ({user.username})"
                 
             qr.save()
             
@@ -5050,29 +5071,50 @@ def upload_excel_view(request):
         excel_file = request.FILES['file']
         
         try:
-            # 1. Ler os dados gerais da Encomenda (linha 3 do Excel -> skiprows=1, nrows=1)
+            # 1. Ler os dados gerais da Encomenda (linha 3 -> skiprows=1)
             df_order = pd.read_excel(excel_file, skiprows=1, nrows=1)
-            order_row = df_order.iloc[0]
             
-            # 2. Ler os dados das Fieiras (a partir da linha 5 -> skiprows=3)
-            df_dies = pd.read_excel(excel_file, skiprows=3)
+            # 2. Ler as Fieiras. dtype={'SerialNr': str} FORÇA a coluna a ser lida 
+            # como texto, preservando todos os zeros à esquerda.
+            df_dies = pd.read_excel(excel_file, skiprows=3, dtype={'SerialNr': str})
 
-            # Extrair Informação do Cabeçalho
-            year = str(order_row.get('Year', timezone.now().year))
-            toma_order_nr = str(order_row.get('Toma Order NR', ''))
-            customer_name = str(order_row.get('Customer', ''))
-            customer_order_nr = str(order_row.get('Customer Order NR', ''))
+            # 3. Converter TODOS os 'NaN' (Not a Number do Pandas) para 'None' (Nulo do Python).
+            # O astype(object) é necessário para permitir que a grelha aceite o tipo None livremente.
+            df_order = df_order.astype(object).where(pd.notna(df_order), None)
+            df_dies = df_dies.astype(object).where(pd.notna(df_dies), None)
+
+            order_row = df_order.iloc[0]
+
+            # Extrair Informação do Cabeçalho com proteção contra valores vazios
+            y_val = order_row.get('Year')
+            # Se for lido como 2026.0 pelo excel, passamos a int e depois a string
+            year = str(int(y_val)) if y_val is not None else str(timezone.now().year)
+            
+            t_val = order_row.get('Toma Order NR')
+            toma_order_nr = str(t_val).strip() if t_val is not None else ''
+            
+            c_val = order_row.get('Customer')
+            customer_name = str(c_val).strip() if c_val is not None else ''
+            
+            co_val = order_row.get('Customer Order NR')
+            customer_order_nr = str(co_val).strip() if co_val is not None else ''
             
             reception_date = order_row.get('Reception Date')
             shipping_date = order_row.get('Shipping Date')
 
-            # Agrupar itens pela coluna BoxNR para criar os QRData respetivos
+            # --- SALVAGUARDA ---
+            # Como no teu print do Excel NÃO existe a coluna 'BoxNR', caso ela falte, 
+            # criamos uma virtual para o código não dar erro de Key no GroupBy.
+            if 'BoxNR' not in df_dies.columns:
+                df_dies['BoxNR'] = '1'
+
+            # Agrupar itens pela coluna BoxNR
             for box_nr, group in df_dies.groupby('BoxNR'):
-                qt = len(group) # Quantidade de fieiras nesta caixa
+                qt = len(group) 
                 
-                # Tratar as datas (Reception Date -> created_at / Shipping Date -> envio)
-                created_at = pd.to_datetime(reception_date) if not pd.isna(reception_date) else timezone.now()
-                envio = pd.to_datetime(shipping_date) if not pd.isna(shipping_date) else None
+                # Tratar as datas com segurança
+                created_at = pd.to_datetime(reception_date) if reception_date is not None else timezone.now()
+                envio = pd.to_datetime(shipping_date) if shipping_date is not None else None
                 
                 # Criar ou obter a Encomenda (QRData)
                 qr_data, created = QRData.objects.get_or_create(
@@ -5083,50 +5125,52 @@ def upload_excel_view(request):
                         'customer': customer_name,
                         'customer_order_nr': customer_order_nr,
                         'qt': qt,
-                        'diameters': 'Vários', # Substituir pela lógica que preferires
+                        'diameters': 'Vários',
                         'created_at': created_at,
                         'envio': envio,
                     }
                 )
 
-                # Iterar sobre as linhas desta caixa para criar as dieInstances
+                # Iterar sobre as linhas desta caixa
                 for index, row in group.iterrows():
-                    # Obter/Criar Job (Ex: 'R')
-                    job_val = str(row.get('Type of Job', '')).strip()
+                    # Obter/Criar Job
+                    job_raw = row.get('Type of Job')
+                    job_val = str(job_raw).strip() if job_raw is not None else ''
                     job_instance, _ = Jobs.objects.get_or_create(job=job_val)
                     
-                    # Obter/Criar Die Type (Ex: 'ND')
-                    die_val = str(row.get('Type of Die', '')).strip()
+                    # Obter/Criar Die Type
+                    die_raw = row.get('Type of Die')
+                    die_val = str(die_raw).strip() if die_raw is not None else ''
                     die_instance, _ = Die.objects.get_or_create(die_type=die_val)
                     
-                    # Obter/Criar Tolerância
-                    # Obter/Criar Tolerância de forma segura contra duplicados
+                    # Tolerância (graças ao tratamento inicial, os NaN já são None nativos)
                     min_tol = row.get('Min Tol')
                     max_tol = row.get('Max Tol')
-                    
-                    min_val = None if pd.isna(min_tol) else min_tol
-                    max_val = None if pd.isna(max_tol) else max_tol
 
-                    # Vai buscar o primeiro que encontrar. Se não existir nenhum, cria um.
-                    tolerance_instance = Tolerance.objects.filter(min=min_val, max=max_val).first()
+                    tolerance_instance = Tolerance.objects.filter(min=min_tol, max=max_tol).first()
                     if not tolerance_instance:
-                        tolerance_instance = Tolerance.objects.create(min=min_val, max=max_val)
+                        tolerance_instance = Tolerance.objects.create(min=min_tol, max=max_tol)
                     
-                    # Tratar "Final Die" (Se F = True, senão False)
-                    final_die_val = str(row.get('Final Die', '')).strip().upper()
+                    # Tratar "Final Die"
+                    final_die_raw = row.get('Final Die')
+                    final_die_val = str(final_die_raw).strip().upper() if final_die_raw is not None else ''
                     fieira_final = True if final_die_val == 'F' else False
                     
-                    # Tratar Min Ø / Max Ø (Se for 0 ou vazio, fica nulo)
+                    # Tratar Min Ø / Max Ø
                     min_dia = row.get('Min Ø')
-                    min_dia = None if pd.isna(min_dia) or min_dia == 0 else min_dia
+                    min_dia = None if not min_dia or min_dia == 0 else min_dia
                     
                     max_dia = row.get('Max Ø')
-                    max_dia = None if pd.isna(max_dia) or max_dia == 0 else max_dia
+                    max_dia = None if not max_dia or max_dia == 0 else max_dia
+
+                    # Extrair o Serial Number com garantia que é string e mantendo os zeros!
+                    sn_raw = row.get('SerialNr')
+                    serial_number_str = str(sn_raw).strip() if sn_raw is not None else ''
 
                     # Criar a instância da Fieira
                     dieInstance.objects.create(
                         customer=qr_data,
-                        serial_number=row.get('SerialNr'),
+                        serial_number=serial_number_str,
                         diameter_text=row.get('Original Ø'),
                         diam_requerido=row.get('Required Ø'),
                         job=job_instance,
@@ -5135,8 +5179,7 @@ def upload_excel_view(request):
                         fieira_final=fieira_final,
                         diam_min=min_dia,
                         diam_max=max_dia,
-                        observations=row.get('Observations'),
-                        # Campos obrigatórios definidos temporariamente:
+                        observations=row.get('Observations'), # Passa o None limpo, BD assume nulo
                         cone='N/A', 
                         bearing='N/A'
                     )

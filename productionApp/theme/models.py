@@ -65,11 +65,11 @@ class ProductDeleteLog(models.Model):
 
 class Jobs(models.Model):
     JOB_CHOICES = [
-        ('F', 'Final(F)'),
-        ('R', 'Recondicionado(R)'),
-        ('P', 'Polir(P)'),
-        ('W', 'Com o mesmo diametro(W)'),
-        ('N', 'Novo(N)'),    
+        ('F', 'F'),
+        ('R', 'R'),
+        ('P', 'P'),
+        ('W', 'W'),
+        ('N', 'N'),    
     ]
     
     job = models.CharField(max_length=1, choices=JOB_CHOICES, unique=True)
@@ -181,6 +181,7 @@ class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
     serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
     diameter_text = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)  # <-- Novo campo
+    diam_sugerido = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     cone = models.CharField(max_length=20)  
     bearing = models.CharField(max_length=100)  
     bearing_is_red = models.BooleanField(default=False)  

@@ -3,60 +3,91 @@
 {% block title %}Lista de Fieiras Partidas{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-black mb-8">Fieiras Partidas</h1>
+<div class="min-h-screen bg-gray-50 p-6">
+    <div class="max-w-9xl mx-auto mb-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Fieiras Partidas</h1>
+                <p class="text-sm text-gray-500 mt-1">Gestão e registo de fieiras partidas e observações</p>
+            </div>
+            
+            <div class="relative w-full md:w-96">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" placeholder="Pesquisar QR Code, Partido..."
+                    class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
+            </div>
+        </div>
+    </div>
 
-<div class="overflow-x-auto w-full max-w-6xl bg-white rounded-lg shadow-lg p-6">
-    <table class="min-w-full table-auto text-xs md:text-sm text-left">
-        <thead class="bg-blue-600 text-white uppercase font-semibold text-sm">
-            <tr>
-                <th class="px-4 py-3">QR Code</th>
-                <th class="px-4 py-3">Partido</th>
-                <th class="px-4 py-3">Série Dies Partidos</th>
-                <th class="px-4 py-3">Observações</th>
-                <th class="px-4 py-3">Criado em</th>
-                <th class="px-4 py-3">Criado por</th>
-                <th class="px-4 py-3">Feito</th>
-            </tr>
-        </thead>
-        <tbody class="text-gray-800">
-            {% for numero_partido in numero_partidos %}
-            <tr class="border-b hover:bg-gray-100 transition-colors">
-                <td class="px-4 py-2">{{ numero_partido.qr_code.toma_order_nr }}</td>
-                <td class="px-4 py-2">{{ numero_partido.partido }}</td>
-                <td class="px-4 py-2">
-                    {% if numero_partido.serie_dies_partidos %}
-                        {{ numero_partido.serie_dies_partidos }}
-                    {% else %}
-                        <span class="text-gray-400 italic">Não especificado</span>
-                    {% endif %}
-                </td>
-                <td class="px-4 py-2">{{ numero_partido.observations }}</td>
-                <td class="px-4 py-2">{{ numero_partido.created_at|date:"d/m/Y H:i" }}</td>
-                <td class="px-4 py-2">{{ numero_partido.criado_por.username|default:"—" }}</td>
-                <td class="px-4 py-2 text-center">
-                    <label class="inline-flex items-center gap-2">
-                        <input
-                        type="checkbox"
-                        class="h-4 w-4 accent-green-600 js-toggle-feito"
-                        data-url="{% url 'toggle_partido_feito_ajax' numero_partido.id %}"
-                        {% if numero_partido.checkbox %}checked{% endif %}
-                        />
-                        <span class="text-sm text-gray-700 js-toggle-label">
-                        {% if numero_partido.checkbox %}Sim{% else %}Não{% endif %}
-                        </span>
-                    </label>
-                    </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5" class="text-center text-gray-500 py-4">Nenhum partido cadastrado.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="max-w-9xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200" id="fieirasTable">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">QR Code</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Partido</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Série Dies Partidos</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Observações</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado em</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado por</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Feito</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                    {% for numero_partido in numero_partidos %}
+                    <tr class="hover:bg-blue-50 transition-colors group data-row">
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ numero_partido.qr_code.toma_order_nr }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ numero_partido.partido }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">
+                            {% if numero_partido.serie_dies_partidos %}
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded-md font-medium text-xs border border-gray-200">
+                                    {{ numero_partido.serie_dies_partidos }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-400 italic text-xs">Não especificado</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ numero_partido.observations|default:"—" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ numero_partido.created_at|date:"d/m/Y H:i" }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 font-medium">{{ numero_partido.criado_por.username|default:"—" }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <label class="inline-flex items-center justify-center gap-2 cursor-pointer">
+                                <input
+                                type="checkbox"
+                                class="h-4 w-4 accent-blue-600 rounded border-gray-300 cursor-pointer transition-transform js-toggle-feito"
+                                data-url="{% url 'toggle_partido_feito_ajax' numero_partido.id %}"
+                                {% if numero_partido.checkbox %}checked{% endif %}
+                                />
+                                <span class="text-sm font-medium text-gray-700 js-toggle-label w-8 text-left">
+                                {% if numero_partido.checkbox %}Sim{% else %}Não{% endif %}
+                                </span>
+                            </label>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr class="empty-state">
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                </svg>
+                                <span class="text-base font-medium">Nenhum partido cadastrado.</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
 <script>
-         // Lê o csrftoken do cookie (padrão Django)
+    // --- LÓGICA DO CHECKBOX (Original) ---
     function getCookie(name) {
         const value = `; ${document.cookie}`;
         const parts = value.split(`; ${name}=`);
@@ -70,7 +101,6 @@
         else el.classList.remove('opacity-60', 'cursor-not-allowed');
     }
 
-    // Delegação: escuta mudanças em qualquer checkbox com a classe .js-toggle-feito
     document.addEventListener('change', async (e) => {
         const input = e.target.closest('.js-toggle-feito');
         if (!input) return;
@@ -79,39 +109,48 @@
         if (!url) return;
 
         const label = input.closest('label')?.querySelector('.js-toggle-label');
-        const prevChecked = !input.checked ? true : false; // valor anterior caso precise reverter
-        // (na verdade, prevChecked deve ser o inverso do estado atual)
         const previous = !input.checked;
 
         setDisabled(input, true);
 
         try {
-        const resp = await fetch(url, {
-            method: 'POST',
-            headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({ checked: input.checked })
-        });
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({ checked: input.checked })
+            });
 
-        if (!resp.ok) throw new Error('Erro na resposta do servidor');
+            if (!resp.ok) throw new Error('Erro na resposta do servidor');
 
-        const data = await resp.json();
-        if (!data.ok) throw new Error('Resposta JSON sem ok=true');
+            const data = await resp.json();
+            if (!data.ok) throw new Error('Resposta JSON sem ok=true');
 
-        if (label) label.textContent = data.label || (data.checked ? 'Sim' : 'Não');
+            if (label) label.textContent = data.label || (data.checked ? 'Sim' : 'Não');
         } catch (err) {
-        // Reverte estado se falhar
-        input.checked = previous;
-        if (label) label.textContent = previous ? 'Sim' : 'Não';
-        console.error(err);
-        // feedback rápido (opcional substituir por toast)
-        alert('Não foi possível atualizar. Tenta novamente.');
+            input.checked = previous;
+            if (label) label.textContent = previous ? 'Sim' : 'Não';
+            console.error(err);
+            alert('Não foi possível atualizar. Tenta novamente.');
         } finally {
-        setDisabled(input, false);
+            setDisabled(input, false);
         }
     });
 
+    // --- NOVA LÓGICA DE PESQUISA (FRONTEND) ---
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const term = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#fieirasTable tbody tr.data-row');
+            
+            rows.forEach(row => {
+                const textContent = row.textContent.toLowerCase();
+                row.style.display = textContent.includes(term) ? '' : 'none';
+            });
+        });
+    }
 </script>
 {% endblock %}

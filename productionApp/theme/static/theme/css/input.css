@@ -1,2 +1,9 @@
 @import "tailwindcss";
+
+/* 1. Plugins */
 @plugin "daisyui";
+
+/* 2. Caminhos ajustados (4 níveis acima) */
+@source "../../../../theme/templates/**/*.html";
+@source "../../../../productionApp/templates/**/*.html";
+@source "../../../../templates/**/*.html";
