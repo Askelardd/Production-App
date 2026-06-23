@@ -52,7 +52,7 @@
 
   <!-- Tabela scrollável -->
   <p class="mb-2 text-sm text-gray-600">Clique em Shift + scroll do rato para dar Scroll horizontalmente</p>
-  <div id="tableScroller" class="overflow-auto max-h-[70vh] w-full max-w-7xl bg-white rounded-lg shadow-lg p-6">
+  <div id="tableScroller" class="overflow-auto max-h-[70vh] w-full max-w-9xl bg-white rounded-lg shadow-lg p-6">
     <table id="ordersTable" class="min-w-full table-auto border-collapse text-xs md:text-sm text-left">
       <thead class="bg-blue-600 text-white uppercase font-semibold text-sm sticky top-0 z-20">
         <tr>
@@ -80,61 +80,66 @@
             <td class="px-4 py-2">{{ o.courier }}</td>
             <td class="px-4 py-2">{{ o.shipping_date|default:"—" }}</td>
             <td class="px-4 py-2">{{ o.arriving_date|default:"—" }}</td>
-            <td class="px-4 py-2">
-              {% if o.orders_coming.all %}
-                <ul class="list-disc list-inside space-y-1">
-                  {% for oc in o.orders_coming.all %}
-                    <li>
-                      <a href="{% url 'editOrdersComing' oc.id %}" class="text-blue-600 hover:underline">
-                        {{ oc.order|linebreaksbr|safe|cut:"<br />"|truncatechars:40 }}
-                      </a>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <span class="text-gray-400">—</span>
-              {% endif %}
-            </td>
-            <td class="px-4 py-2">
-              {% if o.orders_coming.all %}
-                <ul class="space-y-1">
-                  {% for oc in o.orders_coming.all %}
-                    <li>
-                      {% if o.plant_fk|lower != 'toma' %}
-                        {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent or oc.conoptica or oc.days_2_3 or oc.days_3_4 or oc.recondicioning or oc.semifinished or oc.casing or oc.pin %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800 whitespace-nowrap">
-                          Have Tasks
-                        </span>
-                        {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-700 whitespace-nowrap">
-                          No Tasks
-                        </span>
-                        {% endif %}
+            <td class="px-4 py-2 align-top">
+            {% if o.orders_coming.all %}
+              <div class="flex flex-col gap-1">
+                {% for oc in o.orders_coming.all %}
+                  <div class="flex items-center min-h-[28px]">
+                    <span class="mr-2 text-gray-700 font-bold">•</span>
+                    <a href="{% url 'editOrdersComing' oc.id %}" class="text-blue-600 hover:underline">
+                      {{ oc.order|linebreaksbr|safe|cut:"<br />"|truncatechars:40 }}
+                    </a>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+
+          <td class="px-4 py-2 align-top">
+            {% if o.orders_coming.all %}
+              <div class="flex flex-col gap-1">
+                {% for oc in o.orders_coming.all %}
+                  <div class="flex items-center min-h-[28px]">
+                    {% if o.plant_fk|lower != 'toma' %}
+                      {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent or oc.conoptica or oc.days_2_3 or oc.days_3_4 or oc.recondicioning or oc.semifinished or oc.casing or oc.pin %}
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 whitespace-nowrap">
+                        Have Tasks
+                      </span>
                       {% else %}
-
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 whitespace-nowrap">
+                        No Tasks
+                      </span>
                       {% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <span class="text-gray-400">—</span>
-              {% endif %}
-            </td>
-            <td class="px-4 py-2">
-              {% for oc in o.orders_coming.all %}
-                {% if o.plant_fk.name|lower != 'toma' %}
-                  {% if oc in ordersComing %}
-                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                      {% if oc.done == True %}Done{% else %}Pending{% endif %}
-                    </span>
-                  {% endif %}
-                {%else%}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
 
-                {% endif %}
-              {% empty %}
-                <span class="text-gray-400">—</span>
-              {% endfor %}
-            </td>
+          <td class="px-4 py-2 align-top">
+            {% if o.orders_coming.all %}
+              <div class="flex flex-col gap-1">
+                {% for oc in o.orders_coming.all %}
+                  <div class="flex items-center min-h-[28px]">
+                    {% if o.plant_fk.name|lower != 'toma' %}
+                      {% if oc in ordersComing %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 whitespace-nowrap">
+                          {% if oc.done == True %}Done{% else %}Pending{% endif %}
+                        </span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
             <td class="px-4 py-2">{{ o.comment|linebreaksbr|default:"—" }}</td>
             <td class="px-4 py-2">
               {% for f in o.files.all %}

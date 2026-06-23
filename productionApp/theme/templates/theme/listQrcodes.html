@@ -138,7 +138,8 @@
                       <th class="py-2">Criado Em</th>
                       <th class="py-2">Por</th>
                       <th class="py-2">Inspecionado Por</th>
-                      <th class="py-2 text-center">Editar</th>
+                      <th class="py-2 text-center">Observações</th>
+                      <th class="py-2 text-center">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -169,6 +170,10 @@
                         <td class="py-3">
                           <span class="view-mode">{{ qr.inspected_by|default:'-' }}</span>
                           <input type="text" form="form-{{ qr.id }}" name="inspected_by" value="{{ qr.inspected_by }}" class="edit-mode hidden border border-blue-300 rounded w-full px-1" />
+                        </td>
+                        <td class="py-3">
+                          <span class="view-mode">{{ qr.observations|default:'-' }}</span>
+                          <input type="text" form="form-{{ qr.id }}" name="observations" value="{{ qr.observations }}" class="edit-mode hidden border border-blue-300 rounded w-full px-1" />
                         </td>
                         <td class="py-3 text-center">
                           {% if request.user.groups.all.0.name in 'Q-Office Administracao' %}

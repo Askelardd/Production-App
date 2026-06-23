@@ -1,10 +1,10 @@
-{% extends 'theme/base.html' %}
+﻿{% extends 'theme/base.html' %}
 {% block title %}
   Pedidos em Produção
 {% endblock %}
 
 {% block content %}
-  <div class="min-h-screen bg-gray-50 p-6">
+  <div class="h-full w-full bg-gray-50 p-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex flex-col gap-1 mb-4 flex-1">
         <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos em Produção</h1>
@@ -89,16 +89,16 @@
       <button id="polimentos" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap h-fit">Criar Trabalho</button>
     </div>
 
-    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="max-w-9xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200 text-sm" id="mainTable">
           <thead class="bg-gray-100">
             <tr>
               <th class="w-10 px-4 py-4"></th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Nr. Encomenda</th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Toma</th>
-              <th class="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Nr. Encomenda</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Toma</th>
+              <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
               <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total Peças</th>
               <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Caixas</th>
 
@@ -155,14 +155,14 @@
                     <table class="min-w-full divide-y divide-gray-100 text-xs md:text-sm">
                       <thead class="bg-gray-50">
                         <tr>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Caixa</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Qtd</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Produção</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Datas Envio</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Localização</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Observações</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500">Inspecionado Por</th>
-                          <th class="px-4 py-3 text-left font-medium text-gray-500 w-1/3">Criado Por</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Caixa</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Qtd</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Datas Produção</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Datas Envio</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Localização</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Observações</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500">Inspecionado Por</th>
+                          <th class="px-4 py-3 text-center font-medium text-gray-500 w-1/3">Criado Por</th>
                           <th class="px-4 py-3 text-center font-medium text-gray-500">Ações</th>
                         </tr>
                       </thead>
@@ -240,9 +240,9 @@
                             </td>
                           </tr>
 
-                          <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50/80 border-t border-b border-gray-200 shadow-inner">
+                          <tr id="dies-{{ qr.id }}" class="hidden bg-gray-50/80 border-t border-b border-gray-200 shadow-inner text-center align-middle">                            
                             <td colspan="9" class="p-6">
-                              <div class="max-w-6xl mx-auto">
+                              <div class="max-w-9xl mx-auto">
                                 <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                                   <svg class="fa-solid fa-layer-group w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m-15 0a2.25 2.25 0 0 0-1.5 2.122v.878m15 0A2.25 2.25 0 0 1 21 12.878v.878m-16.5 0a2.25 2.25 0 0 0-1.5 2.122v.878m16.5 0a2.25 2.25 0 0 1 1.5 2.122v.878M3 18.75a2.25 2.25 0 0 0 2.25 2.25h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-4.75A2.25 2.25 0 0 1 5.25 11.75h13.5A2.25 2.25 0 0 1 21 14v4.75" />
@@ -280,32 +280,40 @@
                                 {% endif %}
 
                                 {% if qr.die_instances.all %}
-                                  <table>
+                                  <table class="w-full text-center">
                                     <thead>
                                       <tr class="divide-y divide-gray-200">
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Serial Nr.</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Diam. Original</th>
-                                        <th class="px-4 py-2 text-left font-bold text-black-500">Diam. Desbastado</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Diam. Requerido</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Trabalho</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Tipo Die</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Final</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Tolerâncias</th>
-                                        <th class="px-4 py-2 text-left font-bold text-black-500">Diam Min/Max</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Observações</th>
-                                        <th class="px-4 py-2 text-left font-medium text-gray-500">Trabalhados</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Serial Nr.</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Diam. Original</th>
+                                        <th class="px-4 py-2 text-center font-bold text-black-500">Diam. Desbastado</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Diam. Requerido</th>
+                                        <th class="px-4 py-2 text-center font-bold text-black-500">Diam. Sugerido</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Trabalho</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Tipo Die</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Final</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Tolerâncias</th>
+                                        <th class="px-4 py-2 text-center font-bold text-black-500">Diam Min/Max</th>
+                                        <th class="px-4 py-2 text-center font-bold text-black-500">Observações</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Trabalhados</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Ações</th>
                                       </tr>
                                     </thead>
-
                                     <tbody>
-                                      {% for die in qr.die_instances.all %}
-                                        <tr class="divide-y divide-gray-100" data-serial-number="{{ die.serial_number|default:''|upper }}" data-box-number="{{ qr.box_nr }}" data-toma-order-nr="{{ qr.toma_order_nr|default:''|upper }}">
+                                    {% for die in qr.die_instances.all %}
+                                        <tr class="divide-y divide-gray-100 {% if die.diam_sugerido %} bg-yellow-100 {% elif die.partida %} bg-red-300 {% elif die.new_diameter %} bg-green-100 {% endif %}" 
+                                          data-serial-number="{{ die.serial_number|default:''|upper }}" 
+                                          data-box-number="{{ qr.box_nr }}" 
+                                          data-toma-order-nr="{{ qr.toma_order_nr|default:''|upper }}">
+
                                           <td class="px-4 py-2 font-mono text-blue-700">{{ die.serial_number }}</td>
                                           <td class="px-4 py-2 text-gray-600">{{ die.diameter_text }}</td>
                                           <td class="px-4 py-2 text-gray-600">
-                                            <span class="editable-die-field cursor-pointer rounded px-1 hover:bg-blue-50" data-field="diam_desbastado" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_desbastado|default:'-' }}</span>
+                                            <span class="editable-die-field cursor-pointer rounded px-1 " data-field="diam_desbastado" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_desbastado|default:'-' }}</span>
                                           </td>
-                                          <td class="px-4 py-2 text-gray-600">{{ die.diam_requerido }}</td>
+                                          <td class="px-4 py-2 text-gray-600">{{ die.diam_requerido }} {% if die.new_diameter%} | {{ die.new_diameter }}{% endif %}</td>
+                                          <td class="px-4 py-2 text-gray-600">
+                                            <span class="editable-die-field cursor-pointer rounded px-1 " data-field="diam_sugerido" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_sugerido|default:'-' }}</span>
+                                          </td>
                                           <td class="px-4 py-2 text-gray-600">{{ die.die.die_type }}</td>
                                           <td class="px-4 py-2 text-gray-600">{{ die.job.get_job_display }}</td>
                                           <td class="px-4 py-2 {% if die.fieira_final == True %}
@@ -316,14 +324,22 @@
                                               
                                                text-gray-600
 
-                                            {% endif %}">{{ die.fieira_final|yesno:'Sim,Não' }}</td>
+                                            {% endif %}">{{ die.fieira_final|yesno:'Sim,Não' }}
+                                          </td>
                                           <td class="px-4 py-2 text-gray-600">{{ die.tolerance.min }} / {{ die.tolerance.max }}</td>
                                           <td class="px-4 py-2 text-gray-600">
-                                            <span class="editable-die-field cursor-pointer rounded px-1 hover:bg-blue-50" data-field="diam_min" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_min|default:'-' }}</span>
+                                            <span class="editable-die-field cursor-pointer rounded px-1 " data-field="diam_min" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_min|default:'-' }}</span>
                                             /
-                                            <span class="editable-die-field cursor-pointer rounded px-1 hover:bg-blue-50" data-field="diam_max" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_max|default:'-' }}</span>
+                                            <span class="editable-die-field cursor-pointer rounded px-1 " data-field="diam_max" data-url="{% url 'update_dies_inline' die.id %}">{{ die.diam_max|default:'-' }}</span>
                                           </td>
-                                          <td class="px-4 py-2 text-gray-600">{{ die.observations|default:'-' }}</td>
+                                          <td class="px-4 py-2 text-gray-600 max-w-xs whitespace-normal break-words">
+                                              <span class="editable-die-field cursor-pointer rounded px-1 inline-block w-full" 
+                                                    data-field="observations" 
+                                                    data-type="text"
+                                                    data-url="{% url 'update_dies_inline' die.id %}">
+                                                  {{ die.observations|default:'-' }}
+                                              </span>
+                                          </td>
                                           <td class="px-4 py-2 text-gray-600">
                                             {% if die.work_entries %}
                                               <ul class="text-xs list-disc list-inside">
@@ -338,6 +354,10 @@
                                             {% else %}
                                               -
                                             {% endif %}
+                                          </td>
+                                          <td class="px-4 py-2">
+                                            <a href="{% url 'enviar_fieira' die.id %}" class="flex-1 text-center bg-blue-50 border border-blue-200 text-blue-700 py-1 rounded hover:bg-blue-100 text-xs font-medium transition-colors">Enviar</a>
+                                            <a href="{% url 'infoFieira' die.id %}" class="flex-1 text-center bg-purple-50 border border-purple-200 text-purple-700 py-1 rounded hover:bg-purple-100 text-xs font-medium transition-colors">Tempo</a>
                                           </td>
                                         </tr>
                                       {% endfor %}
@@ -362,7 +382,7 @@
               </tr>
             {% empty %}
               <tr>
-                <td colspan="7" class="px-6 py-10 text-center text-gray-500">Pesquisa pelo número de série, toma order ou qualquer outro para ver os dados.</td>
+                <td colspan="9" class="px-6 py-10 text-center text-gray-500">Pesquisa pelo número de série, toma order ou qualquer outro para ver os dados.</td>
               </tr>
             {% endfor %}
           </tbody>
@@ -633,16 +653,32 @@
             const field = this.dataset.field
             const updateUrl = this.dataset.url
     
-            const input = document.createElement('input')
-            input.type = 'number'
-            input.step = '0.0001'
-            input.value = currentValue
-            input.className = 'w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black'
+// Lemos o atributo 'data-type' do elemento que foi clicado. 
+            // Se não existir, assumimos 'number' por defeito (para não estragar os diâmetros antigos).
+            const inputType = this.getAttribute('data-type') || 'number';
+            const input = document.createElement('input');
+            input.type = inputType;
+            
+            // 🔴 A MAGIA ACONTECE AQUI:
+            // Se for número (diâmetro), mostramos o valor atual para ele poder editar.
+            // Se for texto (observação), mostramos a caixa VAZIA para ele só adicionar o novo!
+            input.value = inputType === 'text' ? '' : currentValue;
+            
+            if (inputType === 'number') {
+                input.step = '0.0001';
+            } else {
+                // Colocamos uma dica na caixa vazia para o utilizador não se assustar
+                input.placeholder = 'Adicionar nova observação...'; 
+            }
+
+            input.className = inputType === 'text' 
+                ? 'w-full min-w-[200px] px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black' 
+                : 'w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 text-black';
     
-            this.innerHTML = ''
-            this.appendChild(input)
-            input.focus()
-            input.select()
+            this.innerHTML = '';
+            this.appendChild(input);
+            input.focus();
+            input.select();
     
             const save = async () => {
               const newValue = input.value.trim()

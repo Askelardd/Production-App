@@ -8,15 +8,15 @@
     <div class="card w-full max-w-3xl bg-white/70 backdrop-blur-md shadow-2xl border border-gray-100">
       <div class="card-body p-6 sm:p-10">
         <div class="flex items-center gap-5 mb-8 pb-6 border-b border-gray-200/60">
-          <div class="p-3 bg-neutral text-neutral-content rounded-2xl shadow-md">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+          <div class="p-3 bg-neutral text-neutral-content rounded-2xl shadow-md bg-white">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="black" class="w-8 h-8">
               <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.31c-.195 0-.382-.078-.52-.217L13.06 6.31Z" />
             </svg>
           </div>
           <div>
             <h1 class="text-2xl font-black text-gray-800 tracking-tight">Registar Trabalhos</h1>
             <p class="text-gray-500 font-medium mt-1 text-sm">
-              Caixa de Referência: <span class="badge badge-neutral font-mono ml-1 shadow-sm">{{ pedido }}</span>
+              Caixa de Referência: <span class="badge bg-white text-black border-white badge-neutral font-mono ml-1 shadow-sm">{{ pedido }}</span>
             </p>
           </div>
         </div>
@@ -60,10 +60,10 @@
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-gray-50/50 border border-gray-100 shadow-inner">
               {% for die in dies %}
-                <label class="cursor-pointer flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:bg-neutral hover:text-neutral-content hover:border-neutral transition-all duration-200 group">
-                  <input type="checkbox" name="serieDies" value="{{ die.id }}" class="checkbox checkbox-sm checkbox-neutral group-hover:border-white [--chkbg:white] [--chkfg:black]" />
-                  <span class="label-text font-semibold text-gray-700 group-hover:text-black tracking-wide">{{ die.serial_number }}</span>
-                </label>
+              <label class="cursor-pointer flex items-center gap-4 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm hover:bg-gray-200 hover:border-gray-300 hover:shadow transition-all duration-200">
+                <input type="checkbox" name="serieDies" value="{{ die.id }}" class="checkbox border-gray-300 rounded-md checked:border-gray-300 [--chkbg:white] [--chkfg:black]" />
+                <span class="font-bold text-slate-800 tracking-wide text-base">{{ die.serial_number }}</span>
+              </label>
               {% empty %}
                 <div class="col-span-full py-6 text-center text-gray-500 italic flex flex-col items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 opacity-50">
@@ -75,8 +75,8 @@
           </div>
 
           <div class="card-actions justify-end mt-8 pt-4">
-            <button type="submit" id="add_workers" class="btn btn-neutral w-full sm:w-auto px-8 shadow-lg hover:scale-[1.02] transition-transform">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2">
+            <button type="submit" id="add_workers" class="btn btn-neutral w-full sm:w-auto px-8 shadow-lg hover:scale-[1.02] bg-transparent border-white text-black transition-transform">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="white" class="w-5 h-5 mr-2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
               </svg>Adicionar Trabalhos
             </button>
