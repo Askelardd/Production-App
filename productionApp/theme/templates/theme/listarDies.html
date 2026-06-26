@@ -138,11 +138,7 @@
               </tr>
 
               <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50 shadow-inner">
-                <td colspan="{% if user_group != 'Producao' %}
-                    8
-                  {% else %}
-                    7
-                  {% endif %}"
+                <td colspan="8"
                   class="p-4 md:p-6">
                   <div class="bg-white rounded-lg border border-gray-200 overflow-hidden ml-4 md:ml-10">
                     <div class="bg-blue-50/50 px-4 py-2 border-b border-blue-100 flex items-center gap-2">
@@ -202,14 +198,13 @@
                                     </svg>
                                   </a>
 
-                                  {% if user_group != 'Producao' %}
+                                  
                                     <a href="{% url 'diametroMenu' qr.toma_order_full %}" title="Pedido Diametro" class="p-1.5 text-green-500 hover:bg-green-50 rounded">
                                       <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                         <circle cx="12" cy="12" r="8" stroke-linecap="round" stroke-linejoin="round" />
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15" />
                                       </svg>
                                     </a>
-                                  {% endif %}
 
                                   <a href="{% url 'partidosMenu' qr.toma_order_full %}" title="Partidos" class="p-1.5 text-red-500 hover:bg-red-50 rounded">
                                     <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -233,6 +228,12 @@
                                   <a href="{% url 'observacoes_caixa' qr.id %}" title="Criar Observação" class="p-1.5 text-yellow-500 hover:bg-yellow-50 rounded">
                                     <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                                       <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                                    </svg>
+                                  </a>
+
+                                  <a href="{% url 'ficheiros_caixa' qr.id %}" title="Ficheiros" class="p-1.5 text-gray-500 hover:bg-gray-50 rounded">
+                                    <svg class="w-4 h-4 inline-block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                                     </svg>
                                   </a>
                                 </div>
@@ -653,13 +654,12 @@
             const field = this.dataset.field
             const updateUrl = this.dataset.url
     
-// Lemos o atributo 'data-type' do elemento que foi clicado. 
+            // Lemos o atributo 'data-type' do elemento que foi clicado. 
             // Se não existir, assumimos 'number' por defeito (para não estragar os diâmetros antigos).
             const inputType = this.getAttribute('data-type') || 'number';
             const input = document.createElement('input');
             input.type = inputType;
             
-            // 🔴 A MAGIA ACONTECE AQUI:
             // Se for número (diâmetro), mostramos o valor atual para ele poder editar.
             // Se for texto (observação), mostramos a caixa VAZIA para ele só adicionar o novo!
             input.value = inputType === 'text' ? '' : currentValue;

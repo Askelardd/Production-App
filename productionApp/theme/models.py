@@ -121,6 +121,7 @@ class QRData(models.Model):
     observations = models.TextField(blank=True, null=True)
     observations_prod = models.TextField(blank=True, null=True)
     inspected_by = models.CharField(max_length=100, blank=True, null=True)
+    box_files = models.ManyToManyField('BoxFiles', related_name='qrdata', blank=True)
 
     def save(self, *args, **kwargs):
         self.toma_order_full = f"{self.toma_order_year}-{self.toma_order_nr}-{self.box_nr}"
@@ -129,7 +130,13 @@ class QRData(models.Model):
     def __str__(self):
         return f"{self.customer} - {self.toma_order_full} - {self.diameters} - {self.created_at.strftime('%Y-%m-%d %H:%M')}"
 
-    
+class BoxFiles(models.Model):
+    file = models.FileField(upload_to='box_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.file.name} - uploaded at {self.uploaded_at.strftime('%Y-%m-%d %H:%M:%S')} - uploaded by {self.uploaded_by.get_full_name() if self.uploaded_by else 'N/A'}"
 
 class whereBox(models.Model):
     ONDESTA = [
@@ -413,8 +420,8 @@ class Order(models.Model):
     tracking_number = models.CharField(max_length=20, unique=True)
     orders_coming = models.ManyToManyField(OrdersComing, related_name='orders', blank=True)
     plant_fk = models.ForeignKey(Plant, on_delete=models.CASCADE, null=True, blank=True)
-    courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], blank=True, null=True)
-    shipping_date = models.DateField(null=True, blank=True)
+    courier = models.CharField(max_length=100, choices=[(c, c) for c in courier_choices], default='DHL', blank=False, null=False)
+    shipping_date = models.DateField(null=False, blank=False)
     arriving_date = models.DateField(null=True, blank=True)
     comment = models.TextField(blank=True, null=True)
     exportado = models.BooleanField(default=False)
@@ -510,33 +517,38 @@ class DetalhesMedicao(models.Model):
     def __str__(self):
         return f"Medicao ID: {self.medicao.id} - Operador: {self.operador.get_full_name() if self.operador else 'N/A'}"
 
-class Lentes(models.Model):
-    calibreMaquina = models.ForeignKey(Maquinas, on_delete=models.CASCADE, related_name='lentes')
-    tamanho_lente = models.CharField(max_length=100)
-    data = models.DateTimeField(default=timezone.now)
-
-    def __str__(self):
-        return f"Calibre: {self.calibreMaquina.machine_name} - Tamanho Lente: {self.tamanho_lente} - Data: {self.data.strftime('%Y-%m-%d %H:%M')}"
-
 
 class CalibracaoMaquina(models.Model):
     machine = models.ForeignKey(Maquinas, on_delete=models.CASCADE, related_name='calibracoes')
-    diam_original = DiameterDecimalField(max_digits=6, decimal_places=4)
-    diam_calibrado = FlexibleDecimalField(max_digits=6, decimal_places=4)
-    diam_calibrado_max = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
-    diam_calibrado_min = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
-    bearing = models.CharField(max_length=100, blank=True, null=True)
-    ovality = FlexibleDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
-    angle = models.CharField(max_length=30, blank=True, null=True)
-    date = models.DateTimeField(default=timezone.now)
+    date = models.DateField(default=timezone.now)
     operador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    details = models.TextField(blank=True, null=True)
-    mec_cal = models.CharField(max_length=100, blank=True, null=True)
-    lev_obj = models.CharField(max_length=100, blank=True, null=True)
+    
+    # === DADOS GLOBAIS DA CALIBRAÇÃO ===
+    mec_cal = models.CharField(max_length=100, blank=True, null=True, verbose_name="MEC.CAL.MERIT FUNCTION")
+    lev_obj = models.CharField(max_length=100, blank=True, null=True, verbose_name="LEVELS Reference Objective")
+    
+    # Posições / Valores das Lentes para esta calibração
+    lente_3x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 3X")
+    lente_1x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 1X")
+    lente_meio_x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 1/2X")
+    
+    def __str__(self):
+        return f"Calibração {self.machine.machine_name} - {self.date.strftime('%Y-%m-%d')}"
+
+
+class CalibracaoFieira(models.Model):
+    calibracao = models.ForeignKey(CalibracaoMaquina, on_delete=models.CASCADE, related_name='medicoes')
+    
+    # === DADOS DE CADA MEDIÇÃO ===
+    matricula = models.CharField(max_length=100)
+    diam_original = FlexibleDecimalField(max_digits=10, decimal_places=4)
+    mean_diameter = FlexibleDecimalField(max_digits=10, decimal_places=4)
+    ovality = models.CharField(max_length=20)
+    bearing = models.CharField(max_length=20)
+    angle = models.CharField(max_length=20)
 
     def __str__(self):
-        return f"Calibração da Máquina: {self.machine.machine_name} - Data: {self.date.strftime('%Y-%m-%d %H:%M')} - Operador: {self.operador.get_full_name() if self.operador else 'N/A'}"
-    
+        return f"Matrícula {self.matricula} - {self.calibracao.date.strftime('%Y-%m-%d')}"
 
 class faturas(models.Model):
     MOEDA = [

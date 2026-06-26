@@ -77,7 +77,8 @@ urlpatterns = [
     path('listarPartidos/', views.listarPartidos, name='listarPartidos'),
     path('partidos/<hashid:pk>/toggle-feito-ajax/', views.toggle_partido_feito_ajax, name='toggle_partido_feito_ajax'),
     path('pedidos/<hashid:pk>/toggle-feito-ajax/', views.toggle_pedido_diametro_feito_ajax, name='toggle_pedido_diametro_feito_ajax'),
-
+    path('pedidos/diametro/enviar-email/<hashid:pedido_id>/', views.enviarEmailPedidoDiametro, name='enviar_pedido_diametro_email'),
+    
     # Delivery
     path('deliveryIdentification/<path:toma_order_full>/', views.deliveryIdentification, name='deliveryIdentification'),
     path('delivery/calendar/', views.deliveryCalendar, name='deliveryCalendar'),
@@ -115,6 +116,7 @@ urlpatterns = [
     path('criarTemplate/', views.criarTemplate, name='criarTemplate'),
     path('editarTemplate/<hashid:id>/', views.editarTemplate, name='editarTemplate'),
     path('delete-file/<hashid:file_id>/', views.delete_template_file, name='delete_template_file'),
+    path('ficheirosCaixa/<hashid:qr_id>/', views.ficheiros_caixa, name='ficheiros_caixa'),
 
     # Relatorios
     path('relatorioTrabalhos/', views.relatorio_data, name='relatorio_data'),

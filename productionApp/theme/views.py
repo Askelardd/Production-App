@@ -31,6 +31,8 @@ import openpyxl
 from .models import *  
 from collections import defaultdict
 from django.db.models.functions import TruncDate
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 
 def stock_overview(request):
@@ -226,13 +228,25 @@ def orders(request):
             restricted = bool(request.POST.get(f'restricted_{index}'))
             OrderFile.objects.create(order=order, file=f, restricted=restricted)
 
-        send_mail(
-            subject=f"Novo pedido criado: {order.tracking_number} de {order.plant_fk.name}",
-            message=(f"Um novo pedido foi criado com o número de rastreamento: {order.tracking_number}\n"
-                     f"Plant: {order.plant_fk.name}, shipping date: {order.shipping_date}\n"),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL],  # lista de emails
-        )
+        contexto = {
+            'order': order
+        }
+
+        html_content = render_to_string('emails/NovaOrderTemplate_email.html', contexto)
+
+        text_content = strip_tags(html_content)
+
+        try:
+            send_mail(
+                subject=f"Novo pedido criado - {order.tracking_number} de {order.plant_fk.name}",
+                message=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=settings.EMAIL_TO_EMAIL if isinstance(settings.EMAIL_TO_EMAIL, list) else [settings.EMAIL_TO_EMAIL],  # lista de emails
+                html_message=html_content
+            )
+        except Exception as e:
+            logger.error(f"Erro ao enviar email: {e}")
+            messages.error(request, "Ocorreu um erro ao enviar o email de notificação mas o pedido foi criado com sucesso.")
 
         globalLogs.objects.create(
             user=request.user,
@@ -287,6 +301,7 @@ def create_orders_coming_ajax(request):
             return JsonResponse({'success': False, 'message': str(e)})
     return JsonResponse({'success': False, 'message': 'Método inválido'})
 
+@login_required
 @group_required('Comercial', 'Administracao', 'Q-Office')
 def listar_orders(request):
     ordersComing = OrdersComing.objects.all()
@@ -1263,7 +1278,7 @@ def partidosMenu(request, toma_order_full):
                 messages.success(request, f'Partido {partido} adicionado com sucesso!')
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.username} adicionou o partido {partido} ao QR Code {qr_code.toma_order_full}.",
+                    action=f"{request.user.username} adicionou o partido {partido} ao Pedido {qr_code.toma_order_full}.",
                 )
         except ValueError:
             messages.error(request, 'Número do partido inválido. Por favor, insira um número válido.')
@@ -1321,7 +1336,7 @@ def showDetails(request, qr_id):
             'pessoal': None
         })
 
-    # 1. Procurar TODOS os trabalhos feitos nas dies deste QR Code
+    # 1. Procurar TODOS os trabalhos feitos nas dies deste Pedido
     # Anotamos a contagem para encontrar repetições do mesmo tipo/subtipo pela mesma pessoa na mesma die
     trabalhos = DieWorkWorker.objects.filter(work__die__in=dies).values(
         'worker_id', 
@@ -1845,7 +1860,7 @@ def adicionar_dies(request, qr_id):
 
                 globalLogs.objects.create(
                     user=request.user,
-                    action=f"{request.user.username} adicionou/atualizou dies para o QR Code {qr_code.toma_order_nr}.",
+                    action=f"{request.user.username} adicionou/atualizou dies para o Pedido {qr_code.toma_order_nr}.",
                 )
 
             messages.success(request, f"Dies atualizados para {qr_code.customer} com sucesso!")
@@ -1910,7 +1925,7 @@ def remove_die(request, die_id):
         die.delete()
         globalLogs.objects.create(
             user=request.user,
-            action=f"{request.user.username} removeu a die {serial_number} do QR Code {qr_code.toma_order_nr}.",
+            action=f"{request.user.username} removeu a die {serial_number} do Pedido {qr_code.toma_order_nr}.",
         )
         messages.success(request, "Die removida com sucesso.")
         return redirect('adicionar_dies', qr_id=qr_code.id)
@@ -2776,14 +2791,28 @@ def editar_pedido_inline(request, id):
             die.new_diameter = novo_diametro_valor
             die.save()
 
-            # Tenta enviar email
+            user = request.user
+
+            contexto = {
+                'pedido': pedido,
+                'user': user
+            }
+
+            # 2. Transforma o seu template HTML numa string renderizada
+            html_content = render_to_string('emails/RespostaPedDiam_email.html', contexto)
+            
+            # 3. Cria uma versão sem formatação (texto puro) como fallback
+            text_content = strip_tags(html_content)
+
             try:
                 send_mail(
-                    subject=f"Novo diâmetro para o pedido {pedido.qr_code.toma_order_full}",
-                    message=(f"Um novo pedido foi criado para o QR Code {pedido.qr_code.toma_order_full} com o novo diâmetro {novo_diametro_valor} e diâmetro mínimo {diametro_min_valor}."),
+                    subject=f"Pedido de Diâmetro - Toma {pedido.qr_code.toma_order_full}",
+                    message=text_content, # Versão em texto
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=['qc@toma.tools'],
+                    recipient_list=['andrepimentel@toma.tools'],
+                    html_message=html_content, 
                 )
+                messages.success(request, 'Email enviado com sucesso para ambos os qc')
             except Exception as e:
                 messages.error(request, f"Erro ao enviar email: {str(e)}")
 
@@ -2889,6 +2918,17 @@ def exportar_pedido_excel(request, id):
 def listarPedidosDiametro(request):
     pedidos = PedidosDiametro.objects.all().order_by('-created_at')
     pedidos_com_box = []
+    email_choices = [
+        ('anicetagraf@toma.tools','Aniceta Graf'),
+        ('danielapenagos@toma.tools','Daniela Penagos'),
+        ('patrickgraf@toma.tools','Patrick Graf'),
+        ('miguelfernandes@toma.tools','Miguel Fernandes'),
+        ('mariamacedo@toma.tools','Maria Macedo'),
+        ('qc@toma.tools','Alexandra Quesado'),
+        ('qc2@toma.tools','Jadna D Avila'),
+        ('michaelgraf@toma.tools','Michael Graf'),
+        ('andrepimentel@toma.tools','Andre Pimentel')
+    ]
 
     for pedido in pedidos:
         if pedido.observations:
@@ -2898,7 +2938,7 @@ def listarPedidosDiametro(request):
         serie_dies_pedido = pedido.serie_dies.split(', ')  # Access 'serie_dies' on the individual 'pedido' object
         numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
 
-        # Verifica se o pedido está associado a um QR Code e obtém o box_nr
+        # Verifica se o pedido está associado a um Pedido e obtém o box_nr
         qr_code = pedido.qr_code  
 
 
@@ -2935,7 +2975,7 @@ def listarPedidosDiametro(request):
 
         })
 
-    return render(request, 'theme/listarPedidosDiametro.html', {'pedidos_com_box': pedidos_com_box})
+    return render(request, 'theme/listarPedidosDiametro.html', {'pedidos_com_box': pedidos_com_box, 'email_choices': email_choices})
 
 @csrf_exempt
 @login_required
@@ -2944,7 +2984,7 @@ def inspecao_inicial(request, toma_order_full):
     try:
         qr_code = QRData.objects.get(toma_order_full=toma_order_full)
     except QRData.DoesNotExist:
-        messages.error(request, 'QR Code não encontrado.')
+        messages.error(request, 'Pedido não encontrado.')
         return redirect('listarDies')
 
     # 2. A MAGIA: Encontrar TODAS as caixas desta Toma (Pedido)
@@ -3099,30 +3139,46 @@ def inspecao_inicial(request, toma_order_full):
             )
 
             try:
-                corpo_email = f"Inspeção Inicial - Pedido Completo:\n\n"
-                corpo_email += f"Pedido criado por {request.user.username}\n"
-                corpo_email += f"- Toma: {qr_code.toma_order_nr}\n"
-                corpo_email += f"- Cliente: {qr_code.customer}\n"
-                corpo_email += f"- Pedido Por: {pedido_por}\n"
-                corpo_email += f"- Número de Fieiras Inspecionadas: {len(pedidos_criados)}\n\n"
-                corpo_email += "DETALHES POR FIEIRA:\n"
-                corpo_email += "-" * 60 + "\n"
+                # 1. Prepara o contexto com todas as variáveis para o HTML
+                contexto = {
+                    'username': request.user.username,
+                    'qr_code': qr_code,
+                    'pedido_por': pedido_por,
+                    'pedidos_criados': pedidos_criados,
+                    'total_fieiras': len(pedidos_criados),
+                }
+
+                # 2. Renderiza o Template HTML
+                html_content = render_to_string('emails/Inspecao_email.html', contexto)
+
+                # 3. Mantém a versão em texto puro como fallback (usando o seu código original)
+                corpo_email_texto = f"Inspeção Inicial - Pedido Completo:\n\n"
+                corpo_email_texto += f"Pedido criado por {request.user.username}\n"
+                corpo_email_texto += f"- Toma: {qr_code.toma_order_nr}\n"
+                corpo_email_texto += f"- Cliente: {qr_code.customer}\n"
+                corpo_email_texto += f"- Pedido Por: {pedido_por}\n"
+                corpo_email_texto += f"- Número de Fieiras Inspecionadas: {len(pedidos_criados)}\n\n"
+                corpo_email_texto += "DETALHES POR FIEIRA:\n"
+                corpo_email_texto += "-" * 60 + "\n"
                 
                 for p in pedidos_criados:
-                    corpo_email += f"\nFieira: {p['serie_die']}\n"
-                    corpo_email += f"  Ø Atual: {p['diametro']}\n"
-                    corpo_email += f"  Ø Mínimo: {p['diametro_min']}\n"
-                    corpo_email += f"  Trabalhada: {p['trabalhado']}\n"
-                    corpo_email += f"  Observações: {p['observacoes'] or '-'}\n"
+                    corpo_email_texto += f"\nFieira: {p['serie_die']}\n"
+                    corpo_email_texto += f"  Ø Atual: {p['diametro']}\n"
+                    corpo_email_texto += f"  Ø Mínimo: {p['diametro_min']}\n"
+                    corpo_email_texto += f"  Trabalhada: {p['trabalhado']}\n"
+                    corpo_email_texto += f"  Observações: {p['observacoes'] or '-'}\n"
 
+                # 4. Envia o email com o parâmetro html_message
                 send_mail(
                     subject=f"Inspeção Inicial Completa - Toma {qr_code.toma_order_nr}",
-                    message=corpo_email,
+                    message=corpo_email_texto,  # O fallback em texto
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=emails,
+                    html_message=html_content,  # A nova tabela bonita
                 )
 
                 messages.success(request, f'✓ Inspeção Final: {len(pedidos_criados)} fieira(s) inspecionada(s) com sucesso!')
+            
             except Exception as e:
                 messages.warning(request, f"Fieiras guardadas, mas falha ao enviar email: {str(e)}")
 
@@ -3157,28 +3213,58 @@ def inspecao_inicial(request, toma_order_full):
 
 @csrf_exempt
 @login_required
+def enviarEmailPedidoDiametro(request, pedido_id):
+    pedido = get_object_or_404(PedidosDiametro, id=pedido_id)
+
+    if request.method == 'POST':
+        emails = request.POST.getlist('emails')
+        observacao = request.POST.get('observacoes', '').strip()
+
+        if not emails:
+            messages.error(request, "O campo Emails é obrigatório.")
+            return redirect('listarPedidosDiametro')
+
+        emails = [email.strip() for email in emails if email.strip()]
+
+        # 1. Cria o dicionário com as variáveis que vão para o HTML
+        contexto = {
+            'pedido': pedido,
+            'observacao': observacao
+        }
+
+        # 2. Transforma o seu template HTML numa string renderizada
+        html_content = render_to_string('emails/PedidoEnvioAdminReqDiamtemplate_email.html', contexto)
+        
+        # 3. Cria uma versão sem formatação (texto puro) como fallback
+        text_content = strip_tags(html_content)
+
+        try:
+            send_mail(
+                subject=f"Pedido de Diâmetro - Toma {pedido.qr_code.toma_order_full}",
+                message=text_content, # Versão em texto
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=emails,
+                html_message=html_content, # Versão HTML bonita
+            )
+            messages.success(request, f'Email enviado com sucesso para: {", ".join(emails)}')
+        except Exception as e:
+            messages.error(request, f"Erro ao enviar email: {str(e)}")
+
+    return redirect('listarPedidosDiametro')
+
+@csrf_exempt
+@login_required
 def diametroMenu(request, toma_order_full):
     # 1. Proteger o acesso via URL
     try:
         qr_code = QRData.objects.get(toma_order_full=toma_order_full)
     except QRData.DoesNotExist:
-        messages.error(request, 'QR Code não encontrado.')
+        messages.error(request, 'Pedido não encontrado.')
         return redirect('listarDies')
 
     dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')
     observation_choices = PedidosDiametro._meta.get_field('observations').choices
 
-    email_choices = [
-        ('anicetagraf@toma.tools','Aniceta Graf'),
-        ('danielapenagos@toma.tools','Daniela Penagos'),
-        ('patrickgraf@toma.tools','Patrick Graf'),
-        ('miguelfernandes@toma.tools','Miguel Fernandes'),
-        ('mariamacedo@toma.tools','Maria Macedo'),
-        ('qc@toma.tools','Alexandra Quesado'),
-        ('qc2@toma.tools','Jadna D Avila'),
-        ('michaelgraf@toma.tools','Michael Graf'),
-        ('andrepimentel@toma.tools','Andre Pimentel')
-    ]
 
     if request.method == 'POST':
         # 2. Captura limpa
@@ -3187,7 +3273,8 @@ def diametroMenu(request, toma_order_full):
         diametro_min = request.POST.get('diametroMin', '').strip()
         pedido_por = request.POST.get('pedidoPor', '').strip()
         observations = request.POST.get('observations', '').strip()
-        emails = request.POST.getlist('emails')  # Múltipla escolha retorna lista
+        
+        ''''emails = request.POST.getlist('emails')  # Múltipla escolha retorna lista
 
 
         if not emails:
@@ -3197,7 +3284,10 @@ def diametroMenu(request, toma_order_full):
                 'choices': observation_choices, 'form_data': request.POST
             })
 
-        emails = [email.strip() for email in emails if email.strip()]  # Limpa espaços e remove vazios
+        emails = [email.strip() for email in emails if email.strip()]  # Limpa espaços e remove vazios'''
+
+
+        emails = ['qc@toma.tools','qc2@toma.tools']  # Lista fixa de emails para envio
 
 
         # Checkboxes (Lista)
@@ -3255,25 +3345,34 @@ def diametroMenu(request, toma_order_full):
             
             globalLogs.objects.create(
                 user=request.user,
-                action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no QR Code {qr_code.toma_order_full}.",
+                action=f"{request.user.username} adicionou um pedido de diâmetro {diametro} para {numero} fieiras no Pedido {qr_code.toma_order_full}.",
             )
+
+            contexto = {
+                'qr_code': qr_code,
+                'diametro': diametro,
+                'diametro_min': diametro_min,
+                'numero': numero,
+                'pedido_por': pedido_por,
+                'serie_dies': serie_dies,
+                'observations': observations
+            }
+
+            html_content = render_to_string('emails/PedidoDiamProd_email.html', contexto)
+
             
+            text_content = strip_tags(html_content)
+
+
             # Bloco de Email (isolado para não impedir a criação do pedido se o email falhar)
             try:
 
                 send_mail(
                     subject=f"Novo Pedido de Diâmetro para {qr_code.toma_order_full}",
-                    message=(f"Novo pedido de diâmetro criado:\n"
-                            f"Pedido criado por {request.user.username}\n"
-                            f"- QR Code: {qr_code.toma_order_full}\n"
-                            f"- Cliente: {qr_code.customer}\n"
-                            f"- Diâmetro: {diametro}\n"
-                            f"- Nº de fieiras: {numero}\n"
-                            f"- Pedido por: {pedido_por}\n"
-                            f"- Matrícula: {serie_dies}\n"
-                            f"- Observações: {observations or '-'}"),
+                    message=text_content, # Versão em texto
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=emails,
+                    html_message=html_content, # Versão HTML bonita
                     fail_silently=False,
                 )
             except Exception as e:
@@ -3293,7 +3392,7 @@ def diametroMenu(request, toma_order_full):
         'qr_code': qr_code,
         'dies_existentes': dies_existentes,
         'choices': observation_choices,
-        'email_choices': email_choices,
+
     })         
 
 @login_required
@@ -3707,98 +3806,90 @@ def listar_medicoes(request):
         'user': request.user,
     })
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.utils import timezone
+from django.db import transaction # IMPORTANTE: Adicionar este import no topo
+from .models import CalibracaoMaquina, CalibracaoFieira, Maquinas
+
 @login_required
 def listar_calibracoes(request):
     calibracoes = CalibracaoMaquina.objects.all().order_by('-date')
     maquinas = Maquinas.objects.all()
+    form_data = {}
 
     if request.method == 'POST':
-        maquina_id = request.POST.get('machine_id')
-        diam_original = request.POST.get('diam_original')
-        diam_calibrado = request.POST.get('diam_calibrado')
+        maquina_id = request.POST.get('machine') 
+        mec_cal = request.POST.get('mec_cal')
+        lev_obj = request.POST.get('lev_obj')
+        lente_3x = request.POST.get('lente_3x')
+        lente_1x = request.POST.get('lente_1x')
+        lente_meio_x = request.POST.get('lente_meio_x')
         
-        diam_calibrado_min = request.POST.get('diam_calibrado_min')
-        diam_calibrado_max = request.POST.get('diam_calibrado_max')
-
-        details = request.POST.get('details')
-        data_calibracao = timezone.now()
-        user = request.user
-        
-        # Validações básicas
-        errors = []
-        if not maquina_id:
-            errors.append("Selecione uma máquina.")
-        if not diam_original:
-            errors.append("O diâmetro original é obrigatório.")
-        if not diam_calibrado:
-            errors.append("O diâmetro calibrado é obrigatório.")
-        
-        if errors:
-            for error in errors:
-                messages.error(request, error)
-            return render(request, 'theme/listar_calibracoes.html', {
-                'calibracoes': calibracoes,
-                'maquinas': maquinas,
-                'form_data': request.POST.dict()
-            })
+        try:
+            numero_medicoes = int(request.POST.get('numero', 0))
+        except ValueError:
+            numero_medicoes = 0
 
         try:
-            # Converter Decimals com validação
-            try:
-                diam_original_dec = Decimal(diam_original)
-                diam_calibrado_dec = Decimal(diam_calibrado)
-            except (ValueError, TypeError):
-                messages.error(request, "Os diâmetros devem ser números válidos.")
-                return render(request, 'theme/listar_calibracoes.html', {
-                    'calibracoes': calibracoes,
-                    'maquinas': maquinas,
-                    'form_data': request.POST.dict()
-                })
-            
-            # converte vazio para None
-            diam_calibrado_min = Decimal(diam_calibrado_min) if diam_calibrado_min else None
-            diam_calibrado_max = Decimal(diam_calibrado_max) if diam_calibrado_max else None
-            
-            maquina = Maquinas.objects.get(id=maquina_id)
-            CalibracaoMaquina.objects.create(
-                machine=maquina,
-                diam_original=diam_original_dec,
-                diam_calibrado=diam_calibrado_dec,
-                diam_calibrado_min=diam_calibrado_min,
-                diam_calibrado_max=diam_calibrado_max,
-                date=data_calibracao,
-                operador=user,
-                details=details
-            )
-            
-            globalLogs.objects.create(
-                user=user,
-                action=f"{user.username} adicionou calibração para a máquina {maquina.name}."
-            )
-            
-            messages.success(request, "Calibração adicionada com sucesso!")
+            maquina_obj = Maquinas.objects.get(id=int(maquina_id))
+
+            # INÍCIO DA TRANSAÇÃO: Tudo o que está aqui dentro salva-se junto ou falha junto
+            with transaction.atomic():
+                
+                # Passo A: Criar a Calibração Principal
+                nova_calibracao = CalibracaoMaquina.objects.create(
+                    machine=maquina_obj,
+                    date=timezone.now(), # timezone.now() é mais seguro no Django
+                    operador=request.user,
+                    mec_cal=mec_cal,
+                    lev_obj=lev_obj,
+                    lente_3x=lente_3x,
+                    lente_1x=lente_1x,
+                    lente_meio_x=lente_meio_x
+                )
+
+                # Passo B: Fazer um loop (for) para apanhar as medições e criar as Fieiras
+                for i in range(numero_medicoes):
+                    # O 'i' vai de 0 até numero_medicoes-1 (tal como no JS: matricula_0, matricula_1...)
+                    matricula = request.POST.get(f'matricula_{i}')
+                    diam_original = request.POST.get(f'diam_original_{i}')
+                    mean_diameter = request.POST.get(f'mean_diameter_{i}')
+                    ovality = request.POST.get(f'ovality_{i}')
+                    bearing = request.POST.get(f'bearing_{i}')
+                    angle = request.POST.get(f'angle_{i}')
+
+                    # Garantir que a linha não está vazia antes de gravar
+                    if matricula and diam_original:
+                        CalibracaoFieira.objects.create(
+                            calibracao=nova_calibracao,
+                            matricula=matricula,
+                            diam_original=diam_original,
+                            mean_diameter=mean_diameter,
+                            ovality=ovality,
+                            bearing=bearing,
+                            angle=angle
+                        )
+
+            # Se chegou até aqui sem erros de BD, mostra o sucesso!
+            messages.success(request, f"Calibração adicionada com sucesso ({numero_medicoes} medições guardadas)!")
             return redirect('listarCalibracoes')
-        
+
         except Maquinas.DoesNotExist:
-            messages.error(request, "Máquina não encontrada. Por favor, selecione uma máquina válida.")
-            return render(request, 'theme/listar_calibracoes.html', {
-                'calibracoes': calibracoes,
-                'maquinas': maquinas,
-                'form_data': request.POST.dict()
-            })
+            messages.error(request, "A Máquina selecionada é inválida ou já não existe.")
         except Exception as e:
-            messages.error(request, f"Erro ao adicionar calibração: {str(e)}")
-            return render(request, 'theme/listar_calibracoes.html', {
-                'calibracoes': calibracoes,
-                'maquinas': maquinas,
-                'form_data': request.POST.dict()
-            })
-    
+            messages.error(request, f"Erro ao adicionar calibração: {e}")
+        
+        # Em caso de erro, devolver os dados para a operadora não ter de escrever tudo de novo
+        form_data = request.POST
+
     return render(request, 'theme/listar_calibracoes.html', {
         'calibracoes': calibracoes,
         'maquinas': maquinas,
-        'form_data': {}
+        'form_data': form_data
     })
+
 
 def charts(request):
     # --- Parte 1: Determinação do Intervalo de Tempo ---
@@ -5191,5 +5282,33 @@ def upload_excel_view(request):
             
     return render(request, 'theme/upload_excel.html')
     
+def ficheiros_caixa(request, qr_id):
+    try:
+        qr = QRData.objects.get(id=qr_id)
+    except QRData.DoesNotExist:
+        messages.error(request, "A caixa que tentou aceder não existe ou foi eliminada.")
+        return redirect('listarDies')
+    
+    user_first_group = request.user.groups.first()
+    user_group = user_first_group.name if user_first_group else ''
+    
+    # Processar o POST (Envio de Ficheiros)
+    if request.method == 'POST':
+        files = request.FILES.getlist('files')
+        for file in files:
+            novo_ficheiro = BoxFiles.objects.create(
+                file=file,
+                uploaded_by=request.user,
+            )
+            
+            qr.box_files.add(novo_ficheiro)
+            
+        messages.success(request, "Ficheiros carregados com sucesso!")
+        return redirect('ficheiros_caixa', qr_id=qr.id, user_group=user_group)
+
+    # Se não for POST (ou seja, se for apenas para ver a página - GET)
+    ficheiros = BoxFiles.objects.filter(qrdata=qr).order_by('-uploaded_at')
+    
+    return render(request, 'theme/ficheiros_caixa.html', {'qr': qr, 'ficheiros': ficheiros, 'user_group': user_group})
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

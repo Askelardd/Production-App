@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inspeção Inicial - TOMA</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+
+    <div style="max-width: 700px; margin: 30px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+        
+        <!-- Cabeçalho com Logo -->
+        <div style="padding: 30px 20px; text-align: center; border-bottom: 4px solid #0eb4e5;">
+            <img src="https://tomatools.app/media/logo.jpg" alt="Logo TOMA" style="max-height: 50px; display: block; margin: 0 auto;">
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div style="padding: 40px 30px;">
+            <h1 style="color: #455b7d; font-size: 22px; margin-top: 0; margin-bottom: 25px;">
+                Inspeção Inicial - <span style="color: #0eb4e5;">Pedido Completo</span>
+            </h1>
+
+            <!-- Resumo Geral (Box com fundo cinza claro) -->
+            <div style="background-color: #f8fafc; padding: 20px; border-radius: 6px; margin-bottom: 30px; border: 1px solid #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                    <tr>
+                        <td style="padding: 5px 0; color: #455b7d;"><strong>Criado por:</strong></td>
+                        <td style="padding: 5px 0;">{{ username }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0; color: #455b7d;"><strong>Toma Order:</strong></td>
+                        <td style="padding: 5px 0;">{{ qr_code.toma_order_nr }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0; color: #455b7d;"><strong>Cliente:</strong></td>
+                        <td style="padding: 5px 0;">{{ qr_code.customer }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0; color: #455b7d;"><strong>Pedido Por:</strong></td>
+                        <td style="padding: 5px 0;">{{ pedido_por }}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0; color: #455b7d;"><strong>Fieiras Inspecionadas:</strong></td>
+                        <td style="padding: 5px 0;"><strong>{{ total_fieiras }}</strong></td>
+                    </tr>
+                </table>
+            </div>
+
+            <h2 style="color: #455b7d; font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #eeeeee; padding-bottom: 10px;">
+                Detalhes por Fieira
+            </h2>
+
+            <!-- Tabela de Fieiras -->
+            <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+                <thead>
+                    <tr style="background-color: #455b7d; color: #ffffff;">
+                        <th style="padding: 12px; border: 1px solid #455b7d;">Fieira</th>
+                        <th style="padding: 12px; border: 1px solid #455b7d; text-align: center;">Ø Atual</th>
+                        <th style="padding: 12px; border: 1px solid #455b7d; text-align: center;">Ø Mínimo</th>
+                        <th style="padding: 12px; border: 1px solid #455b7d; text-align: center;">Trabalhada</th>
+                        <th style="padding: 12px; border: 1px solid #455b7d;">Observações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pedidos_criados %}
+                    <tr>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; font-weight: bold; color: #0eb4e5;">{{ p.serie_die }}</td>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; text-align: center;">{{ p.diametro }}</td>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; text-align: center;">{{ p.diametro_min }}</td>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; text-align: center;">
+                            {% if p.trabalhado|stringformat:"s"|lower == 'true' %}
+                                Sim
+                            {% else %}
+                                Não
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; color: #777777;">{{ p.observacoes|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <p style="font-size: 14px; line-height: 1.5; color: #777777; margin-top: 30px;">
+                Para mais informações sobre este pedido, acesse o <a href="https://www.tomatools.app/listarPedidosDiametro/" style="color: #0eb4e5; text-decoration: none;">link do sistema</a>.
+            </p>
+        </div>
+
+        <!-- Rodapé -->
+        <div style="background-color: #455b7d; padding: 20px; text-align: center; font-size: 12px; color: #ffffff;">
+            <strong>TOMA - Tools Machinery & Service</strong><br>
+            <span style="color: #caced3;">© {% now "Y" %} Todos os direitos reservados.</span>
+        </div>
+
+    </div>
+
+</body>
+</html>

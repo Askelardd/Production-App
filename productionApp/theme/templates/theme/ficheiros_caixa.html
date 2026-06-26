@@ -1,0 +1,114 @@
+{% extends 'theme/base.html' %}
+{% block title %}Ficheiros da Caixa{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white shadow-lg rounded-xl p-8 mt-10">
+    <h1 class="text-3xl font-extrabold text-blue-700 mb-6 text-center">Ficheiros da Caixa</h1>
+
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-700 mb-2">Ficheiros Existentes:</h2>
+        {% if ficheiros %}
+        <ul class="list-disc list-inside">
+            {% for files in ficheiros %}
+            <li class="mb-1">
+                <a href="{{ files.file.url }}" target="_blank" class="text-blue-500 hover:underline">{{ files.file.name }}</a>
+                <span class="text-gray-500 text-sm"> (Enviado em {{ files.uploaded_at|date:"Y-m-d H:i" }} por {{ files.uploaded_by.get_full_name }})</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-gray-500">Nenhum ficheiro encontrado para esta caixa.</p>
+        {% endif %}
+    </div>
+
+    {% if user_group != 'Producao' %}
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold text-gray-700 mb-2">Enviar Novo Ficheiro:</h2>
+            
+            <form method="POST" enctype="multipart/form-data" action="{% url 'ficheiros_caixa' qr.id %}">
+                {% csrf_token %}
+                
+                <div id="drop-zone" class="max-w-xl mx-auto p-12 border-[3px] border-dashed border-slate-300 rounded-xl text-center bg-white cursor-pointer transition-all duration-300 hover:border-blue-500">
+                    <div class="pointer-events-none">
+                        <p class="text-slate-500 text-lg font-medium">
+                            Arraste e largue o ficheiro Excel aqui<br>
+                            <span class="text-sm text-slate-400 block mt-2">ou clique para selecionar o ficheiro</span>
+                        </p>
+                    </div>
+                    <input type="file" id="file-input" name="files" class="hidden">
+                </div>
+                
+                <div class="mt-4 flex justify-end">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">
+                        Enviar
+                    </button>
+                    <a href="{% url 'listarDies' %}" class="ml-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition">
+                        Voltar
+                    </a>
+                </div>
+            </form>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+
+        // Se algum elemento não existir, paramos
+        if (!dropZone || !fileInput) return;
+
+        // 1. Forçar a abertura da janela de ficheiros ao clicar na caixa
+        dropZone.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // 2. Bloquear o comportamento padrão do navegador em TODA a página
+        // Isto impede que o ficheiro abra no browser se o largar fora da caixa por engano
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evento => {
+            document.body.addEventListener(evento, prevenirPadrao);
+            dropZone.addEventListener(evento, prevenirPadrao);
+        });
+
+        function prevenirPadrao(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 3. Adicionar a cor azul apenas quando o ficheiro está sobre a caixa
+        ['dragenter', 'dragover'].forEach(evento => {
+            dropZone.addEventListener(evento, function() {
+                dropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+        });
+
+        // 4. Remover a cor azul se o ficheiro sair da caixa
+        ['dragleave', 'drop'].forEach(evento => {
+            dropZone.addEventListener(evento, function() {
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+        });
+
+        // 5. O momento em que larga o ficheiro!
+        dropZone.addEventListener('drop', function(e) {
+            const files = e.dataTransfer.files;
+            
+            if (files.length > 0) {
+                fileInput.files = files; // Coloca os ficheiros no input escondido
+                form.submit();           // Envia para o Django
+            }
+        });
+
+        // 6. O momento em que escolhe o ficheiro por clique
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                form.submit();
+            }
+        });
+    });
+</script>
+{% endblock %}
