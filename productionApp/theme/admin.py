@@ -30,6 +30,10 @@ from .models import (
     TemplateFiles,
     Polimentos,
     Plant,
+    BoxFiles,
+    CalibracaoFieira,
+    
+
 )
 
 # -------------------
@@ -84,6 +88,16 @@ class QRDataAdmin(admin.ModelAdmin):
             'fields': ('observations', 'observations_prod')
         }),
     )
+    list_per_page = 20
+
+# -------------------
+# BoxFiles
+# -------------------~
+@admin.register(BoxFiles)
+class BoxFilesAdmin(admin.ModelAdmin):
+    list_display = ['file', 'uploaded_at', 'uploaded_by']
+    search_fields = ['file', 'uploaded_by__username']
+    list_filter = ['uploaded_at', 'uploaded_by']
     list_per_page = 20
 
 
@@ -387,7 +401,6 @@ class MedicaoAdmin(admin.ModelAdmin):
     list_per_page = 20
     readonly_fields = ['date']
 
-
 # -------------------
 # DetalhesMedicao
 # -------------------
@@ -398,18 +411,37 @@ class DetalhesMedicaoAdmin(admin.ModelAdmin):
     list_filter = ['operador', 'medicao']
     list_per_page = 20
 
+# -------------------
+# LenteCalibracao
+# -------------------
+
+
+
+
 
 # -------------------
 # CalibracaoMaquina
 # -------------------
+class CalibracaoFieiraInline(admin.TabularInline):
+    model = CalibracaoFieira
+    extra = 1  # Mostra 1 linha em branco por defeito para adicionar novas fieiras
+
 @admin.register(CalibracaoMaquina)
 class CalibracaoMaquinaAdmin(admin.ModelAdmin):
-    list_display = ['machine', 'diam_original', 'diam_calibrado', 'date', 'operador']
-    search_fields = ['machine__machine_name', 'operador__username']
-    list_filter = ['date', 'machine', 'operador']
-    list_per_page = 20
-    readonly_fields = ['date']
+    # Mostra as informações principais da calibração na lista do Admin
+    list_display = ('machine', 'date', 'operador', 'mec_cal', 'lev_obj')
+    list_filter = ('date', 'machine', 'operador')
+    search_fields = ('machine__machine_name', 'operador__username', 'mec_cal')
+    
+    # Adiciona a tabela das fieiras diretamente dentro da página da calibração
+    inlines = [CalibracaoFieiraInline]
 
+@admin.register(CalibracaoFieira)
+class CalibracaoFieiraAdmin(admin.ModelAdmin):
+    # Mostra os dados individuais da fieira caso o admin queira ver as medições isoladamente
+    list_display = ('matricula', 'calibracao', 'diam_original', 'mean_diameter', 'ovality', 'bearing', 'angle')
+    list_filter = ('calibracao__date', 'calibracao__machine')
+    search_fields = ('matricula', 'calibracao__machine__machine_name')
 
 # -------------------
 # FaturaFile, FaturaEstrangeitoFile, FaturaPagoFile Inlines

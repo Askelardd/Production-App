@@ -4,157 +4,230 @@
 
 {% block content %}
 <div class="flex justify-between items-center mb-6">
-<h1 class="text-3xl font-bold text-gray-900 mb-6">Calibrações de Máquinas</h1>
-<button type="button" id="openAddCalibrationButton"
-        class="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded shadow mb-6">
-    Adicionar Nova Calibração
-</button>
-</div
+    <h1 class="text-3xl font-bold text-gray-900">Calibrações de Máquinas</h1>
+    <button type="button" id="openAddCalibrationButton"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow-md transition">
+        Adicionar Nova Calibração
+    </button>
+</div>
 
 <div class="space-y-4">
-
     {% for maquina in maquinas %}
     <div class="border border-gray-200 bg-white rounded-xl shadow hover:shadow-md transition p-5">
 
-        <button onclick="toggleCalibration('m-{{ maquina.id }}', this)"
+        <button onclick="toggleSection('m-{{ maquina.id }}', this)"
                 class="flex items-center justify-between w-full text-left text-lg font-semibold text-gray-800">
-
             <span>Máquina: {{ maquina.machine_name }}</span>
-
-            <!-- seta animada -->
-            <span class="transition-transform duration-300 text-gray-600">
-                ▼
-            </span>
-
+            <span class="transition-transform duration-300 text-gray-600">▼</span>
         </button>
 
         <ul id="m-{{ maquina.id }}" 
-            class="calib hidden mt-3 ml-2 border-l-2 border-gray-300 pl-4 space-y-2 text-sm text-gray-700 opacity-0 translate-y-2 transition-all duration-300">
+            class="hidden mt-4 ml-2 border-l-2 border-blue-200 pl-4 space-y-3 opacity-0 translate-y-2 transition-all duration-300">
+            
+            {% for calibracao in maquina.calibracoes.all %}
+                <li class="border border-gray-200 rounded-lg bg-gray-50 shadow-sm overflow-hidden">
+                    
+                    <button onclick="toggleSection('calib-{{ calibracao.id }}', this)" 
+                            class="flex justify-between items-center w-full text-left p-3 hover:bg-gray-100 transition">
+                        <div>
+                            <span class="font-semibold text-blue-800">{{ calibracao.date|date:"Y-m-d" }}</span>
+                            <span class="text-gray-600 text-sm ml-2">| Operador: {{ calibracao.operador.username|default:"-" }}</span>
+                        </div>
+                        <span class="transition-transform duration-300 text-gray-500 text-sm">▼</span>
+                    </button>
 
-{% for calibracao in calibracoes %}
-    {% if calibracao.machine.id == maquina.id %}
-        <li class="border border-gray-200 rounded-lg p-3 mb-2 bg-gray-50 shadow-sm hover:shadow transition">
-            <div class="flex justify-between items-center mb-1">
-                <span class="font-semibold text-gray-800">{{ calibracao.date }}</span>
-                <span class="text-gray-600 text-sm">{{ calibracao.calibrator }}</span>
-            </div>
+                    <div id="calib-{{ calibracao.id }}" class="hidden opacity-0 translate-y-2 transition-all duration-300 border-t border-gray-200">
+                        
+                        <div class="p-3 bg-white flex flex-wrap gap-2 text-gray-700 text-sm">
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">MEC CAL: {{ calibracao.mec_cal|default:"-" }}</span>
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Nível Objetivo: {{ calibracao.lev_obj|default:"-" }}</span>
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 3X: {{ calibracao.lente_3x|default:"-" }}</span>
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 1X: {{ calibracao.lente_1x|default:"-" }}</span>
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 1/2X: {{ calibracao.lente_meio_x|default:"-" }}</span>
+                        </div>
 
-            <div class="flex flex-wrap gap-2 text-gray-700 text-sm">
-                <span class="bg-gray-100 px-2 py-1 rounded font-medium">Diam. Original: {{ calibracao.diam_original }}</span>
-                <span class="bg-gray-100 px-2 py-1 rounded font-medium">Diam. Medido: {{ calibracao.diam_calibrado }}</span>
-                <span class="bg-gray-100 px-2 py-1 rounded font-medium">Mín.: {{ calibracao.diam_calibrado_min|default:"-" }}</span>
-                <span class="bg-gray-100 px-2 py-1 rounded font-medium">Máx.: {{ calibracao.diam_calibrado_max|default:"-" }}</span>
-                <span class="bg-gray-100 px-2 py-1 rounded font-medium">Operador: {{ calibracao.operador|default:"N/A" }}</span>
-                {% if calibracao.details %}
-                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">Detalhes: {{ calibracao.details }}</span>
-                {% endif %}
-            </div>
-        </li>
-        {% endif %}
-    {% empty %}
-        <li class="text-gray-500 italic">Nenhuma calibração registrada.</li>
-    {% endfor %}
+                        <div class="p-3 bg-gray-50 border-t border-gray-200">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Medições Realizadas</h4>
+                            <div class="space-y-2">
+                                {% for medicao in calibracao.medicoes.all %}
+                                <div class="border border-gray-200 rounded p-3 bg-white shadow-sm">
+                                    <div class="flex justify-between items-center mb-2 border-b border-gray-100 pb-1">
+                                        <span class="font-bold text-gray-800">Matrícula: <span class="text-blue-600">{{ medicao.matricula|default:"-" }}</span></span>
+                                        <span class="text-gray-600 text-sm font-medium">Diâm. Original: {{ medicao.diam_original|default:"-" }}</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 text-gray-700 text-sm">
+                                        <span class="bg-blue-50 text-blue-800 px-2 py-1 rounded font-medium">Mean Diam: {{ medicao.mean_diameter|default:"-" }}</span>
+                                        <span class="bg-gray-100 px-2 py-1 rounded font-medium">Ovality: {{ medicao.ovality|default:"-" }}</span>
+                                        <span class="bg-gray-100 px-2 py-1 rounded font-medium">Bearing: {{ medicao.bearing|default:"-" }}</span>
+                                        <span class="bg-gray-100 px-2 py-1 rounded font-medium">Angle: {{ medicao.angle|default:"-" }}</span>
+                                    </div>
+                                </div>
+                                {% empty %}
+                                    <p class="text-sm text-gray-500 italic">Nenhuma medição registada para esta calibração.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                    </div>
+                </li>
+            {% empty %}
+                <li class="text-gray-500 italic p-2">Nenhuma calibração registrada para esta máquina.</li>
+            {% endfor %}
+            
         </ul>
     </div>
     {% endfor %}
 </div>
 
-<div id="hiddenForm" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <form method="POST" action="">
+<div id="addCalibrationModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 z-50 hidden flex justify-center items-center p-4 backdrop-blur-sm transition-opacity">
+    
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] overflow-y-auto relative p-8">
+        
+        <button type="button" id="closeModalButton" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 text-3xl font-bold transition">
+            &times;
+        </button>
+
+        <form method="POST" action="{% url 'listarCalibracoes' %}" id="criarCalibracaoForm">
             {% csrf_token %}
-            <input type="hidden" id="form_type" name="form_type" value="adicionar_calibracao">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Registrar Nova Calibração</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div>
-                    <label for="machine_id" class="block text-sm font-medium text-gray-700">Máquina</label>
-                    <select id="machine_id" name="machine_id" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                        <option value="" disabled selected>Selecione uma máquina</option>
+                    <label for="machine" class="block text-sm font-medium text-gray-700">Máquina</label>
+                    <select id="machine" name="machine" required
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        <option value="">Selecione uma máquina</option>
                         {% for maquina in maquinas %}
                             <option value="{{ maquina.id }}">{{ maquina.machine_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label for="diam_original" class="block text-sm font-medium text-gray-700">Diâmetro Original</label>
-                    <input type="number" step="0.0001" id="diam_original" name="diam_original" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                    <label for="mec_cal" class="block text-sm font-medium text-gray-700">Mec Cal Merit Function</label>
+                    <input type="text" id="mec_cal" name="mec_cal" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                 </div>
                 <div>
-                    <label for="diam_calibrado" class="block text-sm font-medium text-gray-700">Diâmetro Calibrado</label>
-                    <input type="number" step="0.0001" id="diam_calibrado" name="diam_calibrado" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                    <label for="lev_obj" class="block text-sm font-medium text-gray-700">Nível de Objetivo</label>
+                    <input type="text" id="lev_obj" name="lev_obj" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                 </div>
                 <div>
-                    <label for="diam_calibrado_min" class="block text-sm font-medium text-gray-700">Diâmetro Mínimo</label>
-                    <input type="number" step="0.0001" id="diam_calibrado_min" name="diam_calibrado_min" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                    <label for="lente_3x" class="block text-sm font-medium text-gray-700">Lente 3X</label>
+                    <input type="text" id="lente_3x" name="lente_3x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                 </div>
                 <div>
-                    <label for="diam_calibrado_max" class="block text-sm font-medium text-gray-700">Diâmetro Máximo</label>
-                    <input type="number" step="0.0001" id="diam_calibrado_max" name="diam_calibrado_max" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                    <label for="lente_1x" class="block text-sm font-medium text-gray-700">Lente 1X</label>
+                    <input type="text" id="lente_1x" name="lente_1x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">   
                 </div>
-                <div class="col-span-2">
-                    <label for="bearing" class="block text-sm font-medium text-gray-700">Bearing</label>
-                    <input type="text" id="bearing" name="bearing" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
+                <div>
+                    <label for="lente_meio_x" class="block text-sm font-medium text-gray-700">Lente 1/2X</label>
+                    <input type="text" id="lente_meio_x" name="lente_meio_x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                 </div>
-                <div class="col-span-2">
-                    <label for="cone" class="block text-sm font-medium text-gray-700">Cone</label>
-                    <input type="text" id="cone" name="cone" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                </div>
-                <div class="col-span-2">
-                    <label for="ovality" class="block text-sm font-medium text-gray-700">Ovality</label>
-                    <input type="number" step="0.0001" id="ovality" name="ovality" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                </div>
-                <div class="col-span-2">
-                    <label for="angle" class="block text-sm font-medium text-gray-700">Angle</label>
-                    <input type="text" id="angle" name="angle" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                </div>
-                <div class="col-span-2">
-                    <label for="mec_cal" class="block text-sm font-medium text-gray-700">Mec.Cal.Merit Function</label>
-                    <input type="text" id="mec_cal" name="mec_cal" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                </div>
-                <div class="col-span-2">
-                    <label for="lev_obj" class="block text-sm font-medium text-gray-700">Lev.Obj.Merit Function</label>
-                    <input type="text" id="lev_obj" name="lev_obj" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm">
-                </div>
-                <div class="col-span-2">
-                    <label for="details" class="block text-sm font-medium text-gray-700">Detalhes</label>
-                    <textarea id="details" name="details" rows="4" class="w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 px-4 py-2 shadow-sm"></textarea>
+                
+                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-inner">
+                    <label for="numero" class="block text-sm font-bold text-blue-800 mb-1">Número de Medições a Inserir</label>
+                    <input type="number" id="numero" name="numero" min="1" required placeholder="Ex: 3"
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                 </div>
             </div>
-            <div class="flex justify-end mt-6">
-                <button type="submit" class="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded shadow">Salvar</button>
-                <button type="button" id="closeAddCalibrationModal" class="ml-4 bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2 rounded shadow">Fechar</button>
+
+            <div id="medicoesContainer" class="space-y-6"></div>
+
+            <div class="mt-8 flex justify-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200">
+                    Gravar Calibração Completa
+                </button>
             </div>
         </form>
     </div>
 </div>
-
 {% endblock %}
+
 {% block extra_js %}
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // ---- LÓGICA DO MODAL (FLUTUANTE) ----
+        const modal = document.getElementById('addCalibrationModal');
+        const openBtn = document.getElementById('openAddCalibrationButton');
+        const closeBtn = document.getElementById('closeModalButton');
 
-    window.toggleCalibration = (id, el) => {
-        const box = document.getElementById(id);
-        const arrow = el.querySelector("span:last-child");
+        openBtn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Impede o ecrã de trás de fazer scroll
+        });
 
-        box.classList.toggle("hidden");
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Devolve o scroll ao ecrã
+        });
 
-        if (!box.classList.contains("hidden")) {
-            arrow.style.transform = "rotate(180deg)";
-            setTimeout(()=>{ box.classList.toggle("opacity-0"); box.classList.toggle("translate-y-2"); },10);
-        } else {
-            arrow.style.transform = "rotate(0deg)";
-            box.classList.add("opacity-0","translate-y-2");
+
+        // ---- LÓGICA DE GERAR MEDIÇÕES DINÂMICAS ----
+        const inputNumero = document.getElementById('numero');
+        const medicoesContainer = document.getElementById('medicoesContainer');
+
+        inputNumero.addEventListener('input', function() {
+            const quantidade = parseInt(this.value) || 0;
+            let htmlGerado = '';
+            for (let i = 0; i < quantidade; i++) { htmlGerado += cardTemplate(i); }
+            medicoesContainer.innerHTML = htmlGerado;
+        });
+
+        function cardTemplate(index) {
+            return `
+                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                    <div class="absolute top-0 left-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-lg">
+                        Medição ${index + 1}
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                        <div>
+                            <label for="matricula_${index}" class="block text-sm font-medium text-gray-700">Matrícula</label>
+                            <input type="text" id="matricula_${index}" name="matricula_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="diam_original_${index}" class="block text-sm font-medium text-gray-700">Diâm. Original</label>
+                            <input type="number" step="0.0001" id="diam_original_${index}" name="diam_original_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="mean_diameter_${index}" class="block text-sm font-medium text-gray-700">Mean Diameter</label>
+                            <input type="number" step="0.0001" id="mean_diameter_${index}" name="mean_diameter_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="ovality_${index}" class="block text-sm font-medium text-gray-700">Ovality</label>
+                            <input type="text" id="ovality_${index}" name="ovality_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="bearing_${index}" class="block text-sm font-medium text-gray-700">Bearing</label>
+                            <input type="text" id="bearing_${index}" name="bearing_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                        <div>
+                            <label for="angle_${index}" class="block text-sm font-medium text-gray-700">Angle</label>
+                            <input type="text" id="angle_${index}" name="angle_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                        </div>
+                    </div>
+                </div>
+            `;
         }
-    };
 
-});
+        // ---- LÓGICA DE TOGGLE (Reaproveitável para Máquina e Calibração) ----
+        window.toggleSection = (id, el) => {
+            const box = document.getElementById(id);
+            const arrow = el.querySelector("span:last-child");
 
-document.getElementById('openAddCalibrationButton').addEventListener('click', function() {
-    document.getElementById('hiddenForm').classList.remove('hidden');
-});
+            box.classList.toggle("hidden");
 
-document.getElementById('closeAddCalibrationModal').addEventListener('click', function() {
-    document.getElementById('hiddenForm').classList.add('hidden');
-});
+            if (!box.classList.contains("hidden")) {
+                arrow.style.transform = "rotate(180deg)";
+                // Pequeno atraso para a animação de opacidade funcionar bem
+                setTimeout(() => { 
+                    box.classList.remove("opacity-0", "translate-y-2"); 
+                }, 10);
+            } else {
+                arrow.style.transform = "rotate(0deg)";
+                box.classList.add("opacity-0", "translate-y-2");
+            }
+        };
+    });
 </script>
 {% endblock %}

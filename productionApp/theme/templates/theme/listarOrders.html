@@ -207,7 +207,7 @@
 {% block extra_js %}
 <script>
   // =========================================================
-  // 1. LÓGICA DE FILTROS E PESQUISA (Agora gerida pelo Django)
+  // 1. LÓGICA DE FILTROS E PESQUISA
   // =========================================================
   const form = document.getElementById('filterForm');
   const tipoInput = document.getElementById('tipoInput');
@@ -215,22 +215,20 @@
   const btnExport = document.getElementById('btnExport');
   const btnClear = document.getElementById('btnClear');
 
-  // Função para pintar os botões consoante o estado atual que veio do Django
   function pintarBotoes() {
-      if (!tipoInput) return; // Segurança extra caso a página carregue diferente
-      
+      if (!tipoInput) return;
+
       const tipoAtual = tipoInput.value;
-      
-      // Classes base (Botões a cinzento - Inativos)
-      const baseClass = "px-3 py-1 text-sm font-semibold rounded transition border bg-gray-200 text-gray-800 hover:bg-gray-300";
-      // Classes ativos (Botões a azul)
-      const activeClass = "px-3 py-1 text-sm font-semibold rounded transition border bg-blue-600 text-white border-blue-700 hover:bg-blue-700";
 
-      // Reset a todos para o estado base
-      if(btnImport) btnImport.className = baseClass;
-      if(btnExport) btnExport.className = baseClass;
+      const baseClass =
+          "px-3 py-1 text-sm font-semibold rounded transition border bg-gray-200 text-gray-800 hover:bg-gray-300";
 
-      // Pinta de azul apenas o que estiver selecionado
+      const activeClass =
+          "px-3 py-1 text-sm font-semibold rounded transition border bg-blue-600 text-white border-blue-700 hover:bg-blue-700";
+
+      if (btnImport) btnImport.className = baseClass;
+      if (btnExport) btnExport.className = baseClass;
+
       if (tipoAtual === 'import' && btnImport) {
           btnImport.className = activeClass;
       } else if (tipoAtual === 'export' && btnExport) {
@@ -238,79 +236,137 @@
       }
   }
 
-  // Correr logo ao carregar a página para pintar os botões corretamente
   pintarBotoes();
 
-  // Quando clica no botão Importação
   if (btnImport) {
-      btnImport.addEventListener('click', function() {
-          // Se já estava 'import', muda para 'todos', senão muda para 'import'
-          tipoInput.value = (tipoInput.value === 'import') ? 'todos' : 'import';
-          form.submit(); // Manda logo o formulário para o Django recarregar a página!
-      });
-  }
-
-  // Quando clica no botão Exportação
-  if (btnExport) {
-      btnExport.addEventListener('click', function() {
-          tipoInput.value = (tipoInput.value === 'export') ? 'todos' : 'export';
+      btnImport.addEventListener('click', function () {
+          tipoInput.value =
+              (tipoInput.value === 'import') ? 'todos' : 'import';
           form.submit();
       });
   }
 
-  // Quando clica em Limpar
-  if (btnClear) {
-      btnClear.addEventListener('click', function() {
-          tipoInput.value = 'todos'; // Reseta o tipo (Import/Export)
-          
-          // Limpa o texto da caixa de pesquisa
-          const barraPesquisa = document.querySelector('input[name="q"]');
-          if (barraPesquisa) barraPesquisa.value = '';
-          
-          form.submit(); // Recarrega a página limpa
+  if (btnExport) {
+      btnExport.addEventListener('click', function () {
+          tipoInput.value =
+              (tipoInput.value === 'export') ? 'todos' : 'export';
+          form.submit();
       });
   }
 
+  if (btnClear) {
+      btnClear.addEventListener('click', function () {
+          tipoInput.value = 'todos';
+
+          const barraPesquisa =
+              document.querySelector('input[name="q"]');
+
+          if (barraPesquisa) {
+              barraPesquisa.value = '';
+          }
+
+          form.submit();
+      });
+  }
 
   // =========================================================
-  // 2. CÓDIGO EXISTENTE DE SCROLL E EXPORTAÇÃO (Intacto!)
+  // 2. SCROLL SINCRONIZADO
   // =========================================================
-  
-  // Scroll superior sincronizado
   const tableScroller = document.getElementById('tableScroller');
   const topScroller = document.getElementById('topScroller');
   const topInner = document.getElementById('topScrollerInner');
 
   function syncWidths() {
-    if(topInner && tableScroller) {
-        topInner.style.width = tableScroller.scrollWidth + 'px';
-    }
+      if (topInner && tableScroller) {
+          topInner.style.width =
+              tableScroller.scrollWidth + 'px';
+      }
   }
 
   if (tableScroller && topScroller) {
+
       tableScroller.addEventListener('scroll', () => {
-        topScroller.scrollLeft = tableScroller.scrollLeft;
+          topScroller.scrollLeft =
+              tableScroller.scrollLeft;
       });
+
       topScroller.addEventListener('scroll', () => {
-        tableScroller.scrollLeft = topScroller.scrollLeft;
+          tableScroller.scrollLeft =
+              topScroller.scrollLeft;
       });
   }
-  
+
   window.addEventListener('load', syncWidths);
 
-  // Refresh suave após exportar
-  document.querySelectorAll('.export-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const original = btn.textContent;
-      btn.textContent = 'A gerar…';
-      btn.classList.add('opacity-70','pointer-events-none');
-      setTimeout(() => { window.location.reload(); }, 2500);
-      setTimeout(() => {
-        btn.textContent = original;
-        btn.classList.remove('opacity-70','pointer-events-none');
-      }, 8000);
-    });
-  });
+  // =========================================================
+  // 3. GUARDAR E RESTAURAR POSIÇÃO DO SCROLL
+  // =========================================================
+  if (tableScroller) {
 
+      // Restaurar posição guardada
+      window.addEventListener('load', () => {
+
+          const savedScrollTop =
+              localStorage.getItem('ordersScrollTop');
+
+          const savedScrollLeft =
+              localStorage.getItem('ordersScrollLeft');
+
+          if (savedScrollTop !== null) {
+              tableScroller.scrollTop =
+                  parseInt(savedScrollTop);
+          }
+
+          if (savedScrollLeft !== null) {
+              tableScroller.scrollLeft =
+                  parseInt(savedScrollLeft);
+          }
+      });
+
+      // Guardar posição sempre que fizer scroll
+      tableScroller.addEventListener('scroll', () => {
+
+          localStorage.setItem(
+              'ordersScrollTop',
+              tableScroller.scrollTop
+          );
+
+          localStorage.setItem(
+              'ordersScrollLeft',
+              tableScroller.scrollLeft
+          );
+      });
+  }
+
+  // =========================================================
+  // 4. REFRESH APÓS EXPORTAÇÃO
+  // =========================================================
+  document.querySelectorAll('.export-btn').forEach(btn => {
+
+      btn.addEventListener('click', () => {
+
+          const original = btn.textContent;
+
+          btn.textContent = 'A gerar…';
+
+          btn.classList.add(
+              'opacity-70',
+              'pointer-events-none'
+          );
+
+          setTimeout(() => {
+              window.location.reload();
+          }, 2500);
+
+          setTimeout(() => {
+              btn.textContent = original;
+
+              btn.classList.remove(
+                  'opacity-70',
+                  'pointer-events-none'
+              );
+          }, 8000);
+      });
+  });
 </script>
 {% endblock %}
