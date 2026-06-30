@@ -565,6 +565,8 @@ class faturas(models.Model):
     valor = FlexibleDecimalField(max_digits=10, decimal_places=2)
     moeda = models.CharField(max_length=3, choices=MOEDA)
     pago = models.BooleanField(default=False)
+    enviado = models.BooleanField(default=False)
+    data_enviado = models.DateField(null=True, blank=True)
     descricao = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 

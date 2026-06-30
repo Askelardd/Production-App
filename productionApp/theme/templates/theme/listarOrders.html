@@ -141,24 +141,25 @@
             {% endif %}
           </td>
             <td class="px-4 py-2">{{ o.comment|linebreaksbr|default:"—" }}</td>
-            <td class="px-4 py-2">
-              {% for f in o.files.all %}
-                <div>
-                  {% if f.restricted and not is_admin %}
-                    <span class="text-gray-500 italic">Ficheiro restrito</span>
-                  {% else %}
-                    <a href="{{ f.file.url }}" class="text-blue-600 underline" target="_blank">
-                      {{ f.file.name|cut:"order_files/"}}
-                    </a>
-                    {% if f.restricted %}
-                      <span class="text-xs text-red-600 ml-1">(restrito)</span>
+              <td class="px-4 py-2">
+                {% for f in o.files.all %}
+                  <div>
+                    {% if f.restricted and not is_admin %}
+                      <span class="text-gray-500 italic">Ficheiro restrito</span>
+                    {% else %}
+                      <a href="{% url 'media_protector' caminho_ficheiro=f.file.name %}" class="text-blue-600 underline" target="_blank">
+                        {{ f.file.name|cut:"order_files/"}}
+                      </a>
+                      
+                      {% if f.restricted %}
+                        <span class="text-xs text-red-600 ml-1">(restrito)</span>
+                      {% endif %}
                     {% endif %}
-                  {% endif %}
-                </div>
-              {% empty %}
-                <span class="text-gray-500">—</span>
-              {% endfor %}
-            </td>
+                  </div>
+                {% empty %}
+                  <span class="text-gray-500">—</span>
+                {% endfor %}
+              </td>
             {% if is_qOffice %}
             <td class="px-4 py-2">
               {% if o.exportado %}
