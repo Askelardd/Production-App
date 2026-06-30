@@ -60,6 +60,7 @@
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Sent</th>
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
                 <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
@@ -94,6 +95,20 @@
                   class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300">
         </td>
         {% endif %}
+        
+        <td data-url="{% url 'api_marcar_enviado' fatura.id %}"
+            onclick="lidarComCliqueFatura(this)" 
+            class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
+            
+            {% if fatura.enviado %}
+                <span class="text-green-600 font-semibold">Yes</span>
+                <br>
+                <span class="text-gray-500 text-xs">({{ fatura.data_enviado|date:"d/m/Y" }})</span>
+            {% else %}
+                <span class="text-red-600 font-semibold">No</span>
+            {% endif %}
+
+        </td>
 
         <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
             id="dropzone-{{ fatura.id }}"
@@ -210,7 +225,49 @@
 </style>
 
 <script>
-    // Aceitam o argumento 'tipo' (pode ser 'geral', 'pago', 'estrangeiro')
+
+    function lidarComCliqueFatura(elementoClicado) {
+        const url = elementoClicado.getAttribute('data-url');
+        
+        // Opcional: Adicionar uma opacidade temporária para dar feedback de "a carregar"
+        elementoClicado.style.opacity = '0.5';
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Restaurar a opacidade original
+            elementoClicado.style.opacity = '1';
+
+            if (data.status === 'success') {
+                // Se o novo estado for ENVIADO (True)
+                if (data.enviado) {
+                    elementoClicado.innerHTML = `
+                        <span class="text-green-600 font-semibold">Yes</span>
+                        <br>
+                        <span class="text-gray-500 text-xs">(${data.data_envio})</span>
+                    `;
+                } 
+                // Se o novo estado for NÃO ENVIADO (False)
+                else {
+                    elementoClicado.innerHTML = `
+                        <span class="text-red-600 font-semibold">No</span>
+                    `;
+                }
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            elementoClicado.style.opacity = '1';
+            console.error("Erro no fetch:", error);
+        });
+    }
     
     function handleDragOver(e, id, tipo = 'geral') {
         e.preventDefault();

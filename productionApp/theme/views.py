@@ -20,7 +20,7 @@ from django.db.models.functions import TruncMonth, TruncDay
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction  
 from django.db.models import Count  
-from django.http import HttpResponse, JsonResponse  
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse  
 from django.shortcuts import get_object_or_404, redirect, render  
 from django.utils import timezone  
 from django.utils.dateparse import parse_date
@@ -33,7 +33,8 @@ from collections import defaultdict
 from django.db.models.functions import TruncDate
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
-
+from django.utils._os import safe_join
+from django.core.exceptions import SuspiciousFileOperation
 
 def stock_overview(request):
     return redirect('http://192.168.2.112:18000')    
@@ -42,6 +43,10 @@ def stock_overview(request):
 def home(request):
     # Lista com a ordem que queres que apareça no ecrã
     grupos_ordenados = ['Administracao', 'Producao', 'Q-Office', 'Comercial']
+
+    if request.user.is_authenticated:
+        # Se o utilizador estiver logado, redireciona para o menu principal
+        return redirect('mainMenu')
     
     # Vamos construir uma lista de dicionários para passar ao HTML
     usuarios_por_grupo = []
@@ -70,6 +75,9 @@ def home(request):
 
 def erro403(request, exception=None):
     return render(request, '403.html', status=403)
+
+def error_404(request, exception):
+    return render(request, '403.html', status=404)
 
 
 @csrf_exempt
@@ -4074,6 +4082,38 @@ def listarFaturas(request):
 
 @login_required
 @admin_required
+def api_marcar_enviado(request, fatura_id):
+    if request.method == 'POST':
+        try:
+            fatura = faturas.objects.get(id=fatura_id)
+            
+            # 1. Inverte o estado atual (se era True vira False, se era False vira True)
+            fatura.enviado = not fatura.enviado
+            
+            if fatura.enviado:
+                fatura.data_enviado = timezone.now()
+                data_formatada = fatura.data_enviado.strftime('%d/%m/%Y')
+            else:
+                fatura.data_enviado = None  # Limpa a data se voltar a "No"
+                data_formatada = None
+                
+            fatura.save()
+            
+            # 2. Devolvemos o novo estado 'enviado' para o JavaScript saber o que renderizar
+            return JsonResponse({
+                'status': 'success', 
+                'enviado': fatura.enviado,
+                'data_envio': data_formatada
+            })
+            
+        except faturas.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Fatura não encontrada.'}, status=404)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Método não permitido.'}, status=403)
+    
+
+@login_required
+@admin_required
 def criarFatura(request):
     fornecedores = Fornecedor.objects.all().order_by('name')
 
@@ -4801,6 +4841,13 @@ def relatorio_data(request):
 
     #print("\n--- RESUMO DE FIEIRAS E CAIXAS POR PEDIDO ---")
     
+    total_global_mini = 0
+    total_global_pequenas = 0
+    total_global_medias = 0
+    total_global_grandes = 0
+    total_global_extragrandes = 0
+    total_global_ultra = 0
+
     lista_pedidos_front = [] # <--- LISTA PARA O HTML
     
     for ped, info in resumo_pedidos_dict.items():
@@ -4828,6 +4875,33 @@ def relatorio_data(request):
             elif 2.500 <= diam_val <= 3.999: num_extragrandes += 1
             elif 4.000 <= diam_val <= 8.000: num_ultra += 1
 
+        total_global_mini += num_mini
+        total_global_pequenas += num_pequenas
+        total_global_medias += num_medias
+        total_global_grandes += num_grandes
+        total_global_extragrandes += num_extragrandes
+        total_global_ultra += num_ultra
+
+        totais_front = {
+            'total_mini': total_global_mini,
+            'percentagem_mini': (total_global_mini / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+            
+            'total_pequenas': total_global_pequenas,
+            'percentagem_pequenas': (total_global_pequenas / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+            
+            'total_medias': total_global_medias,
+            'percentagem_medias': (total_global_medias / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+            
+            'total_grandes': total_global_grandes,
+            'percentagem_grandes': (total_global_grandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+            
+            'total_extragrandes': total_global_extragrandes,
+            'percentagem_extragrandes': (total_global_extragrandes / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+            
+            'total_ultra': total_global_ultra,
+            'percentagem_ultra': (total_global_ultra / nr_fieiras_unicas * 100) if nr_fieiras_unicas > 0 else 0,
+        }
+
         #print(f"Numero peq = {num_pequenas}")
         #print(f"Numero med = {num_medias}")
         tamanhos_no_pedido = []
@@ -4850,6 +4924,7 @@ def relatorio_data(request):
 
         # Print mantido para testes
         #print(f"No pedido {ped} do cliente {cliente} foram trabalhadas {total_fieiras} fieiras, {texto_caixa} {caixas_formatadas}.{aviso_partidas} (Recebidos os diâmetros: {diametros_str}){detalhe_tamanhos}")
+        
         
         # Guardar para o Front-end
         lista_pedidos_front.append({
@@ -5142,6 +5217,7 @@ def relatorio_data(request):
         # Listas de Dicionários 
         'tipos_fieira': lista_tipos_front,
         'resumo_pedidos': lista_pedidos_front,
+        'totais_global': totais_front,
         'resumo_workers': lista_workers_front,
         'tamanhos_no_pedido': tamanhos_no_pedido,
         'resumo_diario': lista_resumo_diario,
@@ -5310,5 +5386,39 @@ def ficheiros_caixa(request, qr_id):
     ficheiros = BoxFiles.objects.filter(qrdata=qr).order_by('-uploaded_at')
     
     return render(request, 'theme/ficheiros_caixa.html', {'qr': qr, 'ficheiros': ficheiros, 'user_group': user_group})
+
+
+@login_required
+def media_protector(request, caminho_ficheiro):
+    is_admin = request.user.is_superuser or request.user.groups.filter(name__in=['Administração', 'Comercial','Q-Office']).exists()
+    print(f"\nDEBUG: Utilizador {request.user.username} group {request.user.groups.first().name if request.user.groups.exists() else 'Nenhum'} | is_admin: {is_admin}")
+    # O caminho_ficheiro será algo como "order_files/ficheiro.pdf"
+    ficheiro_db = OrderFile.objects.filter(file=caminho_ficheiro).first()
+    print(f"\nDEBUG: Caminho do ficheiro solicitado: {caminho_ficheiro}")
+    if ficheiro_db:
+        if ficheiro_db.restricted and not is_admin:
+            messages.error(request, "Acesso negado: Este ficheiro é confidencial e exclusivo à Administração.")
+            raise PermissionDenied("Acesso negado: Este ficheiro é confidencial e exclusivo à Administração.")
+    else:
+        messages.error(request, "Acesso negado: Este ficheiro não está registado na base de dados.")
+        raise PermissionDenied("Acesso negado: Este ficheiro não está registado na base de dados.")
+        
+    # 3. Se as regras acima passaram, vamos ler e enviar o ficheiro
+    try:
+        file_path = safe_join(settings.MEDIA_ROOT, caminho_ficheiro)
+    except SuspiciousFileOperation:
+        # O utilizador tentou usar "../" para sair da pasta media
+        raise Http404("Caminho de ficheiro inválido.")
+
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'))
+
+    raise Http404("Ficheiro não encontrado no servidor.")
+    
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'))
+    
+    raise Http404("Ficheiro não encontrado no servidor.")
+    
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

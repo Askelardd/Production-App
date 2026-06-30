@@ -104,6 +104,7 @@ urlpatterns = [
     path('editar_fatura/<hashid:fatura_id>/', views.editarFatura, name='editarFatura'),
     path('api/upload-fatura/', views.upload_arquivo_fatura, name='api_upload_fatura'),
     path('api/delete-anexo/', views.delete_anexo_api, name='api_delete_anexo'),
+    path('api/fatura/<int:fatura_id>/marcar-enviado/', views.api_marcar_enviado, name='api_marcar_enviado'),
 
     # Suppliers
     path('listarFornecedores/', views.listarFornecedores, name='listarFornecedores'),
@@ -120,9 +121,10 @@ urlpatterns = [
 
     # Relatorios
     path('relatorioTrabalhos/', views.relatorio_data, name='relatorio_data'),
-]
 
-handler403 = 'theme.views.erro403'
+    #Media files
+    path('media/<path:caminho_ficheiro>/', views.media_protector, name='media_protector'),
+]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

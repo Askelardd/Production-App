@@ -473,7 +473,7 @@ class FaturaPagoFileInline(admin.TabularInline):
 class FaturasInline(admin.TabularInline):
     model = faturas
     extra = 0
-    fields = ['fatura_unica', 'numero_fatura', 'data_fatura', 'valor', 'pago', 'descricao']
+    fields = ['fatura_unica', 'numero_fatura', 'data_fatura', 'valor', 'pago','enviado','data_enviado', 'descricao']
     readonly_fields = ['fatura_unica']
 
 
