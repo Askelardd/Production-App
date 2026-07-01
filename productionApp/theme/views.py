@@ -15,7 +15,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth import logout as auth_logout
 from django.core.mail import send_mail
 from django.contrib.auth.decorators import login_required  
-from django.contrib.auth.models import User  
+from django.contrib.auth.models import Group, User  
 from django.db.models.functions import TruncMonth, TruncDay
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction  
@@ -79,6 +79,9 @@ def erro403(request, exception=None):
 def error_404(request, exception):
     return render(request, '403.html', status=404)
 
+def error_access(request):
+    return render(request, 'access_denied.html', status=403)
+
 
 @csrf_exempt
 def login_view(request, user_id):
@@ -119,6 +122,10 @@ def financeiroMenu(request):
 @group_required('Administracao')
 def documentosMenu(request):
     return render(request, 'theme/menuDocumentos.html')
+
+@group_required('Alfa')
+def accessMenu(request):
+    return render(request, 'theme/menuAcesso.html')
 
 def productionMenu(request):
     q = request.GET.get('q', '').strip()
@@ -166,8 +173,8 @@ def fieira_path(request):
 def comercialMenu(request):
     return render(request, 'theme/comercialMenu.html')
 
-@group_required('Comercial', 'Administracao')
 @login_required
+@group_required('Comercial', 'Administracao')
 def orders(request):
     choices = Order.courier_choices
     plants = Plant.objects.all().order_by('name')
@@ -361,7 +368,7 @@ def listar_orders(request):
             limite_escolhido = '20'
 
 
-    is_admin = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
+    is_admin_or_comercial = request.user.groups.filter(name__in=["Administracao", "Comercial"]).exists()
     is_qOffice = request.user.groups.filter(name='Q-Office').exists()
 
     return render(request, 'theme/listarOrders.html', {
@@ -370,7 +377,7 @@ def listar_orders(request):
         'search_query': search_query,
         'filtro_tipo': filtro_tipo,
 
-        'is_admin': is_admin,
+        'is_admin_or_comercial': is_admin_or_comercial,
         'ordersComing': ordersComing,
         'is_qOffice': is_qOffice,
     })
@@ -4422,12 +4429,32 @@ def deletar_fornecedor(request, id):
         return redirect('listarFornecedores')
     else:
         messages.error(request, "Método inválido para deletar fornecedor.")
-        return redirect('listarFornecedores')
+        return redirect('listarFornecedores')   
 
 @admin_required    
 def templateFiles(request):
     templates = Template.objects.all().order_by('department')
     return render(request, 'theme/templateFiles.html', {'templates': templates})
+
+def deletarTemplate(request, id):
+
+    try:
+        template = Template.objects.get(id=id)
+    except Template.DoesNotExist:
+        messages.error(request, "O template que tentou aceder não existe ou foi eliminado.")
+        return redirect('templateFiles')
+
+    if request.method == 'POST':
+        try:
+            template.delete()
+            messages.success(request, "Template deletado com sucesso!")
+            return redirect('templateFiles')
+        except Exception as e:
+            messages.error(request, f"Erro ao deletar template: {str(e)}")
+            return redirect('templateFiles')
+    
+    return redirect('templateFiles')
+
 
 @csrf_exempt
 @require_POST
@@ -4485,7 +4512,6 @@ def criarTemplate(request):
         files = request.FILES.getlist('file')
 
         try:
-            # 4. BLINDAGEM MÁXIMA: Transação Atómica
             # Se o servidor for abaixo a criar os ficheiros, ele apaga o Template automaticamente
             with transaction.atomic():
                 novo_template = Template.objects.create(
@@ -5233,6 +5259,8 @@ def relatorio_data(request):
         # Se foi um carregamento normal da página (F5 ou escrever o link)
     return render(request, 'theme/relatorio_data.html', context)
 
+@login_required
+@group_required('Administracao','Q-Office')
 def upload_excel_view(request):
     if request.method == 'POST' and request.FILES.get('file'):
         excel_file = request.FILES['file']
@@ -5390,7 +5418,8 @@ def ficheiros_caixa(request, qr_id):
 
 @login_required
 def media_protector(request, caminho_ficheiro):
-    is_admin = request.user.is_superuser or request.user.groups.filter(name__in=['Administração', 'Comercial','Q-Office']).exists()
+
+    is_admin = request.user.is_superuser or request.user.groups.filter(name__in=['Administracao', 'Comercial','Q-Office']).exists()
     print(f"\nDEBUG: Utilizador {request.user.username} group {request.user.groups.first().name if request.user.groups.exists() else 'Nenhum'} | is_admin: {is_admin}")
     # O caminho_ficheiro será algo como "order_files/ficheiro.pdf"
     ficheiro_db = OrderFile.objects.filter(file=caminho_ficheiro).first()
@@ -5414,11 +5443,79 @@ def media_protector(request, caminho_ficheiro):
         return FileResponse(open(file_path, 'rb'))
 
     raise Http404("Ficheiro não encontrado no servidor.")
+
+@csrf_exempt
+@login_required
+@group_required('Alfa')
+def painel_acesso(request):
+
+    grupos_ordenados = ['Administracao', 'Producao', 'Q-Office', 'Comercial']
+    usuarios_por_grupo = []
+
+    # Verificamos apenas uma vez se quem está a aceder é admin/externo
+    sou_admin_ou_externo = request.user.groups.filter(name='externo').exists()
+
+    for nome_grupo in grupos_ordenados:
+        usuarios = User.objects.filter(groups__name=nome_grupo).order_by('username')
+
+        if not sou_admin_ou_externo:
+            usuarios = usuarios.exclude(groups__name='externo').order_by('username')
+
+
+        lista_usuarios = list(usuarios)
+        for usuario in lista_usuarios:
+            usuario.tem_acesso = usuario.groups.filter(name='externo').exists()
+
+        # Se houver utilizadores neste grupo, adiciona à lista final
+        if lista_usuarios:
+            usuarios_por_grupo.append({
+                'nome_grupo': nome_grupo,
+                'usuarios': lista_usuarios,
+                # Já não precisamos do 'tem_acesso' aqui
+            })
+
+    # Caso tenhas utilizadores sem grupo atribuído
+    usuarios_sem_grupo = User.objects.filter(groups__isnull=True).order_by('username')
+    lista_sem_grupo = list(usuarios_sem_grupo)
     
-    if os.path.exists(file_path):
-        return FileResponse(open(file_path, 'rb'))
-    
-    raise Http404("Ficheiro não encontrado no servidor.")
-    
+    for usuario in lista_sem_grupo:
+        usuario.tem_acesso = usuario.groups.filter(name='externo').exists()
+
+    if lista_sem_grupo:
+        usuarios_por_grupo.append({
+            'nome_grupo': 'Outros',
+            'usuarios': lista_sem_grupo,
+        })
+
+    return render(request, 'theme/painel_acesso.html', {'usuarios_por_grupo': usuarios_por_grupo})
+
+
+@login_required
+@group_required('Alfa')
+
+def toggle_acesso_externo(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            user_id = data.get('user_id')
+            permitir = data.get('aceder_fora')
+
+            utilizador = User.objects.get(id=user_id)
+            grupo_externo, created = Group.objects.get_or_create(name='externo')
+
+            if permitir:
+                utilizador.groups.add(grupo_externo)
+            else:
+                utilizador.groups.remove(grupo_externo)
+
+            return JsonResponse({'status': 'sucesso'})
+            
+        except Exception as e:
+            return JsonResponse({'status': 'erro', 'mensagem': str(e)}, status=400)
+            
+    return JsonResponse({'status': 'metodo nao permitido'}, status=405)
+
+
+
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/
