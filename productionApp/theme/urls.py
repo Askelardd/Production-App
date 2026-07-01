@@ -14,6 +14,7 @@ urlpatterns = [
     path('login/<hashid:user_id>/', views.login_view, name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('erro403/', views.erro403, name='erro403'),
+    path('access-denied/', views.error_access, name='access_denied'),
 
     # Menu
     path('mainMenu/', views.mainMenu, name='mainMenu'),
@@ -23,6 +24,7 @@ urlpatterns = [
     path('administrationMenu/', views.administrationMenu, name='administrationMenu'),
     path('menuFinanceiro/', views.financeiroMenu, name='financeiroMenu'),
     path('documentosMenu/', views.documentosMenu, name='documentosMenu'),
+    path('accessMenu/', views.accessMenu, name='accessMenu'),
 
     # Products
     path('inputProduction/', views.inputProduction, name='inputProduction'),
@@ -116,6 +118,7 @@ urlpatterns = [
     path('upload-template-file/<hashid:id>/', views.upload_template_file, name='upload_template_file'),
     path('criarTemplate/', views.criarTemplate, name='criarTemplate'),
     path('editarTemplate/<hashid:id>/', views.editarTemplate, name='editarTemplate'),
+    path('deletarTemplate/<hashid:id>/', views.deletarTemplate, name='deletarTemplate'),
     path('delete-file/<hashid:file_id>/', views.delete_template_file, name='delete_template_file'),
     path('ficheirosCaixa/<hashid:qr_id>/', views.ficheiros_caixa, name='ficheiros_caixa'),
 
@@ -124,6 +127,10 @@ urlpatterns = [
 
     #Media files
     path('media/<path:caminho_ficheiro>/', views.media_protector, name='media_protector'),
+
+    #Painel de Acesso
+    path('painel-acesso/', views.painel_acesso, name='painel_acesso'),
+    path('api/toggle-acesso-externo/', views.toggle_acesso_externo, name='toggle_acesso')
 ]
 
 if settings.DEBUG:

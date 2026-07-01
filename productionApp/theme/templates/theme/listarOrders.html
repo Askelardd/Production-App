@@ -16,7 +16,7 @@
       </button>
     </div>
     
-    {% if is_admin %}
+    {% if is_admin_or_comercial_or_comercial %}
       <a href="{% url 'orders' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center justify-center font-semibold">
         Nova Order
       </a>
@@ -144,7 +144,7 @@
               <td class="px-4 py-2">
                 {% for f in o.files.all %}
                   <div>
-                    {% if f.restricted and not is_admin %}
+                    {% if f.restricted and not is_admin_or_comercial %}
                       <span class="text-gray-500 italic">Ficheiro restrito</span>
                     {% else %}
                       <a href="{% url 'media_protector' caminho_ficheiro=f.file.name %}" class="text-blue-600 underline" target="_blank">

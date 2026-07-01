@@ -70,3 +70,5 @@ media/
 db.sqlite3
 productionApp/productionApp/settings.py
 
+#middlewares
+productionApp/theme/middleware/middleware.py
