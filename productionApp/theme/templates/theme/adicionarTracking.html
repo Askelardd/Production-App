@@ -1,9 +1,9 @@
 {% extends 'theme/base.html' %}
-{% block title %}{% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}{% endblock %}
+{% block title %}{% if tracking %}Edit Tracking{% else %}Add Tracking{% endif %}{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold mb-6">
-  {% if tracking %}Editar Tracking{% else %}Adicionar Tracking{% endif %}
+  {% if tracking %}Edit Tracking{% else %}Add Tracking{% endif %}
 </h1>
 
 <form id="trackingForm" method="post" enctype="multipart/form-data">
@@ -13,15 +13,15 @@
     <div class="bg-white shadow p-4 rounded grid grid-cols-1 md:grid-cols-4 gap-4">
 
       <div>
-        <label class="block text-sm">Data</label>
+        <label class="block text-sm">Date</label>
         <input type="date" name="data" class="border p-2 w-full" required
                value="{% if tracking and tracking.data %}{{ tracking.data|date:'Y-m-d' }}{% endif %}">
       </div>
 
       <div>
-        <label class="block text-sm">Finalidade</label>
+        <label class="block text-sm">Purpose</label>
         <select name="finalidade" class="border p-2 w-full" required>
-          <option value="">Selecione</option>
+          <option value="">Select</option>
           {% for value, label in finalidades %}
             <option value="{{ value }}" {% if tracking and tracking.finalidade == value %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
@@ -36,7 +36,7 @@
 
    
       <div>
-        <label class="block text-sm">Cliente</label>
+        <label class="block text-sm">Client</label>
         <input type="text" name="cliente" class="border p-2 w-full"
               value="{% if tracking %}{{ tracking.cliente }}{% endif %}">
       </div>
@@ -44,9 +44,9 @@
 
 
       <div>
-        <label class="block text-sm">Transportadora</label>
+        <label class="block text-sm">Courier</label>
         <select name="transportadora" class="border p-2 w-full" required>
-          <option value="">Selecione</option>
+          <option value="">Select</option>
           {% for courier in transportadoras %}
             <option value="{{ courier }}" {% if tracking and tracking.transportadora == courier %}selected{% endif %}>{{ courier }}</option>
           {% endfor %}
@@ -54,25 +54,25 @@
       </div>
 
       <div>
-        <label class="block text-sm">Carta de Porte</label>
+        <label class="block text-sm">Courier Receipt</label>
         <input type="text" name="carta_de_porte" class="border p-2 w-full"
                value="{% if tracking %}{{ tracking.carta_de_porte }}{% endif %}">
       </div>
 
       <div>
-        <label class="block text-sm">Número de Recolha</label>
+        <label class="block text-sm">Number of Collection</label>
         <input type="text" name="numero_recolha" class="border p-2 w-full"
                value="{% if tracking %}{{ tracking.numero_recolha }}{% endif %}">
       </div>
 
       <div>
-        <label class="block text-sm">Recebido por</label>
+        <label class="block text-sm">Received by</label>
         <input type="text" name="recebido_por" class="border p-2 w-full"
                value="{% if tracking %}{{ tracking.recebido_por }}{% endif %}">
       </div>
 
       <div>
-        <label class="block text-sm">Data de Entrega</label>
+        <label class="block text-sm">Delivery Date</label>
         <input type="date" name="data_entrega" class="border p-2 w-full"
                value="{% if tracking and tracking.data_entrega %}{{ tracking.data_entrega|date:'Y-m-d' }}{% endif %}">
       </div>
@@ -92,7 +92,7 @@
               value="1"
               class="accent-blue-500 focus:ring-blue-400"
               {% if tracking.enviado %}checked{% endif %}>
-            <span class="text-gray-800 font-medium">Enviado</span>
+            <span class="text-gray-800 font-medium">Sent</span>
           </label>
         </div>
       </div>
@@ -110,28 +110,28 @@
       </style>
 
       <div class="md:col-span-2">
-        <label class="block text-sm">Observações</label>
+        <label class="block text-sm">Observations</label>
         <textarea name="observacoes" class="border p-2 w-full" rows="3">{% if tracking %}{{ tracking.observacoes }}{% endif %}</textarea>
       </div>
 
       <div class="md:col-span-2">
-        <label class="block text-sm mb-1">Ficheiros (arraste/solte ou clique)</label>
+        <label class="block text-sm mb-1">Files (drag & drop or click)</label>
         <div id="dropzone"
              class="relative border-dashed border-2 border-gray-300 p-4 text-center cursor-pointer rounded">
-          Arraste e solte aqui ou clique para selecionar.
+          Drag and drop files here or click to select.
           <input id="fileInput" name="files" type="file" multiple
                  class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                 aria-label="Selecionar ficheiros">
+                 aria-label="Select files">
         </div>
         <div class="flex items-center justify-between mt-2">
           <ul id="filesPreview" class="text-sm text-gray-700 space-y-1 flex-1"></ul>
-          <button id="clearAll" type="button" class="ml-4 text-xs px-2 py-1 border rounded hover:bg-gray-50">Limpar todos</button>
+          <button id="clearAll" type="button" class="ml-4 text-xs px-2 py-1 border rounded hover:bg-gray-50">Clear all</button>
         </div>
       </div>
 
       {% if tracking %}
       <div class="md:col-span-4 mt-3 text-sm">
-        <div class="text-gray-500 mb-1">Anexos atuais:</div>
+        <div class="text-gray-500 mb-1">Current Attachments:</div>
         <ul class="space-y-1">
           {% for file in tracking.files.all %}
             <li class="flex items-center gap-3">
@@ -142,11 +142,11 @@
               <span class="text-gray-400">· {{ file.uploaded_at|date:"Y-m-d H:i" }}</span>
               <label class="ml-auto inline-flex items-center gap-2">
                 <input type="checkbox" name="delete_files" value="{{ file.id }}" class="h-4 w-4">
-                <span class="text-red-600">Remover</span>
+                <span class="text-red-600">Remove</span>
               </label>
             </li>
           {% empty %}
-            <li class="text-gray-500">Sem ficheiros</li>
+            <li class="text-gray-500">No files</li>
           {% endfor %}
         </ul>
       </div>
@@ -157,12 +157,12 @@
 
   <div class="mt-6 flex items-center gap-2">
     <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">
-      {% if tracking %}Guardar alterações{% else %}Salvar{% endif %}
+      {% if tracking %}Save changes{% else %}Save{% endif %}
     </button>
     
     <a href="{% url 'listarTracking' %}?view={{ request.GET.view|default:'cards' }}" 
        class="px-4 py-2 border rounded">
-       Cancelar
+       Cancel
     </a>
   </div>
 </form>

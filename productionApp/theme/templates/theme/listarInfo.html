@@ -1,12 +1,12 @@
 {% extends 'theme/base.html' %}
-{% block title %}Registros de DeliveryInfo{% endblock %}
+{% block title %}Records of DeliveryInfo{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold text-black mb-8">Entregas Registradas</h1>
+<h1 class="text-3xl font-bold text-black mb-8">Delivery Records</h1>
 
 <!-- Barra de Pesquisa -->
 <div class="mb-4">
-    <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
+    <input type="text" id="searchInput" placeholder="Search all fields..."
            class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
 </div>
 
@@ -15,11 +15,11 @@
         <thead class="bg-custom-blue text-black">
             <tr>
                 <th class="px-4 py-3">TOMA</th>
-                <th class="px-4 py-3">Cliente</th>
-                <th class="px-4 py-3">Tipo</th>
-                <th class="px-4 py-3">Entidade</th>
-                <th class="px-4 py-3">Data</th>
-                <th class="px-4 py-3 text-center">Ações</th>
+                <th class="px-4 py-3">Client</th>
+                <th class="px-4 py-3">Type</th>
+                <th class="px-4 py-3">Entity</th>
+                <th class="px-4 py-3">Date</th>
+                <th class="px-4 py-3 text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -32,13 +32,13 @@
                 <td class="px-4 py-2">{{ d.deliveryDate|date:"d/m/Y" }}</td>
                 <td class="px-4 py-2 text-center">
                     <a href="{% url 'deliveryIdentification' d.identificator.toma_order_full %}" 
-                       class="text-blue-600 hover:underline text-sm px-2">Editar</a>
+                       class="text-blue-600 hover:underline text-sm px-2">Edit</a>
                     <form method="POST" action="{% url 'deletar_delivery' d.id %}" style="display:inline;">
                         {% csrf_token %}
                         {% if request.user.groups.all.0.name in "Q-Office Administracao" %}
                         <button type="submit" class="text-red-600 hover:underline text-sm px-2"
-                                onclick="return confirm('Tem certeza que deseja deletar este registro?')">
-                            Excluir
+                                onclick="return confirm('Are you sure you want to delete this record?')">
+                            Delete
                         </button>
 
                         {% endif %}
@@ -47,7 +47,7 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center text-gray-500 py-4">Nenhuma entrega registrada.</td>
+                <td colspan="6" class="text-center text-gray-500 py-4">No delivery records found.</td>
             </tr>
             {% endfor %}
         </tbody>

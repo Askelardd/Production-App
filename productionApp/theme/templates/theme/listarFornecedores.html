@@ -7,8 +7,8 @@
     <div class="max-w-9xl mx-auto mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Fornecedores & Invoices</h1>
-                <p class="text-sm text-gray-500 mt-1">Gestão de fornecedores, faturação e dados bancários</p>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Suppliers & Invoices</h1>
+                <p class="text-sm text-gray-500 mt-1">Management of suppliers, invoicing and banking information</p>
             </div>
             
             <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
@@ -18,7 +18,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
                     </div>
-                    <input type="text" id="searchInput" placeholder="Pesquisar em todos os campos..."
+                    <input type="text" id="searchInput" placeholder="Search all fields..."
                         class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
                 </div>
                 
@@ -26,7 +26,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
-                    Criar Fornecedor
+                    Create Supplier
                 </button>
             </div>
         </div>
@@ -35,14 +35,14 @@
     <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center hidden z-50 transition-opacity" id="insertFornecedorForm">
         <div class="bg-white p-8 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative border border-gray-100">
             
-            <h2 class="text-2xl font-bold mb-6 text-gray-900 tracking-tight">Novo Fornecedor</h2>
+            <h2 class="text-2xl font-bold mb-6 text-gray-900 tracking-tight">New Supplier</h2>
             
             <form id="fornecedorForm" action="{% url 'listarFornecedores' %}" method="post" class="flex flex-col space-y-6">
                 {% csrf_token %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome</label>
-                        <input type="text" name="nome" placeholder="Ex: Empresa Lda" required
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Name</label>
+                        <input type="text" name="nome" placeholder="Ex: Company Ltd" required
                             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-gray-50" />
                     </div>
                     
@@ -59,26 +59,26 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Telefone</label>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Phone</label>
                         <input type="text" name="telefone" placeholder="+351 912345678"
                             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-gray-50" />
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Dados Bancários</label>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Banking Information</label>
                         <input type="text" name="dados_bancarios" placeholder="IBAN / SWIFT"
                             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-gray-50" />
                     </div>
 
                     <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Morada</label>
-                        <input type="text" name="morada" placeholder="Morada completa"
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Address</label>
+                        <input type="text" name="morada" placeholder="Complete address"
                             class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-gray-50" />
                     </div>
 
                     <div class="flex flex-col gap-4 mt-2">
                         <label class="flex items-center cursor-pointer group">
-                            <span class="mr-3 text-sm font-medium text-gray-700 group-hover:text-gray-900">Débito Direto</span>
+                            <span class="mr-3 text-sm font-medium text-gray-700 group-hover:text-gray-900">Direct Debit</span>
                             <input type="checkbox" name="debito_direto" class="peer sr-only" {% if fornecedor.debito_direto %}checked{% endif %} />
                             <div class="w-11 h-6 bg-gray-200 rounded-full relative transition-colors duration-200 peer-checked:bg-blue-600 peer-checked:[&>div]:translate-x-5">
                                 <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow-sm"></div>
@@ -86,7 +86,7 @@
                         </label>
 
                         <label class="flex items-center cursor-pointer group">
-                            <span class="mr-3 text-sm font-medium text-gray-700 group-hover:text-gray-900">Estrangeiro</span>
+                            <span class="mr-3 text-sm font-medium text-gray-700 group-hover:text-gray-900">Foreign</span>
                             <input type="checkbox" name="estrangeiro" class="peer sr-only" {% if fornecedor.estrangeiro %}checked{% endif %} />
                             <div class="w-11 h-6 bg-gray-200 rounded-full relative transition-colors duration-200 peer-checked:bg-blue-600 peer-checked:[&>div]:translate-x-5">
                                 <div class="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 transition-transform duration-200 shadow-sm"></div>
@@ -97,10 +97,10 @@
                 
                 <div class="flex items-center justify-end space-x-3 pt-6 border-t border-gray-100 mt-6">
                     <a href="{% url 'listarFornecedores' %}" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer">
-                        Cancelar
+                        Cancel
                     </a>
                     <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm">
-                        Guardar Fornecedor
+                        Save Supplier
                     </button>
                 </div>
             </form>
@@ -115,12 +115,12 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">VAT</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Telefone</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dados Bancários</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Morada</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Débito Direto</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Estrangeiro</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Ações</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Phone</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Banking Information</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Address</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Direct Debit</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Foreign</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -130,32 +130,32 @@
                         <td class="editable px-6 py-4 text-sm font-medium text-gray-900 cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="name" title="Duplo clique para editar">{{ fornecedor.name }}</td>
+                            data-field="name" title="Double click to edit">{{ fornecedor.name }}</td>
 
                         <td class="editable px-6 py-4 text-sm text-gray-700 cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="vat" title="Duplo clique para editar">{{ fornecedor.vat }}</td>
+                            data-field="vat" title="Double click to edit">{{ fornecedor.vat }}</td>
 
                         <td class="editable px-6 py-4 text-sm text-gray-500 cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="email" title="Duplo clique para editar">{{ fornecedor.email }}</td>
+                            data-field="email" title="Double click to edit">{{ fornecedor.email }}</td>
                             
                         <td class="editable px-6 py-4 text-sm text-gray-500 whitespace-nowrap cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="telefone" title="Duplo clique para editar">{{ fornecedor.telefone }}</td>
+                            data-field="telefone" title="Double click to edit">{{ fornecedor.telefone }}</td>
 
                         <td class="editable px-6 py-4 text-sm text-gray-500 cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="dados_bancarios" title="Duplo clique para editar">{{ fornecedor.dados_bancarios }}</td>
+                            data-field="dados_bancarios" title="Double click to edit">{{ fornecedor.dados_bancarios }}</td>
 
                         <td class="editable px-6 py-4 text-sm text-gray-500 max-w-xs truncate cursor-text hover:bg-white/60 transition-colors" 
                             data-id="{{ fornecedor.id }}" 
                             data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
-                            data-field="morada" title="Duplo clique para editar">{{ fornecedor.morada }}</td>
+                            data-field="morada" title="Double click to edit">{{ fornecedor.morada }}</td>
 
                         <td class="px-6 py-4 text-center">
                             <span 
@@ -165,7 +165,7 @@
                                 data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                                 data-field="debito_direto" 
                                 data-value="{{ fornecedor.debito_direto|yesno:'true,false' }}">
-                                {% if fornecedor.debito_direto %}Sim{% else %}Não{% endif %}
+                                {% if fornecedor.debito_direto %}Yes{% else %}No{% endif %}
                             </span>
                         </td>
 
@@ -177,7 +177,7 @@
                                 data-url="{% url 'atualizar_fornecedor' fornecedor.id %}"
                                 data-field="estrangeiro" 
                                 data-value="{{ fornecedor.estrangeiro|yesno:'true,false' }}">
-                                {% if fornecedor.estrangeiro %}Sim{% else %}Não{% endif %}
+                                {% if fornecedor.estrangeiro %}Yes{% else %}No{% endif %}
                             </span>
                         </td>
                         
@@ -186,7 +186,7 @@
                                 {% csrf_token %}
                                 {% if request.user.groups.all.0.name in "Administracao" %}
                                 <button type="submit" class="text-red-500 hover:text-red-700 font-medium text-sm transition-colors p-1 rounded hover:bg-red-50"
-                                        onclick="return confirm('Tem a certeza que pretende eliminar este registo?')">
+                                        onclick="return confirm('Are you sure you want to delete this record?')">
                                     Delete
                                 </button>
                                 {% endif %}
@@ -200,7 +200,7 @@
                                 <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
                                 </svg>
-                                <span class="text-base font-medium">Nenhum fornecedor cadastrado.</span>
+                                <span class="text-base font-medium">No suppliers registered.</span>
                             </div>
                         </td>
                     </tr>
@@ -280,7 +280,7 @@
                     if (response.ok) {
                         // Atualiza os dados no HTML
                         this.dataset.value = newValue; 
-                        this.textContent = newValue ? 'Sim' : 'Não';
+                        this.textContent = newValue ? 'Yes' : 'No';
 
                         // Troca as cores (Verde <-> Vermelho)
                         if (newValue) {
@@ -291,12 +291,12 @@
                             this.classList.add('bg-red-100', 'text-red-800');
                         }
                     } else {
-                        alert('Erro ao atualizar!');
-                        console.error('Erro HTTP ao atualizar fornecedor:', response.status, response.statusText);
+                        alert('Error updating!');
+                        console.error('HTTP Error updating supplier:', response.status, response.statusText);
                     }
                 } catch (error) {
-                    console.error('Erro:', error);
-                    alert('Erro de conexão.');
+                    console.error('Error:', error);
+                    alert('Connection error.');
                 } finally {
                     this.style.opacity = '1';
                 }
@@ -347,11 +347,11 @@
                             this.innerHTML = newValue;
                             
                         } else {
-                            alert('Erro ao guardar!');
+                            alert('Error saving!');
                             this.innerHTML = currentText;
                         }
                     } catch (error) {
-                        console.error('Erro:', error);
+                        console.error('Error:', error);
                         this.innerHTML = currentText;
                     }
                 };

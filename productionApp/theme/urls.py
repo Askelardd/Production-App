@@ -26,11 +26,6 @@ urlpatterns = [
     path('documentosMenu/', views.documentosMenu, name='documentosMenu'),
     path('accessMenu/', views.accessMenu, name='accessMenu'),
 
-    # Products
-    path('inputProduction/', views.inputProduction, name='inputProduction'),
-    path('editProduct/<hashid:produto_id>/', views.editProduct, name='editProduct'),
-    path('delectProduct/<hashid:produto_id>/', views.deleteProduct, name='delectProduct'),
-
     # QR Codes
     path('listQrcodes/', views.listQrcodes, name='listQrcodes'),
     path('edit-qr-inline/<hashid:qr_id>/', views.edit_qr_inline, name='edit_qr_inline'),
