@@ -8,14 +8,14 @@
   <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
     <div>
       <h1 class="text-3xl font-bold text-gray-900">Trackings</h1>
-      <p class="text-sm text-gray-500 mt-1">Gerencie e visualize o estado das encomendas</p>
+      <p class="text-sm text-gray-500 mt-1">Manage and visualize the status of orders</p>
     </div>
     <!-- Header + Ações -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
         <a href="{% url 'listarTracking' %}?view=cards"
-          class="px-3 py-2 border rounded hidden md:inline-block">Ver tabela</a>
-        <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
+          class="px-3 py-2 border rounded hidden md:inline-block">View Table</a>
+        <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Add Tracking</a>
       </div>
     </div>
   </div>
@@ -26,15 +26,15 @@
     <input type="hidden" name="view" value="table">
 
     <div class="md:col-span-2">
-      <label class="block text-xs text-gray-500">Pesquisa</label>
-      <input type="text" name="q" value="{{ q }}" placeholder="CRM,cliente, nº, email..."
+      <label class="block text-xs text-gray-500">Search</label>
+      <input type="text" name="q" value="{{ q }}" placeholder="CRM,client, #, email..."
              class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Finalidade</label>
+      <label class="block text-xs text-gray-500">Finality</label>
       <select name="finalidade" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
+        <option value="">All</option>
         {% for value, label in finalidades %}
           <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -42,18 +42,18 @@
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Entregue</label>
+      <label class="block text-xs text-gray-500">Delivered</label>
       <select name="entregue" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
-        <option value="sim" {% if selected_entregue == 'sim' %}selected{% endif %}>Sim</option>
-        <option value="nao" {% if selected_entregue == 'nao' %}selected{% endif %}>Não</option>
+        <option value="">All</option>
+        <option value="sim" {% if selected_entregue == 'sim' %}selected{% endif %}>Yes</option>
+        <option value="nao" {% if selected_entregue == 'nao' %}selected{% endif %}>No</option>
       </select>
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Transportadora</label>
+      <label class="block text-xs text-gray-500">Courier</label>
       <select name="transportadora" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
+        <option value="">All</option>
         {% for c in transportadoras %}
           <option value="{{ c }}" {% if c == selected_transportadora %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
@@ -61,27 +61,27 @@
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Recebido Por</label>
+      <label class="block text-xs text-gray-500">Received By</label>
       <input type="text" name="recebido_por" value="{{ recebido_por }}" class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Data de Entrega</label>
+      <label class="block text-xs text-gray-500">Delivery Date</label>
       <input type="date" name="data_entrega" value="{{ data_entrega }}" class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Cliente</label>
+      <label class="block text-xs text-gray-500">Client</label>
       <input type="text" name="cliente" value="{{ cliente }}" class="border p-2 w-full rounded">
     </div>
 
     <div class="md:col-span-2 grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs text-gray-500">De</label>
+        <label class="block text-xs text-gray-500">From</label>
         <input type="date" name="de" value="{{ de }}" class="border p-2 w-full rounded">
       </div>
       <div>
-        <label class="block text-xs text-gray-500">Até</label>
+        <label class="block text-xs text-gray-500">To</label>
         <input type="date" name="ate" value="{{ ate }}" class="border p-2 w-full rounded">
       </div>
     </div>
@@ -90,9 +90,9 @@
 
     <div class="md:col-span-2 flex items-end gap-2">
       <button class="bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg shadow transition-colors text-sm font-medium">
-        Aplicar Filtros
+        Apply Filters
       </button>
-      <a href="{% url 'listarTracking' %}?view=table" class="px-4 py-2 border rounded">Limpar</a>
+      <a href="{% url 'listarTracking' %}?view=table" class="px-4 py-2 border rounded">Clear</a>
     </div>
   </form>
 </div>
@@ -100,7 +100,7 @@
 
     <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
       <div class="bg-blue-50 px-4 py-2 text-xs text-blue-700 flex items-center justify-center md:hidden">
-        <i class="fa-solid fa-arrows-left-right mr-2"></i> Deslize horizontalmente para ver mais
+        <i class="fa-solid fa-arrows-left-right mr-2"></i> Scroll horizontally to see more
       </div>
 
       <div class="relative">
@@ -139,8 +139,8 @@
                     </th>
                   {% endwith %}
                 {% endfor %}
-                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Ficheiros</th>
-                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
+                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Files</th>
+                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -171,9 +171,9 @@
 
                   <td class="px-6 py-4 whitespace-nowrap">
                     {% if t.enviado %}
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-2 h-2 mr-1.5 bg-green-400 rounded-full"></span> Sim</span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><span class="w-2 h-2 mr-1.5 bg-green-400 rounded-full"></span> Yes</span>
                     {% else %}
-                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><span class="w-2 h-2 mr-1.5 bg-red-400 rounded-full"></span> Não</span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><span class="w-2 h-2 mr-1.5 bg-red-400 rounded-full"></span> No</span>
                     {% endif %}
                   </td>
 
@@ -187,7 +187,7 @@
                             <a href="{{ f.file.url }}" class="text-blue-600 hover:text-blue-800 flex items-center gap-1" target="_blank" download title="{{ f.file.name }}"><i class="fa-regular fa-file"></i> {{ f.file.name|cut:'tracking_files/'|truncatechars:15 }}</a>
                           {% endfor %}
                           {% if total > 2 %}
-                            <span class="text-xs text-gray-400 pl-4">+{{ total|add:'-2' }} outros</span>
+                            <span class="text-xs text-gray-400 pl-4">+{{ total|add:'-2' }} others</span>
                           {% endif %}
                         </div>
                       {% else %}
@@ -197,12 +197,12 @@
                   </td>
 
                   <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a href="{% url 'editarTracking' t.id %}?view=table" class="text-indigo-600 hover:text-indigo-900 font-bold bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors">Editar</a>
+                    <a href="{% url 'editarTracking' t.id %}?view=table" class="text-indigo-600 hover:text-indigo-900 font-bold bg-indigo-50 px-3 py-1 rounded hover:bg-indigo-100 transition-colors">Edit</a>
                   </td>
                 </tr>
               {% empty %}
                 <tr>
-                  <td colspan="14" class="px-6 py-12 text-center text-gray-500 italic">Nenhum registo encontrado com estes filtros.</td>
+                  <td colspan="14" class="px-6 py-12 text-center text-gray-500 italic">No records found with these filters.</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -213,21 +213,21 @@
 
     <div class="flex items-center justify-between mt-6 bg-white p-4 rounded-lg border border-gray-100 shadow-sm">
       <div class="text-sm text-gray-700">
-        A mostrar página <span class="font-bold">{{ page_obj.number }}</span> de <span class="font-bold">{{ page_obj.paginator.num_pages }}</span>
-        <span class="text-gray-400 mx-2">|</span> Total: {{ page_obj.paginator.count }} registos
+        Showing page <span class="font-bold">{{ page_obj.number }}</span> of <span class="font-bold">{{ page_obj.paginator.num_pages }}</span>
+        <span class="text-gray-400 mx-2">|</span> Total: {{ page_obj.paginator.count }} records
       </div>
       <div class="flex gap-2">
         {% if page_obj.has_previous %}
           <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             href="{% url 'listarTracking' %}?view=table{% if current_query %}&{{ current_query }}{% endif %}&page={{ page_obj.previous_page_number }}">
-            <i class="fa-solid fa-chevron-left mr-1"></i> Anterior
+            <i class="fa-solid fa-chevron-left mr-1"></i> Previous
           </a>
         {% endif %}
 
         {% if page_obj.has_next %}
           <a class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
             href="{% url 'listarTracking' %}?view=table{% if current_query %}&{{ current_query }}{% endif %}&page={{ page_obj.next_page_number }}">
-            Seguinte <i class="fa-solid fa-chevron-right ml-1"></i>
+            Next <i class="fa-solid fa-chevron-right ml-1"></i>
           </a>
         {% endif %}
       </div>

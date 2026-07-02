@@ -1,14 +1,14 @@
 {% extends 'theme/base.html' %}
 
-{% block title %}Lista de Fieiras Partidas{% endblock %}
+{% block title %}List Broken Dies{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 p-6">
     <div class="max-w-9xl mx-auto mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Fieiras Partidas</h1>
-                <p class="text-sm text-gray-500 mt-1">Gestão e registo de fieiras partidas e observações</p>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Broken Dies</h1>
+                <p class="text-sm text-gray-500 mt-1">Management and registration of broken dies and observations</p>
             </div>
             
             <div class="relative w-full md:w-96">
@@ -17,7 +17,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                     </svg>
                 </div>
-                <input type="text" id="searchInput" placeholder="Pesquisar QR Code, Partido..."
+                <input type="text" id="searchInput" placeholder="Search Request, Broken..."
                     class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
             </div>
         </div>
@@ -31,10 +31,10 @@
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">QR Code</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Partido</th>
                         <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Série Dies Partidos</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Observações</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado em</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado por</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Feito</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Observations</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created at</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Created by</th>
+                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Done</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 bg-white">
@@ -48,7 +48,7 @@
                                     {{ numero_partido.serie_dies_partidos }}
                                 </span>
                             {% else %}
-                                <span class="text-gray-400 italic text-xs">Não especificado</span>
+                                <span class="text-gray-400 italic text-xs">Not specified</span>
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-500">{{ numero_partido.observations|default:"—" }}</td>
@@ -63,7 +63,7 @@
                                 {% if numero_partido.checkbox %}checked{% endif %}
                                 />
                                 <span class="text-sm font-medium text-gray-700 js-toggle-label w-8 text-left">
-                                {% if numero_partido.checkbox %}Sim{% else %}Não{% endif %}
+                                {% if numero_partido.checkbox %}Yes{% else %}No{% endif %}
                                 </span>
                             </label>
                         </td>
@@ -75,7 +75,7 @@
                                 <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
                                 </svg>
-                                <span class="text-base font-medium">Nenhum partido cadastrado.</span>
+                                <span class="text-base font-medium">No broken dies registered.</span>
                             </div>
                         </td>
                     </tr>

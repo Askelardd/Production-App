@@ -25,32 +25,32 @@
 
         {% if q and results %}
             <div class="mt-4 p-4 rounded-lg border-l-4 border-blue-500 bg-white/50 backdrop-blur-sm shadow-sm">
-                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Resultado Encontrado:</h2>
+                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Results Found:</h2>
                 
                 {% for die in results %}
                     <div class="text-gray-800 text-sm md:text-base leading-relaxed break-words">
                         <span class="font-bold text-blue-900">Serial:</span> {{ die.serial_number }} 
                         <span class="mx-2 text-gray-400">|</span>
                         
-                        <span class="font-bold text-blue-900">Cliente:</span> {{ die.customer.customer }} 
+                        <span class="font-bold text-blue-900">Customer:</span> {{ die.customer.customer }} 
                         <span class="mx-2 text-gray-400">|</span>
                         
-                        <span class="font-bold text-blue-900">TOMA:</span> {{ die.customer.toma_order_full|default:die.customer.toma_order_nr }}
-                        <button type="button" class="copy-btn ml-1 text-blue-500 hover:text-blue-700 text-xs" data-copy="{{ die.customer.toma_order_nr }}" title="Copiar">
+                        <span class="font-bold text-blue-900">Order:</span> {{ die.customer.toma_order_full|default:die.customer.toma_order_nr }}
+                        <button type="button" class="copy-btn ml-1 text-blue-500 hover:text-blue-700 text-xs" data-copy="{{ die.customer.toma_order_nr }}" title="Copy">
                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                         </button>
                         <span id="feedback-{{ forloop.counter }}" class="text-green-600 text-xs font-bold opacity-0 transition-opacity duration-300">OK</span>
                         <span class="mx-2 text-gray-400">|</span>
 
-                        <span class="font-bold text-blue-900">Caixa:</span> {{ die.customer.box_nr }}
+                        <span class="font-bold text-blue-900">Box:</span> {{ die.customer.box_nr }}
                         <span class="mx-2 text-gray-400">|</span>
 
-                        <span class="font-bold text-blue-900">Local:</span> 
+                        <span class="font-bold text-blue-900">Location:</span> 
                         {% with latest_loc=die.locations.last %}
                             {% if latest_loc %}
                                 <span class="text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded text-xs">{{ latest_loc.get_where_display }}</span>
                             {% else %}
-                                <span class="text-gray-400 italic">Sem registo</span>
+                                <span class="text-gray-400 italic">No record</span>
                             {% endif %}
                         {% endwith %}
                     </div>
@@ -58,7 +58,7 @@
                 {% endfor %}
             </div>
         {% elif q %}
-            <p class="mt-4 text-center text-gray-500 italic text-sm">Nenhuma fieira encontrada para “{{ q }}”.</p>
+            <p class="mt-4 text-center text-gray-500 italic text-sm">No fieira found for “{{ q }}”.</p>
         {% endif %}
     </div>
 
@@ -66,7 +66,7 @@
     
     <div class="text-center mb-12">
         <h1 class="text-4xl font-black text-black tracking-tight">
-            Menu Produção
+            Production Menu
         </h1>
         <div class="h-1.5 w-24 bg-[#00b7ed] mx-auto mt-4 rounded-full"></div>
     </div>
@@ -80,7 +80,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                 </div>
-                <span class="text-xl font-bold text-black uppercase tracking-wide">Pedidos em Produção</span>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Production Orders</span>
             </div>
         </a>
 
@@ -91,7 +91,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                     </svg>
                 </div>
-                <span class="text-xl font-bold text-black uppercase tracking-wide">Tracking das Fieiras</span>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Fieira Tracking</span>
             </div>
         </a>
 
@@ -102,7 +102,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                     </svg>
                 </div>
-                <span class="text-xl font-bold text-black uppercase tracking-wide">Calibrações</span>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Calibrations</span>
             </div>
         </a>
 
@@ -110,10 +110,15 @@
             <div class="h-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 transition-all duration-300 hover:bg-white/20 hover:border-[#00b7ed] hover:-translate-y-1 shadow-xl flex flex-col items-center text-center">
             <div class="p-4 rounded-full bg-[#00b7ed]/20 text-[#00b7ed] mb-5 group-hover:bg-[#00b7ed] group-hover:text-black transition-all">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a２ ２ ０ ０１２ －２ｖ１４ａ２ Ａ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ Ｂ２ ＤＥＦＡＵＬＴ:ＤＩＥ．ＣＵＳＴＯＭＥＲ．ＴＯＭＡ＿ＯＲＤＥＲ＿ＮＲ }}" title="Copy">
+                    </svg>
+                </div>
+                <span class="text-xl font-bold text-black uppercase tracking-wide">Production Report</span>
             </div>
-            <span class="text-xl font-bold text-black uppercase tracking-wide">Relatório Produção</span>
+        </a>
+    </div>
+
+            <span class="text-xl font-bold text-black uppercase tracking-wide">Production Report</span>
             </div>
         </a>
     </div>
@@ -121,7 +126,7 @@
     <div class="mt-16 text-center">
         <a href="javascript:history.back()" class="inline-flex items-center text-black/70 hover:text-black transition-colors font-medium">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Voltar ao Menu Principal
+            Back to Main Menu
         </a>
     </div>
 </div>

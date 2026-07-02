@@ -8,8 +8,8 @@
 
 <div class="mb-4 text-sm text-black/90">
   <div><span class="font-semibold">TOMA:</span> {{ qr.toma_order_full }}</div>
-  <div><span class="font-semibold">Cliente:</span> {{ qr.customer }}</div>
-  <div><span class="font-semibold">Caixa:</span> {{ qr.box_nr }}</div>
+  <div><span class="font-semibold">Client:</span> {{ qr.customer }}</div>
+  <div><span class="font-semibold">Box:</span> {{ qr.box_nr }}</div>
 </div>
 
 
@@ -18,7 +18,7 @@
     {% csrf_token %}
 
     <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">Identificator (TOMA)</label>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Indentificator (TOMA)</label>
       <input type="text" value="{{ qr.toma_order_full }}" class="w-full border rounded px-3 py-2 bg-gray-100" disabled>
     </div>
 
@@ -57,19 +57,19 @@
     </div>
 
     <div id="costumerRow">
-      <label for="costumer" class="block text-sm font-medium text-gray-700 mb-1">Customer (texto)</label>
+      <label for="costumer" class="block text-sm font-medium text-gray-700 mb-1">Customer (text)</label>
       <input id="costumer" name="costumer" type="text"
              value="{{ info.costumer }}"
              class="w-full border rounded px-3 py-2" />
-      <p class="text-xs text-gray-500 mt-1">Quando Type = Customer, será definido como o cliente do QR.</p>
+      <p class="text-xs text-gray-500 mt-1">When Type = Customer, it will be set as the QR's customer.</p>
     </div>
 
     <div class="pt-2">
       <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">
-        Guardar
+        Save
       </button>
       <a href="{% url 'listQrcodes' %}" class="ml-2 inline-block bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded">
-        Voltar
+        Back
       </a>
     </div>
   </form>

@@ -780,77 +780,6 @@ def mainMenu(request):
 
     return render(request, 'theme/mainMenu.html', {'user': user})
 
-
-
-def inputProduction(request):
-    products = Products.objects.all().order_by('-created_at')
-    return render(request, 'theme/inputProduction.html', {'products': products})
-
-@login_required
-def editProduct(request, produto_id):
-    # 1. Proteger contra IDs que não existem
-    try:
-        product = Products.objects.get(id=produto_id)
-    except Products.DoesNotExist:
-        messages.error(request, "Produto não encontrado.")
-        return redirect('inputProduction')
-
-    if request.method == 'POST':
-        # 2. Capturar os dados com cuidado (.strip() tira espaços em branco inúteis)
-        order_Nmber = (request.POST.get('order_Nmber') or '').strip()
-        box_Nmber = (request.POST.get('box_Nmber') or '').strip()
-        task = (request.POST.get('task') or '').strip()
-        qnt_str = (request.POST.get('qnt') or '').strip()
-
-        # 3. Validação de campos obrigatórios
-        if not order_Nmber or not task:
-            messages.error(request, "Os campos 'Número de Ordem' e 'Tarefa' são obrigatórios.")
-            return render(request, 'theme/editProduct.html', {'product': product})
-
-        # 4. Proteger a conversão de números
-        try:
-            qnt = int(qnt_str) if qnt_str else 0
-            if qnt < 0:
-                messages.error(request, "A quantidade não pode ser negativa.")
-                return render(request, 'theme/editProduct.html', {'product': product})
-        except ValueError:
-            messages.error(request, "O campo Quantidade tem de ser um número inteiro válido.")
-            return render(request, 'theme/editProduct.html', {'product': product})
-
-        # 5. Só grava se passar em tudo
-        product.order_Nmber = order_Nmber
-        product.box_Nmber = box_Nmber
-        product.task = task
-        product.qnt = qnt
-        product.edit_by = request.user
-        
-        try:
-            product.save()
-            messages.success(request, "Produto atualizado com sucesso!")
-            return redirect('inputProduction')
-        except Exception as e:
-            # Captura qualquer erro inesperado da base de dados sem mostrar a página amarela
-            messages.error(request, f"Ocorreu um erro ao guardar o produto: {str(e)}")
-
-    return render(request, 'theme/editProduct.html', {'product': product})
-
-@login_required
-def deleteProduct(request, produto_id):
-    product = get_object_or_404(Products, id=produto_id)
-
-    if request.method == 'POST':
-        ProductDeleteLog.objects.create(
-            product_id=product.id,
-            order_Nmber=product.order_Nmber,
-            task=product.task,
-            deleted_by=request.user
-        )
-        product.delete()
-        return redirect('inputProduction')
-
-    return render(request, 'theme/confirmDelete.html', {'product': product})
-
-
 @group_required('Comercial', 'Administracao', 'Q-Office')
 @require_POST
 def trocarTomaOrder(request, codigo):
@@ -1147,24 +1076,6 @@ def listarInfo(request):
     return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
 
 @group_required('Comercial', 'Administracao')
-@login_required
-def deletar_delivery(request, id):
-    delivery = get_object_or_404(DeliveryInfo, id=id)
-
-    if request.method == 'POST':
-        delivery.delete()
-        messages.success(request, 'Entrega deletada com sucesso!')
-        return redirect('listarInfo')
-
-    messages.error(request, 'Requisição inválida.')
-    return redirect('listarInfo')
-
-
-@login_required
-def listarInfo(request):
-    deliveries = DeliveryInfo.objects.all()
-    return render(request, 'theme/listarInfo.html', {'deliveries': deliveries})
-
 @login_required
 def deletar_delivery(request, id):
     delivery = get_object_or_404(DeliveryInfo, id=id)
@@ -4635,52 +4546,6 @@ def delete_template_file(request, file_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
-
-@login_required
-def editProduct(request, produto_id):
-    try:
-        product = Products.objects.get(id=produto_id)
-    except Products.DoesNotExist:
-        messages.error(request, "Produto não encontrado.")
-        return redirect('inputProduction')
-
-    if request.method == 'POST':
-        # Captura limpa
-        order_Nmber_str = request.POST.get('order_Nmber', '').strip()
-        box_Nmber_str = request.POST.get('box_Nmber', '').strip()
-        task = request.POST.get('task', '').strip()
-        qnt_str = request.POST.get('qnt', '').strip()
-
-        # Validação de Vazios (Campos Obrigatórios na Model)
-        if not order_Nmber_str or not box_Nmber_str or not task or not qnt_str:
-            messages.error(request, "Todos os campos (Número de Ordem, Caixa, Tarefa e Quantidade) são obrigatórios.")
-            return render(request, 'theme/editProduct.html', {'product': product})
-
-        # Proteção de Tipos (Inteiros)
-        try:
-            order_Nmber = int(order_Nmber_str)
-            box_Nmber = int(box_Nmber_str)
-            qnt = int(qnt_str)
-        except ValueError:
-            messages.error(request, "Número de Ordem, Caixa e Quantidade devem ser números inteiros válidos.")
-            return render(request, 'theme/editProduct.html', {'product': product})
-
-        # Recuperação Suave (Guarda se tudo estiver OK)
-        try:
-            product.order_Nmber = order_Nmber
-            product.box_Nmber = box_Nmber
-            product.task = task
-            product.qnt = qnt
-            product.edit_by = request.user
-            product.save()
-            
-            messages.success(request, "Produto atualizado com sucesso!")
-            return redirect('inputProduction')
-        except Exception as e:
-            messages.error(request, f"Erro ao atualizar o produto: {str(e)}")
-            return render(request, 'theme/editProduct.html', {'product': product})
-
-    return render(request, 'theme/editProduct.html', {'product': product})
 
 @login_required
 def observacoes_caixa(request, qr_id):

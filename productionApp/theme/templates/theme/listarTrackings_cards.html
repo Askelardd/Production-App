@@ -6,11 +6,11 @@
 <!-- Header + Ações -->
 <div class="flex items-center justify-between mb-4">
     <h1 class="text-3xl font-bold text-gray-900">Trackings</h1>
-    <p class="text-sm text-gray-500 mt-1">Gerencie e visualize o estado das encomendas</p>
+        <p class="text-sm text-gray-500 mt-1">Manage and visualize the status of orders</p>
   <div class="flex items-center gap-2">
     <a href="{% url 'listarTracking' %}?view=table"
-       class="px-3 py-2 border rounded hidden md:inline-block">Ver tabela</a>
-    <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Adicionar</a>
+       class="px-3 py-2 border rounded hidden md:inline-block">View Table</a>
+    <a href="{% url 'adicionarTracking' %}" class="bg-blue-600 text-white px-4 py-2 rounded">Add Tracking</a>
   </div>
 </div>
 
@@ -20,15 +20,15 @@
     <input type="hidden" name="view" value="cards">
 
     <div class="md:col-span-2">
-      <label class="block text-xs text-gray-500">Pesquisa</label>
+      <label class="block text-xs text-gray-500">Search</label>
       <input type="text" name="q" value="{{ q }}" placeholder="CRM,cliente, nº, email..."
              class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Finalidade</label>
+      <label class="block text-xs text-gray-500">Purpose</label>
       <select name="finalidade" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
+        <option value="">All</option>
         {% for value, label in finalidades %}
           <option value="{{ value }}" {% if value == selected_finalidade %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -36,18 +36,18 @@
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Entregue</label>
+      <label class="block text-xs text-gray-500">Delivered</label>
       <select name="entregue" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
-        <option value="sim" {% if selected_entregue == 'sim' %}selected{% endif %}>Sim</option>
-        <option value="nao" {% if selected_entregue == 'nao' %}selected{% endif %}>Não</option>
+        <option value="">All</option>
+        <option value="sim" {% if selected_entregue == 'sim' %}selected{% endif %}>Yes</option>
+        <option value="nao" {% if selected_entregue == 'nao' %}selected{% endif %}>No</option>
       </select>
     </div>
 
     <div>
       <label class="block text-xs text-gray-500">Transportadora</label>
       <select name="transportadora" class="border p-2 w-full rounded">
-        <option value="">Todas</option>
+        <option value="">All</option>
         {% for c in transportadoras %}
           <option value="{{ c }}" {% if c == selected_transportadora %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
@@ -55,27 +55,27 @@
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Recebido Por</label>
+      <label class="block text-xs text-gray-500">Received By</label>
       <input type="text" name="recebido_por" value="{{ recebido_por }}" class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Data de Entrega</label>
+      <label class="block text-xs text-gray-500">Delivery Date</label>
       <input type="date" name="data_entrega" value="{{ data_entrega }}" class="border p-2 w-full rounded">
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Cliente</label>
+      <label class="block text-xs text-gray-500">Client</label>
       <input type="text" name="cliente" value="{{ cliente }}" class="border p-2 w-full rounded">
     </div>
 
     <div class="md:col-span-2 grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs text-gray-500">De</label>
+        <label class="block text-xs text-gray-500">From</label>
         <input type="date" name="de" value="{{ de }}" class="border p-2 w-full rounded">
       </div>
       <div>
-        <label class="block text-xs text-gray-500">Até</label>
+        <label class="block text-xs text-gray-500">To</label>
         <input type="date" name="ate" value="{{ ate }}" class="border p-2 w-full rounded">
       </div>
     </div>
@@ -83,19 +83,19 @@
       
 
     <div class="md:col-span-2 flex items-end gap-2">
-      <button class="bg-gray-800 text-white px-4 py-2 rounded">Filtrar</button>
-      <a href="{% url 'listarTracking' %}?view=cards" class="px-4 py-2 border rounded">Limpar</a>
+      <button class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button>
+      <a href="{% url 'listarTracking' %}?view=cards" class="px-4 py-2 border rounded">Clear</a>
     </div>
 
     <!-- Paginação no topo -->
     <div class="md:col-span-4 flex items-center justify-end gap-2 text-sm">
       {% if page_obj.has_previous %}
         <a class="px-3 py-1 border rounded"
-           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Anterior</a>
+           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Previous</a>
       {% endif %}
       {% if page_obj.has_next %}
         <a class="px-3 py-1 border rounded"
-           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Seguinte</a>
+           href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Next</a>
       {% endif %}
     </div>
   </form>
@@ -112,7 +112,7 @@
           <span class="text-[10px] uppercase font-bold tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{{ t.get_finalidade_display }}</span>
           <h3 class="text-lg font-bold text-gray-800 mt-1">CRM {{ t.crm }}</h3>
           <p class="text-sm text-gray-600 font-medium">
-            {% if t.cliente %}{{ t.cliente }}{% else %}<span class="text-gray-400 italic">Sem cliente</span>{% endif %}
+            {% if t.cliente %}{{ t.cliente }}{% else %}<span class="text-gray-400 italic">No client</span>{% endif %}
           </p>
         </div>
         <span class="px-2 py-1 text-xs font-semibold rounded-lg bg-gray-100 border text-gray-700">{{ t.transportadora }}</span>
@@ -121,24 +121,24 @@
       <div class="grid grid-cols-2 gap-4 text-sm">
         <div class="space-y-1">
           <p class="text-gray-500 text-xs uppercase font-semibold"></p>
-          <p class="text-gray-800"><span class="text-gray-400">Data:</span> {{ t.data|date:"d/m/Y" }}</p>
-          <p class="text-gray-800"><span class="text-gray-400">Recolha:</span> {{ t.numero_recolha|default:"" }}</p>
+          <p class="text-gray-800"><span class="text-gray-400">Date:</span> {{ t.data|date:"d/m/Y" }}</p>
+          <p class="text-gray-800"><span class="text-gray-400">Pickup:</span> {{ t.numero_recolha|default:"" }}</p>
         </div>
         <div class="space-y-1">
-          <p class="text-gray-500 text-xs uppercase font-semibold">Entrega</p>
-          <p class="text-gray-800"><span class="text-gray-400">Por:</span> {{ t.recebido_por|default:"" }}</p>
-          <p class="text-gray-800"><span class="text-gray-400">Data:</span> {{ t.data_entrega|date:"d/m/Y"|default:"" }}</p>
+          <p class="text-gray-500 text-xs uppercase font-semibold">Delivery</p>
+          <p class="text-gray-800"><span class="text-gray-400">By:</span> {{ t.recebido_por|default:"" }}</p>
+          <p class="text-gray-800"><span class="text-gray-400">Date:</span> {{ t.data_entrega|date:"d/m/Y"|default:"" }}</p>
         </div>
         
         <div class="col-span-2 bg-gray-50 p-2 rounded-lg border border-dashed">
-            <span class="text-gray-500 text-xs font-semibold uppercase">Carta de Porte:</span>
+            <span class="text-gray-500 text-xs font-semibold uppercase">Waybill:</span>
             <span class="font-mono text-blue-700 select-all ml-1">{{ t.carta_de_porte|default:"" }}</span>
         </div>
       </div>
 
       <div class="flex items-center justify-between bg-blue-50/50 p-3 rounded-xl border border-blue-100">
         <div class="flex flex-col">
-          <span class="text-xs text-blue-600 font-semibold uppercase">Contacto Email</span>
+          <span class="text-xs text-blue-600 font-semibold uppercase">Contact Email</span>
           <span class="text-sm font-medium text-gray-700 truncate max-w-[150px]" title="{{ t.email }}">{{ t.email|default:"" }}</span>
         </div>
         
@@ -146,12 +146,12 @@
           {% if t.enviado %}
             <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
               <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Email Enviado
+              Email Send
             </span>
           {% else %}
             <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold border border-amber-200">
               <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
-              Email Pendente
+              Email Pending
             </span>
           {% endif %}
         </div>
@@ -176,36 +176,36 @@
                 <span class="text-[10px] font-bold text-gray-400">+{{ total|add:"-2" }}</span>
               {% endif %}
             {% else %}
-              <span class="text-[10px] text-gray-400 uppercase">Sem anexos</span>
+              <span class="text-[10px] text-gray-400 uppercase">No attachments</span>
             {% endif %}
           {% endwith %}
         </div>
 
         <a href="{% url 'editarTracking' t.id %}?view=cards" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all active:scale-95">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></svg>
-          Editar
+          Edit
         </a>
       </footer>
     </article>
   {% endfor %}
 </div>
 {% else %}
-  <div class="bg-white rounded-xl border p-8 text-center text-gray-500">Sem resultados.</div>
+  <div class="bg-white rounded-xl border p-8 text-center text-gray-500">No results.</div>
 {% endif %}
 
 <!-- Paginação (base) -->
 <div class="flex items-center justify-between mt-6 text-sm">
   <div>
-    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} registo(s)
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} — {{ page_obj.paginator.count }} record(s)
   </div>
   <div class="space-x-2">
     {% if page_obj.has_previous %}
       <a class="px-3 py-1 border rounded"
-         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Anterior</a>
+         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.previous_page_number }}">Previous</a>
     {% endif %}
     {% if page_obj.has_next %}
       <a class="px-3 py-1 border rounded"
-         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Seguinte</a>
+         href="?{% if current_query %}{{ current_query }}&{% endif %}view=cards&page={{ page_obj.next_page_number }}">Next</a>
     {% endif %}
   </div>
 </div>
@@ -217,8 +217,8 @@
     if (!btn) return;
     const text = btn.getAttribute('data-copy') || '';
     navigator.clipboard.writeText(text).then(() => {
-      btn.textContent = 'Copiado!';
-      setTimeout(() => btn.textContent = 'Copiar', 1200);
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 1200);
     });
   });
 </script>

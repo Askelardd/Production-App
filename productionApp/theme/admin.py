@@ -2,7 +2,7 @@ from django.contrib import admin # type: ignore
 from django import forms  # type: ignore
 
 from .models import (
-    FaturaEstrangeitoFile, FaturaPagoFile, Order, Products, ProductDeleteLog, QRData, Jobs,
+    FaturaEstrangeitoFile, FaturaPagoFile, Order, QRData, Jobs,
     Diameters, Die, Tolerance,
     NumeroPartidos, PedidosDiametro,
     dieInstance,
@@ -35,27 +35,6 @@ from .models import (
     
 
 )
-
-# -------------------
-# Products
-# -------------------
-@admin.register(Products)
-class ProductsAdmin(admin.ModelAdmin):
-    list_display = ['order_Nmber', 'box_Nmber', 'task', 'qnt', 'edit_by', 'created_at']
-    search_fields = ['order_Nmber', 'box_Nmber', 'task', 'edit_by__username']
-    list_filter = ['created_at', 'edit_by']
-    list_per_page = 20
-
-
-# -------------------
-# Product Delete Log
-# -------------------
-@admin.register(ProductDeleteLog)
-class ProductDeleteLogAdmin(admin.ModelAdmin):
-    list_display = ['product_id', 'order_Nmber', 'task', 'deleted_by', 'deleted_at']
-    search_fields = ['order_Nmber', 'task', 'deleted_by__username']
-    list_filter = ['deleted_at']
-    list_per_page = 20
 
 
 # -------------------
