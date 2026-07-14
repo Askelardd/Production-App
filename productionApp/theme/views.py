@@ -376,7 +376,6 @@ def listar_orders(request):
         'limite_escolhido': limite_escolhido, 
         'search_query': search_query,
         'filtro_tipo': filtro_tipo,
-
         'is_admin_or_comercial': is_admin_or_comercial,
         'ordersComing': ordersComing,
         'is_qOffice': is_qOffice,
@@ -3579,18 +3578,18 @@ def listar_trackings(request):
 
 
     columns = [
-        ('data', 'Data'),
-        ('finalidade', 'Finalidade'),
+        ('data', 'Date'),
+        ('finalidade', 'Purpose'),
         ('crm', 'CRM'),
-        ('cliente', 'Cliente'),        # nesta vamos mostrar "um ou outro"
-        ('transportadora', 'Transportadora'),
-        ('carta_de_porte', 'Carta de Porte'),
-        ('numero_recolha', 'Nº Recolha'),
-        ('recebido_por', 'Recebido Por'),
-        ('data_entrega', 'Data Entrega'),
+        ('cliente', 'Client'),        # nesta vamos mostrar "um ou outro"
+        ('transportadora', 'Courier'),
+        ('carta_de_porte', 'Waybill'),
+        ('numero_recolha', 'Pickup Number'),
+        ('recebido_por', 'Received By'),
+        ('data_entrega', 'Delivery Date'),
         ('email', 'Email'),
-        ('email_enviado', 'Email Enviado'),
-        ('observacoes', 'Observações'),
+        ('email_enviado', 'Email Sent'),
+        ('observacoes', 'Observations'),
     ]
 
     context = {

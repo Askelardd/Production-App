@@ -6,7 +6,7 @@
 <!-- Header + Ações -->
 <div class="flex items-center justify-between mb-4">
     <h1 class="text-3xl font-bold text-gray-900">Trackings</h1>
-        <p class="text-sm text-gray-500 mt-1">Manage and visualize the status of orders</p>
+        <p class="text-sm text-gray-500 mt-1">Manage and view  the status of orders</p>
   <div class="flex items-center gap-2">
     <a href="{% url 'listarTracking' %}?view=table"
        class="px-3 py-2 border rounded hidden md:inline-block">View Table</a>
@@ -45,7 +45,7 @@
     </div>
 
     <div>
-      <label class="block text-xs text-gray-500">Transportadora</label>
+      <label class="block text-xs text-gray-500">Courier</label>
       <select name="transportadora" class="border p-2 w-full rounded">
         <option value="">All</option>
         {% for c in transportadoras %}
@@ -146,7 +146,7 @@
           {% if t.enviado %}
             <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
               <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Email Send
+              Email Sent
             </span>
           {% else %}
             <span class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold border border-amber-200">
