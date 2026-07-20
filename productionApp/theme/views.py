@@ -83,7 +83,6 @@ def error_access(request):
     return render(request, 'access_denied.html', status=403)
 
 
-@csrf_exempt
 def login_view(request, user_id):
     try:
         user_alvo = User.objects.get(id=user_id)
@@ -126,6 +125,16 @@ def documentosMenu(request):
 @group_required('Alfa')
 def accessMenu(request):
     return render(request, 'theme/menuAcesso.html')
+
+
+@login_required
+def menuP3(request):
+    nomes_permitidos = ['Administrador','Aniceta']
+    
+    if request.user.username not in nomes_permitidos:
+        messages.error(request, "Acesso negado. Contacte o administrador.")
+        return redirect('erro403')
+    return render(request, 'theme/menuP3.html')
 
 def productionMenu(request):
     q = request.GET.get('q', '').strip()
@@ -199,6 +208,7 @@ def orders(request):
                     'courier_choices': choices,
                     'orders_coming': orders_coming_list,
                 })
+                
 
         # Validação básica
         if not tracking_number:
@@ -3751,6 +3761,8 @@ def listar_calibracoes(request):
         lente_3x = request.POST.get('lente_3x')
         lente_1x = request.POST.get('lente_1x')
         lente_meio_x = request.POST.get('lente_meio_x')
+        tempratura = request.POST.get('tempratura')
+        feito = request.POST.get('feito') == 'on'  # Checkbox
         
         try:
             numero_medicoes = int(request.POST.get('numero', 0))
@@ -3772,7 +3784,9 @@ def listar_calibracoes(request):
                     lev_obj=lev_obj,
                     lente_3x=lente_3x,
                     lente_1x=lente_1x,
-                    lente_meio_x=lente_meio_x
+                    lente_meio_x=lente_meio_x,
+                    tempratura=tempratura,
+                    feito=feito
                 )
 
                 # Passo B: Fazer um loop (for) para apanhar as medições e criar as Fieiras
@@ -5356,7 +5370,6 @@ def painel_acesso(request):
 
 @login_required
 @group_required('Alfa')
-
 def toggle_acesso_externo(request):
     if request.method == 'POST':
         try:
@@ -5380,6 +5393,194 @@ def toggle_acesso_externo(request):
     return JsonResponse({'status': 'metodo nao permitido'}, status=405)
 
 
+def listarProformas(request):
+    proformas = P2Control.objects.all().order_by('-customer_PO')
 
+    if request.method == 'POST':
+        customer_PO = request.POST.get('customer_PO', '').strip()
+        total_amount = request.POST.get('total_amount', '').strip()
+        proforma_number = request.POST.get('proforma_number', '').strip()
+        percentage_1 = request.POST.get('percentage_1', '').strip()
+        proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
+        proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
+        proforma_invoice = request.FILES.get('proforma_invoice')
+        try:
+            P2Control.objects.create(
+                customer_PO=customer_PO,
+                total_amount=total_amount,
+                proforma_number=proforma_number,
+                percentage_1=percentage_1,
+                proof_of_payment_1=proof_of_payment_1,
+                proof_of_payment_2=proof_of_payment_2,
+                proforma_invoice=proforma_invoice,
+            )
+            messages.success(request, 'Proforma criada com sucesso!')
+            return redirect('listarProformas')
+        except Exception as e:
+            messages.error(request, f"Erro ao criar a proforma: {str(e)}")
+
+    paid = proformas.filter(proof_of_payment_1__isnull=False).exists() 
+    not_paid = proformas.filter(proof_of_payment_1__isnull=True).exists()
+        
+    return render(request, 'theme/listarProforma.html', {'proformas': proformas, 'paid': paid, 'not_paid': not_paid})
+
+
+def editarProforma(request, pk):
+    proforma = get_object_or_404(P2Control, id=pk)
+
+    if request.method == 'POST':
+        customer_PO = request.POST.get('customer_PO', '').strip()
+        proforma_number = request.POST.get('proforma_number', '').strip()
+        total_amount = request.POST.get('total_amount', '').strip()
+        percentage_1 = request.POST.get('percentage_1', '').strip()
+        paydate_1 = request.POST.get('paydate_1', '').strip()
+        paydate_2 = request.POST.get('paydate_2', '').strip()
+
+        proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
+        proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
+        proforma_invoice = request.FILES.get('proforma_invoice')
+
+        try:
+            proforma.customer_PO = customer_PO
+            proforma.proforma_number = proforma_number
+            proforma.total_amount = total_amount
+            proforma.percentage_1 = percentage_1 or None
+            proforma.paydate_1 = paydate_1 or None
+            proforma.paydate_2 = paydate_2 or None
+
+            if proof_of_payment_1:
+                proforma.proof_of_payment_1 = proof_of_payment_1
+            if proof_of_payment_2:
+                proforma.proof_of_payment_2 = proof_of_payment_2
+            if proforma_invoice:
+                proforma.proforma_invoice = proforma_invoice
+
+            proforma.save()
+            messages.success(request, 'Proforma atualizada com sucesso!')
+            return redirect('listarProformas')
+
+        except Exception as e:
+            messages.error(request, f"Erro ao atualizar a proforma: {str(e)}")
+
+    return render(request, 'theme/editarProforma.html', {'proforma': proforma})
+
+def delete_p2(request,pk):
+    proforma = get_object_or_404(P2Control, id=pk)
+    if request.method == 'POST':
+        proforma.delete()
+        messages.success(request, 'Proforma eliminada com sucesso!')
+        return redirect('listarProformas')
+    return render(request, 'theme/listarProforma.html', {'proforma': proforma})
+
+@login_required
+@group_required('Administracao')
+@require_POST
+def delete_p2control_file_ajax(request, pk):
+    proforma = get_object_or_404(P2Control, id=pk)
+
+    allowed_fields = {
+        'proof_of_payment_1',
+        'proof_of_payment_2',
+        'proforma_invoice',
+    }
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        field_name = data.get('field')
+
+        if field_name not in allowed_fields:
+            return JsonResponse({'success': False, 'error': 'Campo inválido.'}, status=400)
+
+        file_field = getattr(proforma, field_name)
+
+        if file_field:
+            file_field.delete(save=False)  # apaga do storage
+            setattr(proforma, field_name, None)
+            proforma.save()
+
+        return JsonResponse({'success': True})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    
+@login_required
+@group_required('Comercial', 'Administracao')
+@require_POST
+def upload_p2control_file_ajax(request, pk):
+    allowed_fields = {
+        'proof_of_payment_1',
+        'proof_of_payment_2',
+        'proforma_invoice',
+    }
+
+    field_name = request.POST.get('field', '').strip()
+    uploaded_file = request.FILES.get('file')
+
+    if field_name not in allowed_fields:
+        return JsonResponse({'status': 'error', 'message': 'Campo inválido.'}, status=400)
+
+    if not uploaded_file:
+        return JsonResponse({'status': 'error', 'message': 'Nenhum ficheiro enviado.'}, status=400)
+
+    proforma = get_object_or_404(P2Control, pk=pk)
+
+    update_fields = [field_name]
+
+    if field_name == 'proof_of_payment_1':
+        proforma.paydate_1 = date.today()
+        update_fields.append('paydate_1')
+    elif field_name == 'proof_of_payment_2':
+        proforma.paydate_2 = date.today()
+        update_fields.append('paydate_2')
+
+    setattr(proforma, field_name, uploaded_file)
+    proforma.save(update_fields=update_fields)
+
+    return JsonResponse({
+    'status': 'success',
+    'field': field_name,
+    'file_name': os.path.basename(getattr(proforma, field_name).name),
+    'file_url': getattr(proforma, field_name).url,
+    'paydate_1': proforma.paydate_1.strftime('%Y-%m-%d') if proforma.paydate_1 else '',
+    'paydate_2': proforma.paydate_2.strftime('%Y-%m-%d') if proforma.paydate_2 else '',
+})
+
+
+def adicionarInvoice(request):
+    proformas_list = (
+        P2Control.objects
+        .filter(invoices__isnull=True)
+        .distinct()
+        .order_by('-customer_PO')
+    )
+
+    if request.method == 'POST':
+        invoice_number = request.POST.get('invoice_number', '').strip()
+        invoice_date = request.POST.get('invoice_date', '').strip()
+        proformas_ids = request.POST.getlist('proformas')
+        invoice_file = request.FILES.get('invoice_file')
+
+        try:
+            invoice = Invoice.objects.create(
+                invoice_number=invoice_number,
+                invoice_date=invoice_date,
+            )
+
+            proformas_qs = P2Control.objects.filter(id__in=proformas_ids)
+            invoice.proformas.set(proformas_qs)
+            invoice.update_total_amount()
+
+            for proforma in proformas_qs:
+                proforma.proforma_invoice = invoice_file
+                proforma.save()
+
+            messages.success(request, 'Invoice criada com sucesso!')
+            return redirect('listarProformas')
+
+        except Exception as e:
+            messages.error(request, f"Erro ao criar a invoice: {str(e)}")
+
+    return render(request, 'theme/add_invoice.html', {'proformas_list': proformas_list})
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

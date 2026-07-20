@@ -7,7 +7,8 @@ from django.db import models # type: ignore
 from django.contrib.auth.models import User # type: ignore
 from decimal import Decimal, InvalidOperation
 from django.core.exceptions import ValidationError # type: ignore
-    
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver    
 from decimal import Decimal, InvalidOperation
 from django.db import models
 
@@ -509,6 +510,8 @@ class CalibracaoMaquina(models.Model):
     lente_3x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 3X")
     lente_1x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 1X")
     lente_meio_x = models.CharField(max_length=100, blank=True, null=True, verbose_name="Lente 1/2X")
+    tempratura = models.CharField(max_length=10, blank=True, null = True)
+    feito = models.BooleanField(default=False, verbose_name="Feito")
     
     def __str__(self):
         return f"Calibração {self.machine.machine_name} - {self.date.strftime('%Y-%m-%d')}"
@@ -652,3 +655,73 @@ class Polimentos(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     observations = models.TextField(blank=True, null=True)
+
+class P2Control(models.Model):
+    # customer_PO agora é único e obrigatório (garante que não há duplicados)
+    customer_PO = models.CharField(max_length=100, unique=True, blank=False, null=False)
+    proforma_number = models.CharField(max_length=100, blank=False, null=False)
+    
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
+
+    percentage_1 = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    amount_1 = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    paydate_1 = models.DateField(blank=True, null=True)
+
+    percentage_2 = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    amount_2 = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    paydate_2 = models.DateField(blank=True, null=True)
+
+    proof_of_payment_1 = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
+    proof_of_payment_2 = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
+    proforma_invoice = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.total_amount and self.percentage_1 is not None:
+            total = Decimal(str(self.total_amount))
+            perc_1 = Decimal(str(self.percentage_1))
+
+            self.percentage_2 = Decimal('100.00') - perc_1
+            self.amount_1 = (total * perc_1 / Decimal('100.00')).quantize(Decimal('0.01'))
+            self.amount_2 = (total - self.amount_1).quantize(Decimal('0.01'))
+
+        super().save(*args, **kwargs)
+
+        # Se editarmos o valor de uma proforma diretamente, atualiza as Invoices onde ela estiver inserida
+        for invoice in self.invoices.all():
+            invoice.update_total_amount()
+
+    def __str__(self):
+        return f"PO: {self.customer_PO} (Restante: {self.amount_2})"
+
+
+class Invoice(models.Model):
+    invoice_number = models.CharField(max_length=100, unique=True)
+    invoice_date = models.DateField()
+    invoice_file = models.FileField(upload_to='invoice_files/', null=True, blank=True)
+    
+    # O utilizador escolhe múltiplos customer_PO através deste campo
+    proformas = models.ManyToManyField(P2Control, related_name='invoices', blank=True)
+    
+    # Total calculado de forma automática
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+
+    def update_total_amount(self):
+        """Método para somar os 'amount_2' de todas as proformas associadas."""
+        from django.db.models import Sum
+        total = self.proformas.aggregate(total=Sum('amount_2'))['total'] or Decimal('0.00')
+        Invoice.objects.filter(pk=self.pk).update(total_amount=total)
+
+    def __str__(self):
+        return f"Invoice: {self.invoice_number} - Total: {self.total_amount}"
+
+
+# ---- SIGNALS (Colocar no final do models.py ou num ficheiro signals.py dedicado) ----
+
+@receiver(m2m_changed, sender=Invoice.proformas.through)
+def update_invoice_total_on_m2m(sender, instance, action, **kwargs):
+    """
+    Sempre que proformas forem adicionadas, removidas ou limpas da Invoice,
+    o total_amount é recalculado automaticamente.
+    """
+    if action in ["post_add", "post_remove", "post_clear"]:
+        instance.update_total_amount()

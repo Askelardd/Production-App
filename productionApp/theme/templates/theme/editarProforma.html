@@ -1,0 +1,180 @@
+<!-- filepath: c:\Users\PC-IT\Documents\Programacao\productionApp\theme\templates\theme\editarProforma.html -->
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block title %}
+  Edit Proforma
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-neutral-900">
+                Edit Proforma #{{ proforma.customer_PO }} - {{ proforma.proforma_number }}
+            </h2>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6">
+        <div class="p-6">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="mb-4">
+                <label for="customer_PO" class="block text-gray-700">Customer PO:</label>
+                <input type="text" id="customer_PO" name="customer_PO" value="{{ proforma.customer_PO }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+
+                <div class="mb-4">
+                <label for="proforma_number" class="block text-gray-700">Proforma Number:</label>
+                <input type="text" id="proforma_number" name="proforma_number" value="{{ proforma.proforma_number }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+
+                <div class="mb-4">
+                <label for="total_amount" class="block text-gray-700">Total Amount:</label>
+                <input type="number" step="0.01" id="total_amount" name="total_amount" value="{{ proforma.total_amount }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+
+                <div class="mb-4">
+                <label for="percentage_1" class="block text-gray-700">Percentage 1:</label>
+                <input type="number" step="0.01" id="percentage_1" name="percentage_1" value="{{ proforma.percentage_1 }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                </div>
+
+                <div class="mb-4">
+                <label class="block text-gray-700">Amount 1:</label>
+                <input type="text" id="amount_1" value="{{ proforma.amount_1|default:'0.00' }}" readonly class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-gray-700"> PayDate 1:</label>
+                    <input type="date" id="paydate_1" name="paydate_1" value="{{ proforma.paydate_1|date:'Y-m-d' }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                </div>
+
+                <div class="mb-4">
+                <label class="block text-gray-700">Amount 2:</label>
+                <input type="text" id="amount_2" value="{{ proforma.amount_2|default:'0.00' }}" readonly class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700"> PayDate 2:</label>
+                    <input type="date" id="paydate_2" name="paydate_2" value="{{ proforma.paydate_2|date:'Y-m-d' }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                </div>
+
+                <div class="mb-4">
+                <label for="proof_of_payment_1" class="block text-gray-700">Proof of Payment 1:</label>
+                <input type="file" id="proof_of_payment_1" name="proof_of_payment_1" class="w-full border border-gray-300 rounded px-3 py-2">
+                {% if proforma.proof_of_payment_1 %}
+                <div id="proof_of_payment_1_box" class="mt-2">
+                    <p class="text-sm text-gray-600">
+                    Current file:
+                    <a href="{{ proforma.proof_of_payment_1.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                        {{ proforma.proof_of_payment_1.name }}
+                    </a>
+                    </p>
+                    <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs"
+                            data-field="proof_of_payment_1">
+                    Delete
+                    </button>
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                <label for="proof_of_payment_2" class="block text-gray-700">Proof of Payment 2:</label>
+                <input type="file" id="proof_of_payment_2" name="proof_of_payment_2" class="w-full border border-gray-300 rounded px-3 py-2">
+                {% if proforma.proof_of_payment_2 %}
+                <div id="proof_of_payment_2_box" class="mt-2">
+                    <p class="text-sm text-gray-600">
+                    Current file:
+                    <a href="{{ proforma.proof_of_payment_2.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                        {{ proforma.proof_of_payment_2.name }}
+                    </a>
+                    </p>
+                    <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs"
+                            data-field="proof_of_payment_2">
+                    Delete File
+                    </button>
+                </div>
+                {% endif %}
+
+                <div class="mb-4">
+                <label for="proforma_invoice" class="block text-gray-700">Proforma Invoice:</label>
+                <input type="file" id="proforma_invoice" name="proforma_invoice" class="w-full border border-gray-300 rounded px-3 py-2">
+                {% if proforma.proforma_invoice %}
+                <div id="proforma_invoice_box" class="mt-2">
+                    <p class="text-sm text-gray-600">
+                    Current file:
+                    <a href="{{ proforma.proforma_invoice.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                        {{ proforma.proforma_invoice.name }}
+                    </a>
+                    </p>
+                    <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs"
+                            data-field="proforma_invoice">
+                    Delete File
+                    </button>
+                </div>
+                {% endif %}
+
+                <div class="flex justify-end">
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Update Proforma
+                    </button>
+                    <a href="{% url 'listarProformas' %}" class="ml-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-4 rounded">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    function updateAmounts() {
+        const percentage1Input = document.getElementById('percentage_1');
+        const totalAmountInput = document.getElementById('total_amount');
+        const amount1Input = document.getElementById('amount_1');
+        const amount2Input = document.getElementById('amount_2');
+
+        const totalAmount = parseFloat(totalAmountInput.value) || 0;
+        const percentage1 = parseFloat(percentage1Input.value) || 0;
+
+        const amount1 = totalAmount * (percentage1 / 100);
+        const amount2 = totalAmount - amount1;
+
+        amount1Input.value = amount1.toFixed(2);
+        amount2Input.value = amount2.toFixed(2);
+    }
+
+    document.getElementById('percentage_1').addEventListener('input', updateAmounts);
+    document.getElementById('total_amount').addEventListener('input', updateAmounts);
+    updateAmounts();
+
+    document.querySelectorAll('.delete-file-btn').forEach(button => {
+        button.addEventListener('click', async function () {
+            const fieldName = this.dataset.field;
+
+            const response = await fetch("{% url 'delete_p2control_file_ajax' proforma.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ field: fieldName })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const box = document.getElementById(fieldName + '_box');
+                if (box) box.remove();
+            } else {
+                alert(data.error || 'Erro ao apagar ficheiro.');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

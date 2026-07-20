@@ -35,6 +35,8 @@
                         </div>
                         <span class="transition-transform duration-300 text-gray-500 text-sm">▼</span>
                     </button>
+                    
+                    {% if calibracao.machine.machine_name == "Conoptica" %}
 
                     <div id="calib-{{ calibracao.id }}" class="hidden opacity-0 translate-y-2 transition-all duration-300 border-t border-gray-200">
                         
@@ -44,6 +46,7 @@
                             <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 3X: {{ calibracao.lente_3x|default:"-" }}</span>
                             <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 1X: {{ calibracao.lente_1x|default:"-" }}</span>
                             <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Lente 1/2X: {{ calibracao.lente_meio_x|default:"-" }}</span>
+                            <span class="bg-gray-100 px-2 py-1 rounded font-medium border border-gray-200">Temperatura: {{ calibracao.tempratura|default:"-" }}</span>
                         </div>
 
                         <div class="p-3 bg-gray-50 border-t border-gray-200">
@@ -69,6 +72,17 @@
                         </div>
 
                     </div>
+                    {% else %}
+                    <div id="calib-{{ calibracao.id }}" class="hidden opacity-0 translate-y-2 transition-all duration-300 border-t border-gray-200 p-3 bg-gray-50">
+                        <span class="text-gray-700 font-medium">Feito: 
+                            {% if calibracao.feito %}
+                                <span class="text-green-600 font-bold">Sim</span>
+                            {% else %}
+                                <span class="text-red-600 font-bold">Não</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
                 </li>
             {% empty %}
                 <li class="text-gray-500 italic p-2">Nenhuma calibração registrada para esta máquina.</li>
@@ -92,45 +106,64 @@
             
             <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Registrar Nova Calibração</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Alterado para grid-cols-1 de forma a dar mais flexibilidade aos blocos dinâmicos -->
+            <div class="grid grid-cols-1 gap-6 mb-8">
                 <div>
                     <label for="machine" class="block text-sm font-medium text-gray-700">Máquina</label>
                     <select id="machine" name="machine" required
                             class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                         <option value="">Selecione uma máquina</option>
                         {% for maquina in maquinas %}
-                            <option value="{{ maquina.id }}">{{ maquina.machine_name }}</option>
+                            <!-- Adicionado data-name para capturar o nome no JS -->
+                            <option value="{{ maquina.id }}" data-name="{{ maquina.machine_name }}">{{ maquina.machine_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div>
-                    <label for="mec_cal" class="block text-sm font-medium text-gray-700">Mec Cal Merit Function</label>
-                    <input type="text" id="mec_cal" name="mec_cal" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+
+                <!-- Bloco de Campos para a Conoptica (Escondido por padrão)[cite: 1] -->
+                <div id="conopticaFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="mec_cal" class="block text-sm font-medium text-gray-700">Mec Cal Merit Function</label>
+                        <input type="text" id="mec_cal" name="mec_cal" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="lev_obj" class="block text-sm font-medium text-gray-700">Nível de Objetivo</label>
+                        <input type="text" id="lev_obj" name="lev_obj" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="lente_3x" class="block text-sm font-medium text-gray-700">Lente 3X</label>
+                        <input type="text" id="lente_3x" name="lente_3x" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="lente_1x" class="block text-sm font-medium text-gray-700">Lente 1X</label>
+                        <input type="text" id="lente_1x" name="lente_1x" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">   
+                    </div>
+                    <div>
+                        <label for="lente_meio_x" class="block text-sm font-medium text-gray-700">Lente 1/2X</label>
+                        <input type="text" id="lente_meio_x" name="lente_meio_x" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="tempratura" class="block text-sm font-medium text-gray-700">Temperatura</label>
+                        <input type="text" id="tempratura" name="tempratura" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-inner md:col-span-2">
+                        <label for="numero" class="block text-sm font-bold text-blue-800 mb-1">Número de Medições a Inserir</label>
+                        <input type="number" id="numero" name="numero" min="1" placeholder="Ex: 3"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
                 </div>
-                <div>
-                    <label for="lev_obj" class="block text-sm font-medium text-gray-700">Nível de Objetivo</label>
-                    <input type="text" id="lev_obj" name="lev_obj" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                </div>
-                <div>
-                    <label for="lente_3x" class="block text-sm font-medium text-gray-700">Lente 3X</label>
-                    <input type="text" id="lente_3x" name="lente_3x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                </div>
-                <div>
-                    <label for="lente_1x" class="block text-sm font-medium text-gray-700">Lente 1X</label>
-                    <input type="text" id="lente_1x" name="lente_1x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">   
-                </div>
-                <div>
-                    <label for="lente_meio_x" class="block text-sm font-medium text-gray-700">Lente 1/2X</label>
-                    <input type="text" id="lente_meio_x" name="lente_meio_x" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                </div>
-                
-                <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-inner">
-                    <label for="numero" class="block text-sm font-bold text-blue-800 mb-1">Número de Medições a Inserir</label>
-                    <input type="number" id="numero" name="numero" min="1" required placeholder="Ex: 3"
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+
+                <!-- Bloco para Outras Máquinas (Escondido por padrão)[cite: 1] -->
+                <div id="otherFields" class="hidden">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 shadow-inner flex items-center gap-3">
+                        <input type="checkbox" id="feito" name="feito" class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="feito" class="block text-sm font-bold text-blue-800">Feito</label>
+                    </div>
                 </div>
             </div>
 
+            <!-- Container onde as medições dinâmicas vão aparecer[cite: 1] -->
             <div id="medicoesContainer" class="space-y-6"></div>
 
             <div class="mt-8 flex justify-end">
@@ -145,89 +178,132 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        
-        // ---- LÓGICA DO MODAL (FLUTUANTE) ----
-        const modal = document.getElementById('addCalibrationModal');
-        const openBtn = document.getElementById('openAddCalibrationButton');
-        const closeBtn = document.getElementById('closeModalButton');
+    //[cite: 1]
+document.addEventListener('DOMContentLoaded', function () {
+    
+    // ---- LÓGICA DO MODAL (FLUTUANTE) ----
+    const modal = document.getElementById('addCalibrationModal');
+    const openBtn = document.getElementById('openAddCalibrationButton');
+    const closeBtn = document.getElementById('closeModalButton');
 
-        openBtn.addEventListener('click', () => {
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Impede o ecrã de trás de fazer scroll
-        });
+    openBtn.addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    });
 
-        closeBtn.addEventListener('click', () => {
-            modal.classList.add('hidden');
-            document.body.style.overflow = 'auto'; // Devolve o scroll ao ecrã
-        });
+    closeBtn.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    });
 
+    // ---- DETECTAR SELEÇÃO DA MÁQUINA ----
+    const machineSelect = document.getElementById('machine');
+    const conopticaFields = document.getElementById('conopticaFields');
+    const otherFields = document.getElementById('otherFields');
+    const inputNumero = document.getElementById('numero');
+    const medicoesContainer = document.getElementById('medicoesContainer');
+    
+    // Captura todos os inputs dentro do painel da Conoptica 
+    const conopticaInputs = conopticaFields.querySelectorAll('input:not(#numero)');
 
-        // ---- LÓGICA DE GERAR MEDIÇÕES DINÂMICAS ----
-        const inputNumero = document.getElementById('numero');
-        const medicoesContainer = document.getElementById('medicoesContainer');
+    machineSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const machineName = selectedOption.getAttribute('data-name');
 
-        inputNumero.addEventListener('input', function() {
-            const quantidade = parseInt(this.value) || 0;
-            let htmlGerado = '';
-            for (let i = 0; i < quantidade; i++) { htmlGerado += cardTemplate(i); }
-            medicoesContainer.innerHTML = htmlGerado;
-        });
+        if (machineName === 'Conoptica') {
+            // Mostrar menu Conoptica, esconder checkbox
+            conopticaFields.classList.remove('hidden');
+            otherFields.classList.add('hidden');
 
-        function cardTemplate(index) {
-            return `
-                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm relative">
-                    <div class="absolute top-0 left-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-lg">
-                        Medição ${index + 1}
+            // Ativar obrigatoriedade dos campos Conoptica
+            conopticaInputs.forEach(input => input.required = true);
+            inputNumero.required = true;
+
+        } else if (machineName) {
+            // Se for outra máquina qualquer
+            conopticaFields.classList.add('hidden');
+            otherFields.classList.remove('hidden');
+
+            // Desativar obrigatoriedade e limpar campos Conoptica para não enviar lixo
+            conopticaInputs.forEach(input => {
+                input.required = false;
+                input.value = '';
+            });
+            inputNumero.required = false;
+            inputNumero.value = '';
+            medicoesContainer.innerHTML = ''; // Limpa as medições geradas
+
+        } else {
+            // Se resetar a seleção (Selecione uma máquina)
+            conopticaFields.classList.add('hidden');
+            otherFields.classList.add('hidden');
+            conopticaInputs.forEach(input => input.required = false);
+            inputNumero.required = false;
+            medicoesContainer.innerHTML = '';
+        }
+    });
+
+    // ---- LÓGICA DE GERAR MEDIÇÕES DINÂMICAS ----
+    inputNumero.addEventListener('input', function() {
+        const quantidade = parseInt(this.value) || 0;
+        let htmlGerado = '';
+        for (let i = 0; i < quantidade; i++) { htmlGerado += cardTemplate(i); }
+        medicoesContainer.innerHTML = htmlGerado;
+    });
+
+    function cardTemplate(index) {
+        return `
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm relative">
+                <div class="absolute top-0 left-0 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-br-lg rounded-tl-lg">
+                    Medição ${index + 1}
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    <div>
+                        <label for="matricula_${index}" class="block text-sm font-medium text-gray-700">Matrícula</label>
+                        <input type="text" id="matricula_${index}" name="matricula_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                        <div>
-                            <label for="matricula_${index}" class="block text-sm font-medium text-gray-700">Matrícula</label>
-                            <input type="text" id="matricula_${index}" name="matricula_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
-                        <div>
-                            <label for="diam_original_${index}" class="block text-sm font-medium text-gray-700">Diâm. Original</label>
-                            <input type="number" step="0.0001" id="diam_original_${index}" name="diam_original_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
-                        <div>
-                            <label for="mean_diameter_${index}" class="block text-sm font-medium text-gray-700">Mean Diameter</label>
-                            <input type="number" step="0.0001" id="mean_diameter_${index}" name="mean_diameter_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
-                        <div>
-                            <label for="ovality_${index}" class="block text-sm font-medium text-gray-700">Ovality</label>
-                            <input type="text" id="ovality_${index}" name="ovality_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
-                        <div>
-                            <label for="bearing_${index}" class="block text-sm font-medium text-gray-700">Bearing</label>
-                            <input type="text" id="bearing_${index}" name="bearing_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
-                        <div>
-                            <label for="angle_${index}" class="block text-sm font-medium text-gray-700">Angle</label>
-                            <input type="text" id="angle_${index}" name="angle_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
-                        </div>
+                    <div>
+                        <label for="diam_original_${index}" class="block text-sm font-medium text-gray-700">Diâm. Original</label>
+                        <input type="number" step="0.0001" id="diam_original_${index}" name="diam_original_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="mean_diameter_${index}" class="block text-sm font-medium text-gray-700">Mean Diameter</label>
+                        <input type="number" step="0.0001" id="mean_diameter_${index}" name="mean_diameter_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="ovality_${index}" class="block text-sm font-medium text-gray-700">Ovality</label>
+                        <input type="text" id="ovality_${index}" name="ovality_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="bearing_${index}" class="block text-sm font-medium text-gray-700">Bearing</label>
+                        <input type="text" id="bearing_${index}" name="bearing_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
+                    </div>
+                    <div>
+                        <label for="angle_${index}" class="block text-sm font-medium text-gray-700">Angle</label>
+                        <input type="text" id="angle_${index}" name="angle_${index}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200">
                     </div>
                 </div>
-            `;
+            </div>
+        `;
+    }
+
+    // ---- LÓGICA DE TOGGLE (Reaproveitável) ----
+    window.toggleSection = (id, el) => {
+        const box = document.getElementById(id);
+        const arrow = el.querySelector("span:last-child");
+
+        box.classList.toggle("hidden");
+
+        if (!box.classList.contains("hidden")) {
+            arrow.style.transform = "rotate(180deg)";
+            setTimeout(() => { 
+                box.classList.remove("opacity-0", "translate-y-2"); 
+            }, 10);
+        } else {
+            arrow.style.transform = "rotate(0deg)";
+            box.classList.add("opacity-0", "translate-y-2");
         }
-
-        // ---- LÓGICA DE TOGGLE (Reaproveitável para Máquina e Calibração) ----
-        window.toggleSection = (id, el) => {
-            const box = document.getElementById(id);
-            const arrow = el.querySelector("span:last-child");
-
-            box.classList.toggle("hidden");
-
-            if (!box.classList.contains("hidden")) {
-                arrow.style.transform = "rotate(180deg)";
-                // Pequeno atraso para a animação de opacidade funcionar bem
-                setTimeout(() => { 
-                    box.classList.remove("opacity-0", "translate-y-2"); 
-                }, 10);
-            } else {
-                arrow.style.transform = "rotate(0deg)";
-                box.classList.add("opacity-0", "translate-y-2");
-            }
-        };
-    });
+    };
+});
 </script>
 {% endblock %}

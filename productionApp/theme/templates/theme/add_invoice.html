@@ -1,0 +1,77 @@
+{% extends 'theme/base.html' %}
+
+{% block title %}
+  Invoice
+{% endblock %}
+
+{% block content %}
+<div id="addInvoiceModal" class="fixed inset-0 bg-transparent-500/20 flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded shadow-lg">
+        <h2 class="text-xl font-semibold mb-4">Adicionar Invoice</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-4">
+                <label for="invoice_number" class="block text-gray-700">Número da Invoice:</label>
+                <input type="text" id="invoice_number" name="invoice_number" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="invoice_date" class="block text-gray-700">Data da Invoice:</label>
+                <input type="date" id="invoice_date" name="invoice_date" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="invoice_file" class="block text-gray-700">Ficheiro da Invoice (opcional):</label>
+                <input type="file" id="invoice_file" name="invoice_file" class="w-full border border-gray-300 rounded px-3 py-2">
+            </div>
+
+            <div class="mb-4">
+                <label for="proformas" class="block text-gray-700">Selecionar Proformas:</label>
+                <select id="proformas" name="proformas" multiple class="w-full border border-gray-300 rounded px-3 py-2">
+                    <option value="">-- Selecionar Proforma --</option>
+                    {% for proforma in proformas_list %}
+                        <option value="{{ proforma.id }}" data-amount="{{ proforma.amount_2|default:0 }}">
+                            {{ proforma.customer_PO }} - Rest:{{ proforma.amount_2|default:0 }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-gray-700">Total Pagamento:</label>
+                <input type="text" id="total_amount" name="total_amount" readonly
+                       class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100"
+                       value="0.00">
+            </div>
+
+            <div class="flex justify-end">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Adicionar</button>
+                <a href="{% url 'listarProformas' %}" id="closeModal" class="ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('proformas');
+    const totalInput = document.getElementById('total_amount');
+
+    function updateTotal() {
+        let total = 0;
+
+        Array.from(select.selectedOptions).forEach(option => {
+            total += parseFloat(option.dataset.amount || 0);
+        });
+
+        totalInput.value = total.toFixed(2);
+    }
+
+    select.addEventListener('change', updateTotal);
+    select.addEventListener('click', updateTotal);
+    updateTotal();
+});
+</script>
+{% endblock %}

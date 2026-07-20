@@ -1,5 +1,6 @@
 from django.contrib import admin # type: ignore
 from django import forms  # type: ignore
+from django.db.models import Q
 
 from .models import (
     FaturaEstrangeitoFile, FaturaPagoFile, Order, QRData, Jobs,
@@ -32,11 +33,80 @@ from .models import (
     Plant,
     BoxFiles,
     CalibracaoFieira,
+    Invoice,
+    P2Control
     
 
 )
+# -------------------
+# Invoice + P2Control
+# -------------------
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ('invoice_number', 'invoice_date', 'total_amount','invoice_file')
+    filter_horizontal = ('proformas',) # Cria uma interface de seleção muito mais bonita (duas colunas)
 
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        """
+        Filtra a lista de seleção para mostrar apenas proformas que 
+        NÃO estão associadas a nenhuma Invoice ativa neste momento.
+        """
+        if db_field.name == "proformas":
+            # Se estivermos a editar uma Invoice existente, permitimos manter as que já pertencem a ela
+            invoice_id = request.resolver_match.kwargs.get('object_id')
+            if invoice_id:
+                kwargs["queryset"] = P2Control.objects.filter(
+                    Q(invoices__isnull=True) | Q(invoices__id=invoice_id)
+                ).distinct()
+            else:
+                # Se for uma Invoice nova, só mostra as que estão 100% livres
+                kwargs["queryset"] = P2Control.objects.filter(invoices__isnull=True)
+                
+        return super().formfield_for_manytomany(db_field, request, **kwargs)
 
+@admin.register(P2Control)
+class P2ControlAdmin(admin.ModelAdmin):
+    list_display = (
+        'customer_PO',
+        'proforma_number',
+        'total_amount',
+        'percentage_1',
+        'amount_1',
+        'paydate_1',
+        'percentage_2',
+        'amount_2',
+        'paydate_2',
+        'invoices_count',
+    )
+    search_fields = ('customer_PO', 'proforma_number')
+    list_filter = ('paydate_1', 'paydate_2')
+    readonly_fields = ('amount_1', 'amount_2', 'percentage_2', 'invoices_associadas')
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('customer_PO', 'proforma_number', 'total_amount')
+        }),
+        ('Pagamentos', {
+            'fields': ('percentage_1', 'amount_1', 'paydate_1', 'percentage_2', 'amount_2', 'paydate_2')
+        }),
+        ('Documentos', {
+            'fields': ('proof_of_payment_1', 'proof_of_payment_2', 'proforma_invoice')
+        }),
+        ('Invoices associadas', {
+            'fields': ('invoices_associadas',)
+        }),
+    )
+
+    def invoices_count(self, obj):
+        return obj.invoices.count()
+    invoices_count.short_description = 'Invoices'
+
+    def invoices_associadas(self, obj):
+        invoices = obj.invoices.all()
+        if not invoices:
+            return 'Sem invoices associadas'
+        return ', '.join(invoice.invoice_number for invoice in invoices)
+    invoices_associadas.short_description = 'Invoices associadas'
+    
 # -------------------
 # QRData + Inline DieInstance
 # -------------------
@@ -71,7 +141,7 @@ class QRDataAdmin(admin.ModelAdmin):
 
 # -------------------
 # BoxFiles
-# -------------------~
+# -------------------
 @admin.register(BoxFiles)
 class BoxFilesAdmin(admin.ModelAdmin):
     list_display = ['file', 'uploaded_at', 'uploaded_by']
@@ -408,7 +478,7 @@ class CalibracaoFieiraInline(admin.TabularInline):
 @admin.register(CalibracaoMaquina)
 class CalibracaoMaquinaAdmin(admin.ModelAdmin):
     # Mostra as informações principais da calibração na lista do Admin
-    list_display = ('machine', 'date', 'operador', 'mec_cal', 'lev_obj')
+    list_display = ('machine', 'date', 'operador', 'mec_cal', 'lev_obj', 'lente_3x', 'lente_1x', 'lente_meio_x', 'tempratura', 'feito')
     list_filter = ('date', 'machine', 'operador')
     search_fields = ('machine__machine_name', 'operador__username', 'mec_cal')
     

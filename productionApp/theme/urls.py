@@ -25,6 +25,7 @@ urlpatterns = [
     path('menuFinanceiro/', views.financeiroMenu, name='financeiroMenu'),
     path('documentosMenu/', views.documentosMenu, name='documentosMenu'),
     path('accessMenu/', views.accessMenu, name='accessMenu'),
+    path('menuP3/', views.menuP3, name='menuP3'),
 
     # QR Codes
     path('listQrcodes/', views.listQrcodes, name='listQrcodes'),
@@ -125,7 +126,17 @@ urlpatterns = [
 
     #Painel de Acesso
     path('painel-acesso/', views.painel_acesso, name='painel_acesso'),
-    path('api/toggle-acesso-externo/', views.toggle_acesso_externo, name='toggle_acesso')
+    path('api/toggle-acesso-externo/', views.toggle_acesso_externo, name='toggle_acesso'),
+
+    #Aniceta
+    path('proformas/', views.listarProformas, name='listarProformas'),
+    path('proformas/<hashid:pk>/upload-file/', views.upload_p2control_file_ajax, name='upload_p2control_file_ajax'),
+    path('proformas/<hashid:pk>/edit/', views.editarProforma, name='editarProforma'),
+    path('proformas/<hashid:pk>/delete/', views.delete_p2, name='delete_p2'),
+    path('proformas/<hashid:pk>/delete-file/', views.delete_p2control_file_ajax, name='delete_p2control_file_ajax'),
+
+    path('adicionarInvoice/', views.adicionarInvoice, name='adicionarInvoice'),
+    
 ]
 
 if settings.DEBUG:
