@@ -103,7 +103,7 @@
                 {% for oc in o.orders_coming.all %}
                   <div class="flex items-center min-h-[28px]">
                     {% if o.plant_fk|lower != 'toma' %}
-                      {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent or oc.conoptica or oc.days_2_3 or oc.days_3_4 or oc.recondicioning or oc.semifinished or oc.casing or oc.pin %}
+                      {% if oc.inspectionMetrology or oc.preshipment or oc.mark or oc.urgent or oc.conoptica or oc.days_2_3 or oc.days_3_4 or oc.recondicioning or oc.semifinished or oc.casing or oc.pin or oc.comment%}
                       <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 whitespace-nowrap">
                         Have Tasks
                       </span>

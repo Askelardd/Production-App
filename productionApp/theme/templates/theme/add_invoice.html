@@ -5,30 +5,39 @@
 {% endblock %}
 
 {% block content %}
-<div id="addInvoiceModal" class="fixed inset-0 bg-transparent-500/20 flex items-center justify-center z-50">
-    <div class="bg-white p-6 rounded shadow-lg">
-        <h2 class="text-xl font-semibold mb-4">Adicionar Invoice</h2>
-        <form method="POST" enctype="multipart/form-data">
+
+<!-- Container externo: 'items-start' e 'overflow-y-auto' evitam o corte no topo -->
+<div id="addInvoiceModal" class="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm flex justify-center items-start z-50 p-4 overflow-y-auto">
+    
+    <!-- Cartão do Modal: 'my-auto' centra quando cabe, mas alinha ao topo com margem quando não cabe -->
+    <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col my-auto relative">
+        
+        <!-- Título fixo no topo do modal -->
+        <h2 class="text-xl font-semibold mb-4 text-neutral-900 border-b pb-2 shrink-0">Add Invoice</h2>
+        
+        <!-- Formulário com scroll interno independente -->
+        <form method="POST" enctype="multipart/form-data" class="overflow-y-auto pr-1 space-y-4">
             {% csrf_token %}
-            <div class="mb-4">
-                <label for="invoice_number" class="block text-gray-700">Número da Invoice:</label>
-                <input type="text" id="invoice_number" name="invoice_number" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            
+            <div>
+                <label for="invoice_number" class="block text-gray-700">Invoice Number:</label>
+                <input type="text" id="invoice_number" name="invoice_number" class="w-full border border-gray-300 rounded px-3 py-2 mt-1" required>
             </div>
 
-            <div class="mb-4">
-                <label for="invoice_date" class="block text-gray-700">Data da Invoice:</label>
-                <input type="date" id="invoice_date" name="invoice_date" class="w-full border border-gray-300 rounded px-3 py-2" required>
+            <div>
+                <label for="invoice_date" class="block text-gray-700">Invoice Date:</label>
+                <input type="date" id="invoice_date" name="invoice_date" class="w-full border border-gray-300 rounded px-3 py-2 mt-1" required>
             </div>
 
-            <div class="mb-4">
-                <label for="invoice_file" class="block text-gray-700">Ficheiro da Invoice (opcional):</label>
-                <input type="file" id="invoice_file" name="invoice_file" class="w-full border border-gray-300 rounded px-3 py-2">
+            <div>
+                <label for="invoice_file" class="block text-gray-700">Invoice File:</label>
+                <input type="file" id="invoice_file" name="invoice_file" class="w-full border border-gray-300 rounded px-3 py-2 mt-1" required>
             </div>
 
-            <div class="mb-4">
-                <label for="proformas" class="block text-gray-700">Selecionar Proformas:</label>
-                <select id="proformas" name="proformas" multiple class="w-full border border-gray-300 rounded px-3 py-2">
-                    <option value="">-- Selecionar Proforma --</option>
+            <div>
+                <label for="proformas" class="block text-gray-700">Select Proformas:</label>
+                <select id="proformas" name="proformas" multiple class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
+                    <option value="">-- Select Proforma --</option>
                     {% for proforma in proformas_list %}
                         <option value="{{ proforma.id }}" data-amount="{{ proforma.amount_2|default:0 }}">
                             {{ proforma.customer_PO }} - Rest:{{ proforma.amount_2|default:0 }}
@@ -37,16 +46,16 @@
                 </select>
             </div>
 
-            <div class="mb-4">
-                <label class="block text-gray-700">Total Pagamento:</label>
+            <div>
+                <label class="block text-gray-700">Total Payment:</label>
                 <input type="text" id="total_amount" name="total_amount" readonly
-                       class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100"
+                       class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 mt-1"
                        value="0.00">
             </div>
 
-            <div class="flex justify-end">
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Adicionar</button>
-                <a href="{% url 'listarProformas' %}" id="closeModal" class="ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">Cancelar</a>
+            <div class="flex justify-end pt-2">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition">Add Invoice</button>
+                <a href="{% url 'listarProformas' %}" id="closeModal" class="ml-2 bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition">Cancel</a>
             </div>
         </form>
     </div>
@@ -58,6 +67,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     const select = document.getElementById('proformas');
     const totalInput = document.getElementById('total_amount');
+
+    // 3. Bloquear o scroll da página principal
+    document.body.classList.add('overflow-hidden');
+
+    const navBar = document.querySelector('nav');
+    if (navBar) navBar.classList.add('hidden');
 
     function updateTotal() {
         let total = 0;

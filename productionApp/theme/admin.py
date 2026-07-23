@@ -69,6 +69,7 @@ class P2ControlAdmin(admin.ModelAdmin):
     list_display = (
         'customer_PO',
         'proforma_number',
+        'proforma_date',
         'total_amount',
         'percentage_1',
         'amount_1',

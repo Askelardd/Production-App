@@ -660,7 +660,7 @@ class P2Control(models.Model):
     # customer_PO agora é único e obrigatório (garante que não há duplicados)
     customer_PO = models.CharField(max_length=100, unique=True, blank=False, null=False)
     proforma_number = models.CharField(max_length=100, blank=False, null=False)
-    
+    proforma_date = models.DateField(blank=True, null=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=False, null=False)
 
     percentage_1 = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
@@ -673,7 +673,9 @@ class P2Control(models.Model):
 
     proof_of_payment_1 = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
     proof_of_payment_2 = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
+    proforma = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
     proforma_invoice = models.FileField(upload_to='p2_control_files/', null=True, blank=True)
+    comments = models.TextField(blank=True, null=True)
 
     def save(self, *args, **kwargs):
         if self.total_amount and self.percentage_1 is not None:

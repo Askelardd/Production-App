@@ -5394,25 +5394,34 @@ def toggle_acesso_externo(request):
 
 
 def listarProformas(request):
-    proformas = P2Control.objects.all().order_by('-customer_PO')
+    proformas = P2Control.objects.all().order_by('-proforma_number')
 
     if request.method == 'POST':
         customer_PO = request.POST.get('customer_PO', '').strip()
         total_amount = request.POST.get('total_amount', '').strip()
         proforma_number = request.POST.get('proforma_number', '').strip()
+        proforma_date = request.POST.get('proforma_date', '').strip()
         percentage_1 = request.POST.get('percentage_1', '').strip()
+
+        # ficheiros
+        proforma = request.FILES.get('proforma_file')
         proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
         proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
         proforma_invoice = request.FILES.get('proforma_invoice')
+
+        comments = request.POST.get('comments', '').strip()
         try:
             P2Control.objects.create(
                 customer_PO=customer_PO,
                 total_amount=total_amount,
                 proforma_number=proforma_number,
                 percentage_1=percentage_1,
+                proforma=proforma,
                 proof_of_payment_1=proof_of_payment_1,
                 proof_of_payment_2=proof_of_payment_2,
                 proforma_invoice=proforma_invoice,
+                proforma_date=proforma_date,
+                comments=comments
             )
             messages.success(request, 'Proforma criada com sucesso!')
             return redirect('listarProformas')
@@ -5435,6 +5444,8 @@ def editarProforma(request, pk):
         percentage_1 = request.POST.get('percentage_1', '').strip()
         paydate_1 = request.POST.get('paydate_1', '').strip()
         paydate_2 = request.POST.get('paydate_2', '').strip()
+        proforma_date = request.POST.get('proforma_date', '').strip()
+        comments = request.POST.get('comments', '').strip()
 
         proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
         proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
@@ -5447,7 +5458,8 @@ def editarProforma(request, pk):
             proforma.percentage_1 = percentage_1 or None
             proforma.paydate_1 = paydate_1 or None
             proforma.paydate_2 = paydate_2 or None
-
+            proforma.proforma_date = proforma_date or None
+            proforma.comments = comments or None
             if proof_of_payment_1:
                 proforma.proof_of_payment_1 = proof_of_payment_1
             if proof_of_payment_2:
@@ -5482,6 +5494,7 @@ def delete_p2control_file_ajax(request, pk):
         'proof_of_payment_1',
         'proof_of_payment_2',
         'proforma_invoice',
+        'proforma'
     }
 
     try:
@@ -5508,43 +5521,57 @@ def delete_p2control_file_ajax(request, pk):
 @group_required('Comercial', 'Administracao')
 @require_POST
 def upload_p2control_file_ajax(request, pk):
-    allowed_fields = {
-        'proof_of_payment_1',
-        'proof_of_payment_2',
-        'proforma_invoice',
-    }
+    try:
+        allowed_fields = {
+            'proof_of_payment_1',
+            'proof_of_payment_2',
+            'proforma_invoice',
+            'proforma'
+        }
 
-    field_name = request.POST.get('field', '').strip()
-    uploaded_file = request.FILES.get('file')
+        field_name = request.POST.get('field', '').strip()
+        uploaded_file = request.FILES.get('file')
 
-    if field_name not in allowed_fields:
-        return JsonResponse({'status': 'error', 'message': 'Campo inválido.'}, status=400)
+        if field_name not in allowed_fields:
+            return JsonResponse({'status': 'error', 'message': f'Campo "{field_name}" é inválido.'}, status=400)
 
-    if not uploaded_file:
-        return JsonResponse({'status': 'error', 'message': 'Nenhum ficheiro enviado.'}, status=400)
+        if not uploaded_file:
+            return JsonResponse({'status': 'error', 'message': 'Nenhum ficheiro foi recebido.'}, status=400)
 
-    proforma = get_object_or_404(P2Control, pk=pk)
+        try:
+            proforma = P2Control.objects.get(pk=pk)
+        except P2Control.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': f'Proforma com ID {pk} não encontrada.'}, status=404)
 
-    update_fields = [field_name]
+        # Atualizar o ficheiro
+        setattr(proforma, field_name, uploaded_file)
 
-    if field_name == 'proof_of_payment_1':
-        proforma.paydate_1 = date.today()
-        update_fields.append('paydate_1')
-    elif field_name == 'proof_of_payment_2':
-        proforma.paydate_2 = date.today()
-        update_fields.append('paydate_2')
+        # Atualizar datas de pagamento se aplicável
+        if field_name == 'proof_of_payment_1':
+            proforma.paydate_1 = date.today()
+        elif field_name == 'proof_of_payment_2':
+            proforma.paydate_2 = date.today()
+        elif field_name == 'proforma':
+            proforma.proforma_date = date.today()
 
-    setattr(proforma, field_name, uploaded_file)
-    proforma.save(update_fields=update_fields)
+        # Guardar sem update_fields para garantir a gravação do ficheiro no armazenamento
+        proforma.save()
 
-    return JsonResponse({
-    'status': 'success',
-    'field': field_name,
-    'file_name': os.path.basename(getattr(proforma, field_name).name),
-    'file_url': getattr(proforma, field_name).url,
-    'paydate_1': proforma.paydate_1.strftime('%Y-%m-%d') if proforma.paydate_1 else '',
-    'paydate_2': proforma.paydate_2.strftime('%Y-%m-%d') if proforma.paydate_2 else '',
-})
+        file_obj = getattr(proforma, field_name, None)
+
+        return JsonResponse({
+            'status': 'success',
+            'field': field_name,
+            'file_name': os.path.basename(file_obj.name) if file_obj and file_obj.name else '',
+            'file_url': file_obj.url if file_obj and hasattr(file_obj, 'url') else '',
+            'paydate_1': proforma.paydate_1.strftime('%Y-%m-%d') if proforma.paydate_1 else '',
+            'paydate_2': proforma.paydate_2.strftime('%Y-%m-%d') if proforma.paydate_2 else '',
+            'proforma_date': proforma.proforma_date.strftime('%Y-%m-%d') if proforma.proforma_date else '',
+        })
+
+    except Exception as e:
+        # Captura qualquer erro no Python e devolve em formato JSON para o alert do browser
+        return JsonResponse({'status': 'error', 'message': f'Erro no servidor: {str(e)}'}, status=500)
 
 
 def adicionarInvoice(request):
