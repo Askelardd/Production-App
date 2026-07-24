@@ -10,6 +10,17 @@
                 <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Broken Dies</h1>
                 <p class="text-sm text-gray-500 mt-1">Management and registration of broken dies and observations</p>
             </div>
+
+            <form method="get" class="flex items-center gap-2 mb-4">
+                <label for="limitSelect" class="text-sm font-semibold text-gray-700">Show:</label>
+                    <select name="limite" id="limitSelect" onchange="this.form.submit()" class="border border-gray-300 rounded shadow-sm px-3 py-1 text-sm focus:ring-blue-300">
+                        <option value="10" {% if limitePartidos == '10' or limitePartidos == 10 %}selected{% endif %}>10 lines</option>
+                        <option value="15" {% if limitePartidos == '15' or limitePartidos == 15 %}selected{% endif %}>15 lines</option>
+                        <option value="50" {% if limitePartidos == '50' or limitePartidos == 50 %}selected{% endif %}>50 lines</option>
+                        <option value="100" {% if limitePartidos == '100' or limitePartidos == 100 %}selected{% endif %}>100 lines</option>
+                        <option value="todos" {% if limitePartidos == 'todos' or limitePartidos == 'todos' %}selected{% endif %}>All orders</option>
+                    </select>
+            </form>
             
             <div class="relative w-full md:w-96">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">

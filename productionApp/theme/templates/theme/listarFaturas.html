@@ -38,6 +38,16 @@
                 <option value="pagos" {% if ordenacao == 'pagos' %}selected{% endif %}>Paid First</option>
             </select>
         </div>
+
+        <div>
+            <label for="limite_faturas" class="block text-xs text-gray-500">Limit</label>
+            <select name="limite_faturas" onchange="this.form.submit()" class="border p-2 rounded bg-white">
+                <option value="10" {% if limite_faturas == 10 or limite_faturas == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if limite_faturas == 20 or limite_faturas == '20' %}selected{% endif %}>20</option>
+                <option value="50" {% if limite_faturas == 50 or limite_faturas == '50' %}selected{% endif %}>50</option>
+                <option value="todos" {% if limite_faturas == "todos" or limite_faturas == 'todos' %}selected{% endif %}>Todas</option>
+            </select>
+        </div>
         
         <div class="flex gap-2">
             <button class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button>

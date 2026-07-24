@@ -10,6 +10,18 @@
         class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
 </div>
 
+<div class="flex items-center justify-left mt-4 mb-4">
+    <span id="pageInfo" class="text-sm text-gray-600"></span>
+    <div class="inline-flex items-center space-x-2 ml-4">
+        <button id="prevBtn" class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+            Anterior
+        </button>
+        <button id="nextBtn" class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+            Próximo
+        </button>
+    </div>
+</div>
+
 <table id="fieirasTable" class="min-w-full divide-y divide-gray-200">
     <thead class="bg-gray-50">
         <tr>
@@ -48,27 +60,84 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-        document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.getElementById('searchInput');
-        const table = document.getElementById('fieirasTable').getElementsByTagName('tbody')[0];
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('searchInput');
+    const tableBody = document.getElementById('fieirasTable').getElementsByTagName('tbody')[0];
+    const rows = Array.from(tableBody.getElementsByTagName('tr'));
+    
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageInfo = document.getElementById('pageInfo');
 
-        searchInput.addEventListener('keyup', function () {
-            const filter = searchInput.value.toLowerCase();
-            const rows = table.getElementsByTagName('tr');
+    const rowsPerPage = 15; // Limite por página
+    let currentPage = 1;
 
-            for (let i = 0; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                let found = false;
+    function renderTable() {
+        const filter = searchInput.value.toLowerCase().trim();
 
-                for (let j = 0; j < cells.length - 1; j++) { // Ignora última coluna (Ações)
-                    if (cells[j].textContent.toLowerCase().includes(filter)) {
-                        found = true;
-                        break;
-                    }
+        // 1. FILTRAR: Filtra todas as linhas da tabela original que contêm o termo
+        const matchingRows = rows.filter(row => {
+            // Ignora se for a linha de "Nenhuma fieira encontrada"
+            if (row.cells.length === 1) return false;
+
+            const cells = row.getElementsByTagName('td');
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].textContent.toLowerCase().includes(filter)) {
+                    return true;
                 }
-                rows[i].style.display = found ? '' : 'none';
             }
+            return false;
         });
+
+        // 2. PAGINAR: Calcula os limites de exibição para os resultados filtrados
+        const totalPages = Math.ceil(matchingRows.length / rowsPerPage) || 1;
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * rowsPerPage;
+        const endIdx = startIdx + rowsPerPage;
+
+        // Esconde TODAS as linhas da tabela
+        rows.forEach(row => row.style.display = 'none');
+
+        // Mostra APENAS as 15 linhas correspondentes à página atual do filtro
+        matchingRows.slice(startIdx, endIdx).forEach(row => {
+            row.style.display = '';
+        });
+
+        // 3. ATUALIZAR INTERFACE: Texto informativo e estado dos botões
+        const totalMatching = matchingRows.length;
+        if (totalMatching === 0) {
+            pageInfo.textContent = 'Nenhum resultado encontrado';
+        } else {
+            pageInfo.textContent = `A mostrar ${startIdx + 1} - ${Math.min(endIdx, totalMatching)} de ${totalMatching} resultados (Página ${currentPage} de ${totalPages})`;
+        }
+
+        prevBtn.disabled = currentPage <= 1;
+        nextBtn.disabled = currentPage >= totalPages;
+    }
+
+    // Eventos
+    searchInput.addEventListener('input', function () {
+        currentPage = 1; // Reseta para a 1ª página a cada nova pesquisa
+        renderTable();
     });
+
+    prevBtn.addEventListener('click', function () {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTable();
+        }
+    });
+
+    nextBtn.addEventListener('click', function () {
+        currentPage++;
+        renderTable();
+    });
+
+    // Renderização inicial
+    renderTable();
+});
 </script>
 {% endblock %}

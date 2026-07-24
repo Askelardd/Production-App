@@ -3,10 +3,11 @@ import datetime
 import json  
 import logging
 import os
+
 from productionApp.templatetags.extras import *
 from collections import Counter
 from datetime import date, timedelta
-from django.db.models import Q, OuterRef, Exists, Prefetch
+from django.db.models import Q, OuterRef, Exists, Prefetch, Max
 from django.urls import reverse
 import pandas as pd  
 from django.conf import settings
@@ -35,6 +36,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils._os import safe_join
 from django.core.exceptions import SuspiciousFileOperation
+from pypdf import PdfReader
 
 def stock_overview(request):
     return redirect('http://192.168.2.112:18000')    
@@ -941,6 +943,8 @@ def listQrcodes(request):
     # 1. Buscar todos os dados ordenados
     all_qrcodes = QRData.objects.all().order_by('-created_at')
 
+    limitePedidos = request.GET.get('limit', '5')
+
     # 2. Agrupar os dados
     # A estrutura será: chave (nr, ano) -> { info_cliente, total_qty, lista_de_caixas }
     grouped_data = {}
@@ -972,9 +976,18 @@ def listQrcodes(request):
     # Ordenamos pela data de criação da primeira caixa (opcional)
     final_list = list(grouped_data.values())
 
+    if limitePedidos != 'todos':
+        try:
+            limite = int(limitePedidos)
+            final_list = final_list[:limite]
+        except ValueError:
+            messages.error(request, "Limite inválido. Mostrando todos os pedidos.")
+            limitePedidos = 'todos'
+
     return render(request, 'theme/listQrcodes.html', {
         'grouped_qrcodes': final_list, # Mudámos o nome da variável para não confundir
-        'current_time': timezone.now()
+        'current_time': timezone.now(),
+        'limitePedidos': limitePedidos
     })
 
 @login_required
@@ -1870,150 +1883,13 @@ def remove_die(request, die_id):
 
 @login_required
 def listar_qrcodes_geral(request):
-    
-    #memorizar o 'q' e 'estado' para não perder a pesquisa ao navegar entre páginas ou fazer refresh
-    if request.method == "GET":
-        raw_q = request.GET.get('q')
-        raw_estado = request.GET.get('estado')
-
-        if raw_q is not None:
-
-            request.session['saved_q'] = raw_q.strip()
-            if raw_estado:
-                request.session['saved_estado'] = raw_estado
-        else:
-
-            saved_q = request.session.get('saved_q')
-            saved_estado = request.session.get('saved_estado', 'todos')
-
-            if saved_q:
-                return redirect(f"{request.path}?estado={saved_estado}&q={saved_q}")
-
-    search_query = request.session.get('saved_q', '')
-    estado = request.GET.get('estado', request.session.get('saved_estado', 'todos'))
-
-    user_first_group = request.user.groups.first()
-    user_group = user_first_group.name if user_first_group else ''
-
-    # Para escalar com muitos registos, só pesquisamos quando houver query.
-    all_qrcodes = QRData.objects.none()
-    if search_query:
-        all_qrcodes = (
-            QRData.objects
-            .prefetch_related('die_instances', 'where_boxes')
-            .filter(
-                Q(customer__icontains=search_query) |
-                Q(customer_order_nr__icontains=search_query) |
-                Q(toma_order_nr__icontains=search_query) |
-                Q(toma_order_year__icontains=search_query) |
-                Q(box_nr__icontains=search_query) |
-                Q(die_instances__serial_number__icontains=search_query)
-            )
-            .distinct()
-            .order_by('-created_at')[:200]
-        )
-
-    pedidos_fechados = []
-    if search_query and estado in ['abertos', 'fechados']:
-        pedidos_unicos = all_qrcodes.values('toma_order_nr', 'toma_order_year').distinct()
-        for pedido in pedidos_unicos:
-            nr = pedido['toma_order_nr']
-            ano = pedido['toma_order_year']
-            
-            tem_caixas_abertas = all_qrcodes.filter(
-                toma_order_nr=nr, 
-                toma_order_year=ano
-            ).exclude(where_boxes__where='FECHADO').exists()
-
-            if not tem_caixas_abertas:
-                pedidos_fechados.append((nr, ano))
-
-    # 2. Agrupar os dados
-    grouped_data = {}
-    for qr in all_qrcodes:
-        key = (qr.toma_order_nr, qr.toma_order_year)
-
-        # 3. A MAGIA DO FILTRO: Saltar as iterações que não interessam consoante o estado
-        if estado == 'fechados' and key not in pedidos_fechados:
-            continue
-            
-        if estado == 'abertos' and key in pedidos_fechados:
-            continue
-
-        if key not in grouped_data:
-            grouped_data[key] = {
-                'toma_order_nr': qr.toma_order_nr,
-                'toma_order_year': qr.toma_order_year,
-                'customer': qr.customer,
-                'customer_order_nr': qr.customer_order_nr,
-                'total_qt': 0,
-                'boxes': []
-            }
-        
-        grouped_data[key]['total_qt'] += qr.qt
-        grouped_data[key]['boxes'].append(qr)
-
-    final_list = list(grouped_data.values())
-
-    # Garantir que importaste o Polimentos, ou usar uma alternativa se der erro
-    tipo_choices = Polimentos._meta.get_field('tipo').choices
-
-    qr_ids = list(all_qrcodes.values_list('id', flat=True))
-    dies = dieInstance.objects.filter(customer_id__in=qr_ids)
-
-    # Construir um mapa die_id -> lista de trabalhos
-    work_qs = DieWorkWorker.objects.filter(work__die__in=dies).select_related('worker', 'work', 'work__die')
-    work_entries_map = defaultdict(list)
-    for rel in work_qs:
-        die_id = rel.work.die_id
-        work_label = rel.work.get_work_type_display() if hasattr(rel.work, 'get_work_type_display') else rel.work.work_type
-        worker_name = (rel.worker.get_full_name() or rel.worker.username) if rel.worker else ''
-        
-        if work_label == 'Polimento':
-            work_label = 'Pol.'
-        elif work_label == 'Desbaste Calibre':
-            work_label = 'DesbCal.'
-        elif work_label == 'Desbaste Agulha':
-            work_label = 'DesbAg.'
-        elif work_label == 'Afinação':
-            work_label = 'Afi.'
-
-        if rel.work.subtype == 'entrada':
-            work_label += ' (E)'
-        elif rel.work.subtype == 'saida':
-            work_label += ' (S)'
-        elif rel.work.subtype == 'cone':
-            work_label += ' (C) '
-        elif rel.work.subtype == 'polimento_de_calibre':
-            work_label += ' (PCal.)'
-        elif rel.work.subtype == 'desbaste_de_calibre':
-            work_label += ' (DCal.)'
-        elif rel.work.subtype == 'Calibre':
-            work_label += ' (Cal.)'
-        elif rel.work.subtype == 'afinacao':
-            work_label += ' (Afi.)'
-
-        work_entry = {
-            'work_type': work_label,
-            'worker': worker_name,
-        }
-        work_entries_map[die_id].append(work_entry)
-
-    # Anexar `work_entries` a cada instância `die` usada no template
-    for group in final_list:
-        for qr in group['boxes']:
-            for die in qr.die_instances.all():
-                die.work_entries = work_entries_map.get(die.id, [])
-
-    times_worked = None
-  
+    # 1. Tratar o POST (Adicionar Trabalho) em primeiro lugar
     if request.method == "POST":
         numero_serie = request.POST.get('numero_serie', '').strip()
         work_type = request.POST.get('tipo_trabalho', '').strip()
         work_subtypes = [subtipo for subtipo in request.POST.getlist('subtipo', []) if subtipo]
 
         errors = []
-
         if not numero_serie:
             errors.append("Número de série é obrigatório.")
         else:
@@ -2031,41 +1907,195 @@ def listar_qrcodes_geral(request):
             for error in errors:
                 messages.error(request, error)
             return redirect('listarDies')
-        
-        try: 
+
+        try:
             created_work_types = []
             for subtype in work_subtypes:
                 work = DieWork.objects.create(
                     die=die_serie,
                     work_type=work_type,
                     subtype=subtype,
-                    created_at = timezone.now()
+                    created_at=timezone.now()
                 )
-
                 DieWorkWorker.objects.create(
                     work=work,
                     worker=request.user,
-                    added_at = timezone.now()
+                    added_at=timezone.now()
                 )
                 created_work_types.append(work.get_work_type_display())
-            
+
             messages.success(request, f"Trabalho(s) '{', '.join(created_work_types)}' adicionado(s) à die {numero_serie}.")
             return redirect('listarDies')
         except Exception as e:
             messages.error(request, f"Erro ao adicionar trabalho: {str(e)}")
             return redirect('listarDies')
 
+    # 2. Memorizar pesquisa/estado na sessão para navegação sem perdas
+    if request.method == "GET":
+        raw_q = request.GET.get('q')
+        raw_estado = request.GET.get('estado')
+
+        if raw_q is not None:
+            request.session['saved_q'] = raw_q.strip()
+            if raw_estado:
+                request.session['saved_estado'] = raw_estado
+        else:
+            saved_q = request.session.get('saved_q')
+            saved_estado = request.session.get('saved_estado', 'todos')
+            if saved_q:
+                return redirect(f"{request.path}?estado={saved_estado}&q={saved_q}")
+
+    search_query = request.session.get('saved_q', '')
+    estado = request.GET.get('estado', request.session.get('saved_estado', 'todos'))
+
+    user_first_group = request.user.groups.first()
+    user_group = user_first_group.name if user_first_group else ''
+
+    # 3. OTIMIZAÇÃO SQL: Subquery para saber se o pedido tem caixas abertas diretamente na BD (Substitui o loop N+1!)
+    open_boxes_subquery = QRData.objects.filter(
+        toma_order_nr=OuterRef('toma_order_nr'),
+        toma_order_year=OuterRef('toma_order_year')
+    ).exclude(where_boxes__where='FECHADO')
+
+    base_qs = QRData.objects.annotate(has_open_boxes=Exists(open_boxes_subquery))
+
+    # Filtragem por pesquisa se existir termo
+    if search_query:
+        base_qs = base_qs.filter(
+            Q(customer__icontains=search_query) |
+            Q(customer_order_nr__icontains=search_query) |
+            Q(toma_order_nr__icontains=search_query) |
+            Q(toma_order_year__icontains=search_query) |
+            Q(box_nr__icontains=search_query) |
+            Q(die_instances__serial_number__icontains=search_query)
+        ).distinct()
+
+    # Filtragem por Estado no SQL
+    if estado == 'abertos':
+        base_qs = base_qs.filter(has_open_boxes=True)
+    elif estado == 'fechados':
+        base_qs = base_qs.filter(has_open_boxes=False)
+
+    # 4. Agrupar as Tomas no SQL e ordenar pela mais recente
+    distinct_tomas = (
+        base_qs
+        .values('toma_order_nr', 'toma_order_year', 'customer', 'customer_order_nr')
+        .annotate(last_created=Max('created_at'))
+        .order_by('-last_created')
+    )
+
+    # 5. PAGINAÇÃO NO SERVIDOR 
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(distinct_tomas, 5)
+    page_obj = paginator.get_page(page_number)
+
+    # 6. Carregar dados APENAS 5 primeiros
+    toma_keys = [(item['toma_order_nr'], item['toma_order_year']) for item in page_obj.object_list]
+
+    page_qrcodes = []
+    if toma_keys:
+        toma_filter = Q()
+        for nr, ano in toma_keys:
+            toma_filter |= Q(toma_order_nr=nr, toma_order_year=ano)
+
+        page_qrcodes = (
+            base_qs.filter(toma_filter)
+            .prefetch_related(
+                'where_boxes',
+                'die_instances',
+                'die_instances__die',
+                'die_instances__tolerance'
+            )
+            .order_by('box_nr')
+        )
+
+    # Montar a estrutura de dicionário só para a página atual
+    grouped_dict = {}
+    for item in page_obj.object_list:
+        key = (item['toma_order_nr'], item['toma_order_year'])
+        grouped_dict[key] = {
+            'toma_order_nr': item['toma_order_nr'],
+            'toma_order_year': item['toma_order_year'],
+            'customer': item['customer'],
+            'customer_order_nr': item['customer_order_nr'],
+            'total_qt': 0,
+            'boxes': []
+        }
+
+    all_dies_in_page = []
+    for qr in page_qrcodes:
+        key = (qr.toma_order_nr, qr.toma_order_year)
+        if key in grouped_dict:
+            # Otimização para o template: pega na última localização sem fazer query extra
+            boxes_locs = list(qr.where_boxes.all())
+            qr.latest_location = boxes_locs[-1] if boxes_locs else None
+
+            grouped_dict[key]['total_qt'] += qr.qt
+            grouped_dict[key]['boxes'].append(qr)
+
+            for die in qr.die_instances.all():
+                all_dies_in_page.append(die)
+
+    final_list = list(grouped_dict.values())
+
+    # 7. Carregar Trabalhos (DieWorkWorker) APENAS para as fieiras visíveis na página
+    work_entries_map = defaultdict(list)
+    if all_dies_in_page:
+        die_ids = [d.id for d in all_dies_in_page]
+        work_qs = DieWorkWorker.objects.filter(
+            work__die_id__in=die_ids
+        ).select_related('worker', 'work')
+
+        labels_map = {
+            'Polimento': 'Pol.',
+            'Desbaste Calibre': 'DesbCal.',
+            'Desbaste Agulha': 'DesbAg.',
+            'Afinação': 'Afi.'
+        }
+        subtypes_map = {
+            'entrada': ' (E)',
+            'saida': ' (S)',
+            'cone': ' (C) ',
+            'polimento_de_calibre': ' (PCal.)',
+            'desbaste_de_calibre': ' (DCal.)',
+            'Calibre': ' (Cal.)',
+            'afinacao': ' (Afi.)'
+        }
+
+        for rel in work_qs:
+            die_id = rel.work.die_id
+            work_label = rel.work.get_work_type_display() if hasattr(rel.work, 'get_work_type_display') else rel.work.work_type
+            worker_name = (rel.worker.get_full_name() or rel.worker.username) if rel.worker else ''
+
+            work_label = labels_map.get(work_label, work_label)
+            if rel.work.subtype in subtypes_map:
+                work_label += subtypes_map[rel.work.subtype]
+
+            work_entries_map[die_id].append({
+                'work_type': work_label,
+                'worker': worker_name,
+            })
+
+    # Injetar os trabalhos nas dies da página
+    for die in all_dies_in_page:
+        die.work_entries = work_entries_map.get(die.id, [])
+
+    # Choices do Modal
+    try:
+        tipo_choices = Polimentos._meta.get_field('tipo').choices
+    except Exception:
+        tipo_choices = []
+
     context = {
         'grouped_qrcodes': final_list,
+        'page_obj': page_obj,  # Objeto com controlo da Paginação no Django
         'estado_atual': estado,
         'tipo_choices': tipo_choices,
         'user_group': user_group,
-        'times_worked': times_worked,
         'search_query': search_query,
     }
-    
-    return render(request, 'theme/listarDies.html', context)
 
+    return render(request, 'theme/listarDies.html', context)
 @login_required
 @require_POST
 def update_dies_inline(request, die_id):
@@ -3333,7 +3363,19 @@ def diametroMenu(request, toma_order_full):
 @login_required
 def listarPartidos(request):
     numero_partidos = NumeroPartidos.objects.all().order_by('-created_at')
-    return render(request, 'theme/listarPartidos.html', {'numero_partidos': numero_partidos})
+
+    limitePartidos = request.GET.get('limite', 10)
+
+    try:
+        if limitePartidos != 'todos':
+            limitePartidos = int(limitePartidos)
+            numero_partidos = numero_partidos[:limitePartidos]
+    except ValueError:
+        messages.error(request, "O limite de partidos deve ser um número inteiro ou 'todos'.")
+        return redirect('listarPartidos')
+    
+
+    return render(request, 'theme/listarPartidos.html', {'numero_partidos': numero_partidos, 'limitePartidos': limitePartidos})
 
 @login_required
 def localizarFieira(request):
@@ -3972,6 +4014,13 @@ def charts(request):
 def listarFaturas(request):
     ordenacao = request.GET.get('ordenacao', 'recentes')
 
+    limite_faturas = request.GET.get('limite_faturas', '10')  
+
+    try:
+        limite_faturas = int(limite_faturas)
+    except ValueError:
+        limite_faturas = 10  # Valor padrão se a conversão falhar
+
     if ordenacao == 'nao_pagos':
         invoice_qs = faturas.objects.all().order_by('pago', '-created_at')
     elif ordenacao == 'pagos':
@@ -4002,13 +4051,24 @@ def listarFaturas(request):
     elif filtro_pago == 'nao':
         invoice_qs = invoice_qs.filter(pago=False)
 
+    if limite_faturas == 'todos':
+        limite_faturas = limite_faturas
+
+    try:
+        if limite_faturas:
+            invoice_qs = invoice_qs[:limite_faturas]
+    except Exception as e:
+        messages.error(request, f"Erro ao aplicar limite de faturas: {e}")
+        invoice_qs = invoice_qs[:20]  
+
     return render(request, 'theme/listarFaturas.html', {
         'invoice_qs': invoice_qs,
         'de': de, 
         'ate': ate, 
         'fornecedor': fornecedor, 
         'filtro_pago': filtro_pago,
-        'ordenacao': ordenacao # Adicionado aqui!
+        'ordenacao': ordenacao,      # Adicionado aqui!
+        'limite_faturas': limite_faturas
     })
 
 @login_required
@@ -5392,7 +5452,8 @@ def toggle_acesso_externo(request):
             
     return JsonResponse({'status': 'metodo nao permitido'}, status=405)
 
-
+@login_required
+@group_required('Administracao')
 def listarProformas(request):
     proformas = P2Control.objects.all().order_by('-proforma_number')
 
@@ -5433,7 +5494,8 @@ def listarProformas(request):
         
     return render(request, 'theme/listarProforma.html', {'proformas': proformas, 'paid': paid, 'not_paid': not_paid})
 
-
+@login_required
+@group_required('Administracao')
 def editarProforma(request, pk):
     proforma = get_object_or_404(P2Control, id=pk)
 
@@ -5526,11 +5588,15 @@ def upload_p2control_file_ajax(request, pk):
             'proof_of_payment_1',
             'proof_of_payment_2',
             'proforma_invoice',
-            'proforma'
+            'proforma',
+            'proforma_file',
         }
 
         field_name = request.POST.get('field', '').strip()
         uploaded_file = request.FILES.get('file')
+
+        if field_name == 'proforma_file':
+            field_name = 'proforma'
 
         if field_name not in allowed_fields:
             return JsonResponse({'status': 'error', 'message': f'Campo "{field_name}" é inválido.'}, status=400)
@@ -5548,11 +5614,11 @@ def upload_p2control_file_ajax(request, pk):
 
         # Atualizar datas de pagamento se aplicável
         if field_name == 'proof_of_payment_1':
-            proforma.paydate_1 = date.today()
+            proforma.paydate_1 = lerDataDeFicheiros(request, uploaded_file) or datetime.date.today()
         elif field_name == 'proof_of_payment_2':
-            proforma.paydate_2 = date.today()
+            proforma.paydate_2 = lerDataDeFicheiros(request, uploaded_file) or datetime.date.today()
         elif field_name == 'proforma':
-            proforma.proforma_date = date.today()
+            proforma.proforma_date = lerDataDeFicheiros(request, uploaded_file) or datetime.date.today()
 
         # Guardar sem update_fields para garantir a gravação do ficheiro no armazenamento
         proforma.save()
@@ -5609,5 +5675,77 @@ def adicionarInvoice(request):
             messages.error(request, f"Erro ao criar a invoice: {str(e)}")
 
     return render(request, 'theme/add_invoice.html', {'proformas_list': proformas_list})
+
+
+MESES_PT_DICT = {
+    'janeiro': 1, 'fevereiro': 2, 'março': 3, 'marco': 3, 'abril': 4,
+    'maio': 5, 'junho': 6, 'julho': 7, 'agosto': 8, 'setembro': 9,
+    'outubro': 10, 'novembro': 11, 'dezembro': 12
+}
+
+MESES_EN_DICT = {
+    'january': 1, 'february': 2, 'march': 3, 'april': 4,
+    'may': 5, 'june': 6, 'july': 7, 'august': 8,
+    'september': 9, 'october': 10, 'november': 11, 'december': 12
+}
+
+DIAS_SEMANA = r'segunda-feira|terça-feira|quarta-feira|quinta-feira|sexta-feira|sábado|sabado|domingo'
+
+# 2. REGEX COMPILADOS COM GRUPOS NOMEADOS (?P<nome>...)
+PADRAO_PT = re.compile(
+    rf'(?:(?:{DIAS_SEMANA}),\s+)?(?P<dia>\d{{1,2}})\s+de\s+(?P<mes>{"|".join(MESES_PT_DICT.keys())})\s+de\s+(?P<ano>\d{{4}})',
+    re.IGNORECASE
+)
+
+PADRAO_EN = re.compile(
+    rf'\b(?P<mes>{"|".join(MESES_EN_DICT.keys())})\s+(?P<dia>\d{{1,2}}),\s+(?P<ano>\d{{4}})\b',
+    re.IGNORECASE
+)
+
+
+def lerDataDeFicheiros(request, ficheiro):
+    if not ficheiro:
+        return timezone.now().date()
+
+    # 1. Garante que começa a ler do início
+    if hasattr(ficheiro, 'seek'):
+        ficheiro.seek(0)
+
+    try:
+        leitor = PdfReader(ficheiro)
+        data_final = None
+
+        for index, pagina in enumerate(leitor.pages):
+            texto = pagina.extract_text()
+            if not texto:
+                continue
+
+            match_pt = PADRAO_PT.search(texto)
+            if match_pt:
+                dados = match_pt.groupdict()
+                data_final = datetime.date(int(dados['ano']), MESES_PT_DICT[dados['mes'].lower()], int(dados['dia']))
+                break
+
+            match_en = PADRAO_EN.search(texto)
+            if match_en:
+                dados = match_en.groupdict()
+                data_final = datetime.date(int(dados['ano']), MESES_EN_DICT[dados['mes'].lower()], int(dados['dia']))
+                break
+
+    except Exception as e:
+        print(f"Erro ao ler PDF: {e}")
+        data_final = None
+
+    finally:
+        # 2. OBRIGATÓRIO: Repõe o ponteiro no início para o proforma.save() gravar o PDF completo!
+        if hasattr(ficheiro, 'seek'):
+            ficheiro.seek(0)
+
+    # O teu fallback:
+    if data_final:
+        return data_final
+    else:
+        return timezone.now().date()
+
 # adicionar outro charts mas agora para producao semanal e compare com a semana anterior
 # link: https://flowbite.com/docs/plugins/charts/#column-chart || https://apexcharts.com/javascript-chart-demos/column-charts/stacked/

@@ -170,9 +170,11 @@
                             <td class="px-4 py-3 text-gray-500">{{ qr.production_start|date:'d/m/y' }}</td>
                             <td class="px-4 py-3 text-gray-500">{{ qr.envio|date:'d/m/y' }}</td>
                             <td class="px-4 py-3">
-                              {% with local=qr.where_boxes.last %}
+                              {% with local=qr.latest_location %}
                                 {% if local %}
-                                  <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {% if local.get_where_display == 'Fechado' %} text-white bg-red-400 border-red-400 {% endif %} bg-blue-100 text-blue-800 border border-blue-200">{{ local.get_where_display }}</span>
+                                  <span class="px-2 py-0.5 rounded text-xs whitespace-nowrap {% if local.get_where_display == 'Fechado' %} text-white bg-red-400 border-red-400 {% endif %} bg-blue-100 text-blue-800 border border-blue-200">
+                                    {{ local.get_where_display }}
+                                  </span>
                                 {% else %}
                                   <span class="text-gray-400 italic">--</span>
                                 {% endif %}
@@ -388,6 +390,32 @@
             {% endfor %}
           </tbody>
         </table>
+          <!-- Controles de Paginação Servidor (Django) -->
+        <div class="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200">
+          <span class="text-sm text-gray-600">
+            A mostrar página <span class="font-bold">{{ page_obj.number }}</span> de <span class="font-bold">{{ page_obj.paginator.num_pages }}</span> (Total: {{ page_obj.paginator.count }} pedidos)
+          </span>
+
+          <div class="inline-flex space-x-2">
+            {% if page_obj.has_previous %}
+              <a href="?page={{ page_obj.previous_page_number }}&estado={{ estado_atual }}{% if search_query %}&q={{ search_query }}{% endif %}" 
+                class="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                Anterior
+              </a>
+            {% else %}
+              <span class="px-3 py-1.5 text-sm bg-gray-50 text-gray-400 font-medium rounded-lg cursor-not-allowed">Anterior</span>
+            {% endif %}
+
+            {% if page_obj.has_next %}
+              <a href="?page={{ page_obj.next_page_number }}&estado={{ estado_atual }}{% if search_query %}&q={{ search_query }}{% endif %}" 
+                class="px-3 py-1.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors">
+                Próximo
+              </a>
+            {% else %}
+              <span class="px-3 py-1.5 text-sm bg-gray-50 text-gray-400 font-medium rounded-lg cursor-not-allowed">Próximo</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
     </div>
   </div>

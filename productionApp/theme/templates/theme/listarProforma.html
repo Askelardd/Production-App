@@ -67,7 +67,7 @@
               <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
                   id="dropzone-prof-{{ proforma.id }}"
                   data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}"
-                  data-field="proforma_file"
+                  data-field="proforma"
                   ondragover="handleDragOver(event, '{{ proforma.id }}', 'prof')"
                   ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'prof')"
                   ondrop="handleDrop(event, '{{ proforma.id }}', 'prof')">
@@ -419,6 +419,8 @@
 
         const cell = document.getElementById(`dropzone-${tipo}-${proformaId}`);
         const listDiv = document.getElementById(`list-${tipo}-${proformaId}`);
+        if (!cell || !listDiv) return;
+
         const uploadUrl = cell.dataset.uploadUrl;
         const fieldName = cell.dataset.field;
 
@@ -437,26 +439,27 @@
             body: formData
         })
         .then(async response => {
-            // Verifica se a resposta do servidor é JSON
             const contentType = response.headers.get('content-type');
             const isJson = contentType && contentType.includes('application/json');
             
+            // Se a resposta não for JSON (ex: erro HTML do servidor), data será null
             const data = isJson ? await response.json() : null;
 
             if (!response.ok) {
-                // Se devolveu erro HTTP (ex: 500, 404, 403)
-                const errorMsg = data?.message || `Erro no servidor (Código ${response.status})`;
+                // Acesso seguro usando optional chaining (data?.message ou data?.error)
+                const errorMsg = data?.message || data?.error || `Erro no servidor (Código ${response.status})`;
                 throw new Error(errorMsg);
             }
 
             if (!data || data.status !== 'success') {
-                throw new Error(data.error?.message || `Erro desconhecido no upload ${response.status}.`);
-                console.error('Erro no upload:', data);
+                const errorMsg = data?.message || data?.error || 'Erro ao carregar o ficheiro.';
+                throw new Error(errorMsg);
             }
 
             return data;
         })
         .then(data => {
+            // Atualizar células de datas na tabela se existirem
             if (fieldName === 'proof_of_payment_1') {
                 const paydateCell = document.getElementById(`paydate-1-${proformaId}`);
                 if (paydateCell) paydateCell.textContent = data.paydate_1 || '';
@@ -467,13 +470,8 @@
                 if (paydateCell) paydateCell.textContent = data.paydate_2 || '';
             }
 
-            if (fieldName === 'proforma') {
-                const paydateCell = document.getElementById(`proforma_date-${proformaId}`);
-                if (paydateCell) paydateCell.textContent = data.proforma_date || '';
-            }
-
             const fileUrl = data.file_url || ('/media/' + data.file_name);
-            const fileNameCleaned = data.file_name.replace('p2_control_files/', '');
+            const fileNameCleaned = (data.file_name || '').replace('p2_control_files/', '');
 
             listDiv.innerHTML = `
                 <div class="flex items-center group">
@@ -495,7 +493,9 @@
             listDiv.innerHTML = `
                 <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('${proformaId}', '${tipo}')">${placeholderText}</span>
             `;
-            alert(error.message);
+            
+            // Exibe a mensagem de erro tratada no alert
+            alert(error?.message || 'Ocorreu um erro ao carregar o ficheiro.');
         });
     }
   </script>
