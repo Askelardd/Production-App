@@ -5,12 +5,11 @@
 {% block content %}
 <h1 class="text-3xl font-bold text-black mb-8">Invoices</h1>
 
-
 <div class="mb-4 flex justify-between items-center">
   <input type="text" id="searchInput" placeholder="Search all fields..."
     class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
 
-    <div class="flex space-x-2">
+  <div class="flex space-x-2">
     <a href="{% url 'criarFatura' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">
       Add Invoice
     </a>
@@ -31,6 +30,15 @@
         </div>
 
         <div>
+            <label class="block text-xs text-gray-500">Payment Status</label>
+            <select name="pago" class="border p-2 rounded bg-white">
+                <option value="">All Statuses</option>
+                <option value="sim" {% if filtro_pago == 'sim' %}selected{% endif %}>Paid</option>
+                <option value="nao" {% if filtro_pago == 'nao' %}selected{% endif %}>Unpaid</option>
+            </select>
+        </div>
+
+        <div>
             <label class="block text-xs text-gray-500">Sort By</label>
             <select name="ordenacao" class="border p-2 rounded bg-white">
                 <option value="recentes" {% if ordenacao == 'recentes' %}selected{% endif %}>Most Recent</option>
@@ -42,10 +50,10 @@
         <div>
             <label for="limite_faturas" class="block text-xs text-gray-500">Limit</label>
             <select name="limite_faturas" onchange="this.form.submit()" class="border p-2 rounded bg-white">
-                <option value="10" {% if limite_faturas == 10 or limite_faturas == '10' %}selected{% endif %}>10</option>
-                <option value="20" {% if limite_faturas == 20 or limite_faturas == '20' %}selected{% endif %}>20</option>
-                <option value="50" {% if limite_faturas == 50 or limite_faturas == '50' %}selected{% endif %}>50</option>
-                <option value="todos" {% if limite_faturas == "todos" or limite_faturas == 'todos' %}selected{% endif %}>Todas</option>
+                <option value="10" {% if limite_faturas == '10' %}selected{% endif %}>10</option>
+                <option value="20" {% if limite_faturas == '20' %}selected{% endif %}>20</option>
+                <option value="50" {% if limite_faturas == '50' %}selected{% endif %}>50</option>
+                <option value="todos" {% if limite_faturas == 'todos' %}selected{% endif %}>Todas</option>
             </select>
         </div>
         
@@ -59,6 +67,7 @@
         </div>
     </div>
 </form>
+
 <div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg">
     <table id="faturasTable" class="min-w-full bg-white border-collapse">
         <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm">
@@ -209,7 +218,8 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="11" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
+        <!-- Corrigido para colspan="12" -->
+        <td colspan="12" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -217,29 +227,25 @@
 </div>
 
 {% endblock %}
+
 {% block extra_js %}
 
 <style>
-    /* Define a animação de piscar o fundo */
     @keyframes blink-alert {
-        0% { background-color: #fee2e2; } /* Vermelho claro (Tailwind red-100) */
-        50% { background-color: #ffffff; } /* Branco */
+        0% { background-color: #fee2e2; }
+        50% { background-color: #ffffff; }
         100% { background-color: #fee2e2; }
     }
 
-    /* A classe que vamos usar */
     .piscar-urgente {
-        animation: blink-alert 2s infinite; /* Pisca a cada 2 segundos */
-        border-left: 4px solid #ef4444 !important; /* Barra lateral vermelha fixa */
+        animation: blink-alert 2s infinite;
+        border-left: 4px solid #ef4444 !important;
     }
 </style>
 
 <script>
-
     function lidarComCliqueFatura(elementoClicado) {
         const url = elementoClicado.getAttribute('data-url');
-        
-        // Opcional: Adicionar uma opacidade temporária para dar feedback de "a carregar"
         elementoClicado.style.opacity = '0.5';
 
         fetch(url, {
@@ -251,20 +257,16 @@
         })
         .then(response => response.json())
         .then(data => {
-            // Restaurar a opacidade original
             elementoClicado.style.opacity = '1';
 
             if (data.status === 'success') {
-                // Se o novo estado for ENVIADO (True)
                 if (data.enviado) {
                     elementoClicado.innerHTML = `
                         <span class="text-green-600 font-semibold">Yes</span>
                         <br>
                         <span class="text-gray-500 text-xs">(${data.data_envio})</span>
                     `;
-                } 
-                // Se o novo estado for NÃO ENVIADO (False)
-                else {
+                } else {
                     elementoClicado.innerHTML = `
                         <span class="text-red-600 font-semibold">No</span>
                     `;
@@ -282,7 +284,6 @@
     function handleDragOver(e, id, tipo = 'geral') {
         e.preventDefault();
         e.stopPropagation();
-        // Constrói o ID do overlay baseado no tipo
         const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
         const overlay = document.getElementById(overlayId);
         if(overlay) overlay.classList.remove('hidden');
@@ -310,11 +311,9 @@
     }
 
     function uploadFiles(files, faturaId, tipo) {
-        // Identifica a lista correta para adicionar o HTML depois
         const listId = tipo === 'geral' ? `list-${faturaId}` : `list-${tipo}-${faturaId}`;
         const listDiv = document.getElementById(listId);
         
-        // Remove msg vazio
         const emptyMsg = listDiv.querySelector('.empty-msg');
         if(emptyMsg) emptyMsg.remove();
 
@@ -322,7 +321,7 @@
             const formData = new FormData();
             formData.append('ficheiro', file);
             formData.append('fatura_id', faturaId);
-            formData.append('tipo', tipo); // Envia o tipo para o Django
+            formData.append('tipo', tipo);
 
             fetch("{% url 'api_upload_fatura' %}", {
                 method: 'POST',
@@ -337,23 +336,18 @@
                         const checkboxPago = document.getElementById(`pago_${faturaId}`);
                         if (checkboxPago) {
                             checkboxPago.checked = true;
-                            
-                            // Opcional: Efeito visual para o utilizador perceber que mudou
                             checkboxPago.parentElement.classList.add('text-green-600', 'font-bold');
                         }
                     }
 
                   if (tipo === 'estrangeiro') {
                     const cell = document.getElementById(`dropzone-estrangeiro-${faturaId}`);
-                    // Remove o fundo vermelho e a borda de aviso
                     if (cell) {
                         cell.classList.remove('bg-red-100', 'border-l-4', 'border-l-red-500');
-                        // Opcional: Adiciona um fundo verde subtil temporário para dar feedback positivo
                         cell.classList.add('bg-green-50');
                         setTimeout(() => cell.classList.remove('bg-green-50'), 2000);
                     }
                 }
-                    // Ícone diferente dependendo do tipo
                     let iconColor = 'text-blue-500';
                     if (tipo === 'pago') iconColor = 'text-green-500';
                     if (tipo === 'estrangeiro') iconColor = 'text-yellow-500';

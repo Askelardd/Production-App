@@ -7,6 +7,7 @@ import os
 from productionApp.templatetags.extras import *
 from collections import Counter
 from datetime import date, timedelta
+from decimal import Decimal
 from django.db.models import Q, OuterRef, Exists, Prefetch, Max
 from django.urls import reverse
 import pandas as pd  
@@ -838,12 +839,13 @@ def trocarCaixaFieiras(request):
         query_dies = dieInstance.objects.filter(
             customer__toma_order_nr=toma_order_nr,
             customer__toma_order_year=toma_order_year
-        ).select_related('customer')
+        ).select_related('customer').order_by('diam_requerido')
 
 
         listarDies = list(query_dies)
 
-        listarDies.sort(key=lambda x: int(x.customer.box_nr) if x.customer.box_nr.isdigit() else 0)
+        # Ordenar por diam_requerido (Decimal), fallback para 0 quando for None
+        listarDies.sort(key=lambda x: x.diam_requerido if x.diam_requerido is not None else Decimal('0'))
 
     return render(request, 'theme/trocarCaixa.html', {
         'listarDies': listarDies,
@@ -935,6 +937,87 @@ def edit_nrbox_inline(request, die_id):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': f"Erro ao atualizar: {str(e)}"}, status=500)
+
+
+@login_required
+@group_required('Administracao', 'Q-Office')
+@require_POST
+def bulk_edit_nrbox(request):
+    """Atualiza em bulk o box_nr de múltiplas fieiras selecionadas.
+    Retorna JSON com listas `successes` e `errors` indicando quais foram processadas.
+    """
+    ids = request.POST.getlist('ids[]') or request.POST.getlist('ids')
+    box_nr = request.POST.get('box_nr', '').strip()
+
+    if not ids:
+        return JsonResponse({'success': False, 'errors': [{'message': 'Nenhuma fieira selecionada.'}]}, status=400)
+    if not box_nr:
+        return JsonResponse({'success': False, 'errors': [{'message': 'box_nr obrigatório.'}]}, status=400)
+
+    successes = []
+    errors = []
+
+    for sid in ids:
+        try:
+            die = dieInstance.objects.select_related('customer').get(id=sid)
+        except dieInstance.DoesNotExist:
+            errors.append({'id': sid, 'message': 'Fieira não encontrada.'})
+            continue
+
+        old_customer_qr = die.customer
+        old_box_nr = old_customer_qr.box_nr
+
+        try:
+            with transaction.atomic():
+                if old_box_nr != box_nr:
+                    existing_qr = QRData.objects.filter(
+                        toma_order_nr=old_customer_qr.toma_order_nr,
+                        toma_order_year=old_customer_qr.toma_order_year,
+                        box_nr=box_nr
+                    ).first()
+
+                    target_toma_order_full = f"{old_customer_qr.toma_order_nr}-{old_customer_qr.toma_order_year}-{box_nr}"
+                    if not existing_qr:
+                        existing_qr = QRData.objects.filter(toma_order_full=target_toma_order_full).first()
+
+                    if existing_qr:
+                        die.customer = existing_qr
+                        existing_qr.qt += 1
+                        existing_qr.save()
+                    else:
+                        new_qr = QRData.objects.create(
+                            customer=old_customer_qr.customer,
+                            diameters=old_customer_qr.diameters,
+                            customer_order_nr=old_customer_qr.customer_order_nr,
+                            toma_order_nr=old_customer_qr.toma_order_nr,
+                            toma_order_year=old_customer_qr.toma_order_year,
+                            qt=1,
+                            box_nr=box_nr,
+                            toma_order_full=target_toma_order_full,
+                            created_at=timezone.now()
+                        )
+                        die.customer = new_qr
+
+                    old_customer_qr.qt -= 1
+                    old_customer_qr.save()
+
+                die.save()
+
+                if old_box_nr != box_nr:
+                    if not old_customer_qr.die_instances.exists():
+                        old_customer_qr.delete()
+
+            globalLogs.objects.create(
+                user=request.user,
+                action=f"{request.user.username} moveu a fieira {die.serial_number} da caixa {old_box_nr} para a caixa {box_nr} (bulk).",
+            )
+
+            successes.append({'id': sid, 'new_box_nr': box_nr})
+
+        except Exception as e:
+            errors.append({'id': sid, 'message': str(e)})
+
+    return JsonResponse({'successes': successes, 'errors': errors})
 
 
 @login_required
@@ -4014,13 +4097,19 @@ def charts(request):
 def listarFaturas(request):
     ordenacao = request.GET.get('ordenacao', 'recentes')
 
-    limite_faturas = request.GET.get('limite_faturas', '10')  
+    # 1. Trata o limite de faturas
+    limite_param = request.GET.get('limite_faturas', '10')
 
-    try:
-        limite_faturas = int(limite_faturas)
-    except ValueError:
-        limite_faturas = 10  # Valor padrão se a conversão falhar
+    if limite_param == 'todos':
+        limite_faturas = None  # Sem limite no Django QuerySet
+    else:
+        try:
+            limite_faturas = int(limite_param)
+        except ValueError:
+            limite_param = '10'
+            limite_faturas = 10
 
+    # 2. Ordenação inicial
     if ordenacao == 'nao_pagos':
         invoice_qs = faturas.objects.all().order_by('pago', '-created_at')
     elif ordenacao == 'pagos':
@@ -4028,8 +4117,9 @@ def listarFaturas(request):
     else:
         invoice_qs = faturas.objects.all().order_by('-created_at')
 
-    fornecedor = Fornecedor.objects.all().order_by('name') 
+    fornecedor = Fornecedor.objects.all().order_by('name')
 
+    # 3. Filtros de data
     de = request.GET.get('de') or ''
     ate = request.GET.get('ate') or ''
 
@@ -4037,7 +4127,9 @@ def listarFaturas(request):
     ate_date = parse_date(ate) if ate else None
 
     if de_date and ate_date and de_date > ate_date:
-        messages.error(request, "Eu sou só um filtro não posso viajar no tempo!")
+        messages.error(
+            request, 'Eu sou só um filtro não posso viajar no tempo!'
+        )
         return redirect('listarFaturas')
 
     if de_date:
@@ -4045,31 +4137,30 @@ def listarFaturas(request):
     if ate_date:
         invoice_qs = invoice_qs.filter(data_emissao__lte=ate_date)
 
+    # 4. Filtro de pagamento
     filtro_pago = request.GET.get('pago')
     if filtro_pago == 'sim':
         invoice_qs = invoice_qs.filter(pago=True)
     elif filtro_pago == 'nao':
         invoice_qs = invoice_qs.filter(pago=False)
 
-    if limite_faturas == 'todos':
-        limite_faturas = limite_faturas
+    # 5. Aplica o limite no final (apenas se não for 'todos')
+    if limite_faturas is not None:
+        invoice_qs = invoice_qs[:limite_faturas]
 
-    try:
-        if limite_faturas:
-            invoice_qs = invoice_qs[:limite_faturas]
-    except Exception as e:
-        messages.error(request, f"Erro ao aplicar limite de faturas: {e}")
-        invoice_qs = invoice_qs[:20]  
-
-    return render(request, 'theme/listarFaturas.html', {
-        'invoice_qs': invoice_qs,
-        'de': de, 
-        'ate': ate, 
-        'fornecedor': fornecedor, 
-        'filtro_pago': filtro_pago,
-        'ordenacao': ordenacao,      # Adicionado aqui!
-        'limite_faturas': limite_faturas
-    })
+    return render(
+        request,
+        'theme/listarFaturas.html',
+        {
+            'invoice_qs': invoice_qs,
+            'de': de,
+            'ate': ate,
+            'fornecedor': fornecedor,
+            'filtro_pago': filtro_pago,
+            'ordenacao': ordenacao,
+            'limite_faturas': limite_param,  # Passa a string '10', '20', '50' ou 'todos' para o template
+        },
+    )
 
 @login_required
 @admin_required
@@ -4167,8 +4258,7 @@ def criarFatura(request):
 
     return render(request, 'theme/criarFatura.html', {'fornecedores': fornecedores})
 
-@login_required
-@admin_required
+
 def corrigir_nome_ficheiro(ficheiro):
     """
     Tenta corrigir problemas de codificação no nome do ficheiro (ex: acentos 'í' que vêm como 0xed).
@@ -4214,17 +4304,17 @@ def editarFatura(request, fatura_id):
             
             # 1. Ficheiros Gerais
             for ficheiro in request.FILES.getlist('ficheiros'):
-                ficheiro = corrigir_nome_ficheiro(ficheiro) # <--- Limpa o nome
+                ficheiro = corrigir_nome_ficheiro(ficheiro) 
                 FaturaFile.objects.create(fatura=fatura, file=ficheiro)
 
             # 2. Ficheiros Estrangeiros
             for ficheiro_estrangeiro in request.FILES.getlist('ficheiros_estrangeiro'):
-                ficheiro_estrangeiro = corrigir_nome_ficheiro(ficheiro_estrangeiro) # <--- Limpa o nome
+                ficheiro_estrangeiro = corrigir_nome_ficheiro(ficheiro_estrangeiro)
                 FaturaEstrangeitoFile.objects.create(fatura=fatura, file=ficheiro_estrangeiro)
 
             # 3. Ficheiros de Pagamento
             for fatura_pagamento in novos_ficheiros_pago:
-                fatura_pagamento = corrigir_nome_ficheiro(fatura_pagamento) # <--- Limpa o nome
+                fatura_pagamento = corrigir_nome_ficheiro(fatura_pagamento) 
                 FaturaPagoFile.objects.create(fatura=fatura, file=fatura_pagamento)
 
             messages.success(request, "Fatura atualizada com sucesso!")
@@ -5346,7 +5436,7 @@ def ficheiros_caixa(request, qr_id):
             qr.box_files.add(novo_ficheiro)
             
         messages.success(request, "Ficheiros carregados com sucesso!")
-        return redirect('ficheiros_caixa', qr_id=qr.id, user_group=user_group)
+        return redirect('ficheiros_caixa', qr_id=qr.id)
 
     # Se não for POST (ou seja, se for apenas para ver a página - GET)
     ficheiros = BoxFiles.objects.filter(qrdata=qr).order_by('-uploaded_at')

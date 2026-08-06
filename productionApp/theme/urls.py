@@ -54,6 +54,7 @@ urlpatterns = [
     path('die/<hashid:die_id>/delete/', views.remove_die, name='remove_die'),
     path('trocarCaixa', views.trocarCaixaFieiras, name='trocarCaixa'),
     path('editarCaixa/<hashid:die_id>/', views.edit_nrbox_inline, name='edit_nrbox_inline'),
+    path('trocarCaixa/bulk-edit/', views.bulk_edit_nrbox, name='bulk_edit_nrbox'),
 
     # Orders
     path('orders/', views.orders, name='orders'),
