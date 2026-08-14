@@ -6,8 +6,8 @@
 <h1 class="text-3xl font-bold text-black mb-8">Invoices</h1>
 
 <div class="mb-4 flex justify-between items-center">
-  <input type="text" id="searchInput" placeholder="Search all fields..."
-    class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+    <input type="text" id="searchInput" name="q" form="faturasFilterForm" value="{{ q }}" placeholder="Search all fields..."
+        class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
 
   <div class="flex space-x-2">
     <a href="{% url 'criarFatura' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">
@@ -16,7 +16,7 @@
   </div>
 </div>
 
-<form method="GET" action="{% url 'listarFaturas' %}" class="mb-6">
+<form method="GET" action="{% url 'listarFaturas' %}" id="faturasFilterForm" class="mb-6">
     <div class="flex flex-wrap gap-4 items-end">
         <div class="flex gap-3">
             <div>
@@ -50,9 +50,9 @@
         <div>
             <label for="limite_faturas" class="block text-xs text-gray-500">Limit</label>
             <select name="limite_faturas" onchange="this.form.submit()" class="border p-2 rounded bg-white">
-                <option value="10" {% if limite_faturas == '10' %}selected{% endif %}>10</option>
-                <option value="20" {% if limite_faturas == '20' %}selected{% endif %}>20</option>
                 <option value="50" {% if limite_faturas == '50' %}selected{% endif %}>50</option>
+                <option value="70" {% if limite_faturas == '70' %}selected{% endif %}>70</option>
+                <option value="100" {% if limite_faturas == '100' %}selected{% endif %}>100</option>
                 <option value="todos" {% if limite_faturas == 'todos' %}selected{% endif %}>Todas</option>
             </select>
         </div>
@@ -372,6 +372,27 @@
     document.addEventListener('DOMContentLoaded', function () {
         const searchInput = document.getElementById('searchInput');
         const table = document.getElementById('faturasTable').getElementsByTagName('tbody')[0];
+        const filterForm = document.getElementById('faturasFilterForm');
+        const limitSelect = filterForm ? filterForm.querySelector('select[name="limite_faturas"]') : null;
+        let searchTimer = null;
+
+        if (searchInput && searchInput.value.trim() && limitSelect) {
+            limitSelect.value = 'todos';
+        }
+
+        if (searchInput && filterForm && limitSelect) {
+            searchInput.addEventListener('input', function () {
+                clearTimeout(searchTimer);
+
+                searchTimer = setTimeout(function () {
+                    if (searchInput.value.trim()) {
+                        limitSelect.value = 'todos';
+                    }
+
+                    filterForm.submit();
+                }, 350);
+            });
+        }
 
         searchInput.addEventListener('keyup', function () {
             const filter = searchInput.value.toLowerCase();

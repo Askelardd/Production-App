@@ -8,7 +8,7 @@ from productionApp.templatetags.extras import *
 from collections import Counter
 from datetime import date, timedelta
 from decimal import Decimal
-from django.db.models import Q, OuterRef, Exists, Prefetch, Max
+from django.db.models import Q, OuterRef, Exists, Prefetch, Max, Sum
 from django.urls import reverse
 import pandas as pd  
 from django.conf import settings
@@ -132,7 +132,7 @@ def accessMenu(request):
 
 @login_required
 def menuP3(request):
-    nomes_permitidos = ['Administrador','Aniceta']
+    nomes_permitidos = ['Administrador','Aniceta','CristinaLinhares']
     
     if request.user.username not in nomes_permitidos:
         messages.error(request, "Acesso negado. Contacte o administrador.")
@@ -579,6 +579,139 @@ def edit_orders_coming(request, oc_id):
         'oc': orders_coming
     })
 
+@csrf_exempt
+@login_required
+def enviarEmailPedidoGrupo(request, order_year, order_nr):
+    """Envia email apenas com os pedidos que têm checkbox=True no grupo TOMA especificado."""
+    if request.method == 'POST':
+        emails = request.POST.getlist('emails')
+        observacao = request.POST.get('observacoes', '').strip()
+
+        if not emails:
+            messages.error(request, "O campo Emails é obrigatório.")
+            return redirect('listarPedidosDiametro')
+
+        emails = [email.strip() for email in emails if email.strip()]
+
+        # 1. Filtra APENAS os pedidos marcados (checkbox=True) deste Grupo TOMA específico
+        pedidos_marcados = PedidosDiametro.objects.filter(
+            qr_code__toma_order_year=order_year,
+            qr_code__toma_order_nr=order_nr,
+            checkbox=True
+        ).select_related('qr_code')
+
+        if not pedidos_marcados.exists():
+            messages.error(request, f"Nenhum pedido marcado com checkbox ativa no Grupo TOMA {order_year}/{order_nr}.")
+            return redirect('listarPedidosDiametro')
+
+        primeiro_qr = pedidos_marcados.first().qr_code
+        toma_order_full = primeiro_qr.toma_order_full if primeiro_qr else f"{order_year}/{order_nr}"
+
+        # 2. Renderizar o email
+        contexto = {
+            'pedidos': pedidos_marcados,
+            'observacao': observacao,
+            'toma_order_full': toma_order_full,
+            'cliente': primeiro_qr.customer if primeiro_qr else ''
+        }
+
+        html_content = render_to_string('emails/EnvioAdminReqDiamtemplate_email.html', contexto)
+        text_content = strip_tags(html_content)
+
+        try:
+            send_mail(
+                subject=f"Pedidos de Diâmetro Marcados - Toma {toma_order_full}",
+                message=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=emails,
+                html_message=html_content,
+            )
+            messages.success(request, f'Email enviado com sucesso para: {", ".join(emails)}')
+        except Exception as e:
+            messages.error(request, f"Erro ao enviar email: {str(e)}")
+
+        return redirect('listarPedidosDiametro')
+
+
+@login_required
+def export_pedidos_diam(request, order_year, order_nr):
+    """Gera Excel apenas com os pedidos que têm checkbox=True no grupo TOMA especificado."""
+    # 1. Filtrar APENAS os pedidos marcados deste Grupo TOMA
+    pedidos_marcados = PedidosDiametro.objects.filter(
+        qr_code__toma_order_year=order_year,
+        qr_code__toma_order_nr=order_nr,
+        checkbox=True
+    ).select_related('qr_code')
+
+    if not pedidos_marcados.exists():
+        messages.error(request, f"Nenhum pedido marcado com checkbox ativa no Grupo TOMA {order_year}/{order_nr} para exportar.")
+        return redirect('listarPedidosDiametro')
+
+    primeiro_qr = pedidos_marcados.first().qr_code
+
+    # 2. Carregar o Template Excel
+    template_path = safe_join(settings.BASE_DIR, 'theme', 'templates', 'template_pedidoDiametro.xlsx')
+    wb = openpyxl.load_workbook(template_path)
+    ws = wb.active
+
+    # Cabeçalho da Encomenda
+    ws['A3'] = order_nr or ''
+    ws['B3'] = primeiro_qr.customer if primeiro_qr else ''
+    ws['C3'] = primeiro_qr.customer_order_nr if primeiro_qr else ''
+
+    # 3. Preencher as linhas com os pedidos marcados
+    row_num = 5
+    for pedido in pedidos_marcados:
+        qr = pedido.qr_code
+        box_nr = qr.box_nr if qr else '-'
+
+        # Buscar dieInstances correspondentes se existirem
+        die_instances = None
+        if qr and pedido.serie_dies:
+            numeros_serie = dieInstance.objects.filter(customer=qr).values_list('serial_number', flat=True)
+            serie_dies_pedido = [num.strip() for num in pedido.serie_dies.split(',')]
+            numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
+            die_instances = dieInstance.objects.filter(customer=qr, serial_number__in=numeros_iguais)
+
+        if die_instances and die_instances.exists():
+            for die in die_instances:
+                ws.cell(row=row_num, column=1, value=1)
+                ws.cell(row=row_num, column=2, value=die.serial_number or '')
+                ws.cell(row=row_num, column=3, value=float(die.diameter_text) if die.diameter_text else 0)
+                ws.cell(row=row_num, column=4, value=float(pedido.diametro) if pedido.diametro else 0)
+                ws.cell(row=row_num, column=5, value="Sim" if pedido.trabalhado else "Não")
+                ws.cell(row=row_num, column=6, value=float(die.diam_requerido) if die.diam_requerido else 0)
+                ws.cell(row=row_num, column=7, value=pedido.observations or '')
+                ws.cell(row=row_num, column=8, value=float(pedido.diametro_min or 0))
+                ws.cell(row=row_num, column=9, value='')
+                ws.cell(row=row_num, column=10, value=float(pedido.novo_diametro) if pedido.novo_diametro else 0)
+                ws.cell(row=row_num, column=11, value=str(pedido.pedido_por or ''))
+                ws.cell(row=row_num, column=12, value=pedido.created_at.strftime("%d/%m/%Y") if pedido.created_at else date.today().strftime("%d/%m/%Y"))
+                ws.cell(row=row_num, column=13, value=box_nr)
+                row_num += 1
+        else:
+            ws.cell(row=row_num, column=1, value=1)
+            ws.cell(row=row_num, column=2, value=pedido.serie_dies or '')
+            ws.cell(row=row_num, column=3, value=float(pedido.diametro) if pedido.diametro else 0)
+            ws.cell(row=row_num, column=4, value=float(pedido.diametro) if pedido.diametro else 0)
+            ws.cell(row=row_num, column=5, value="Sim" if pedido.trabalhado else "Não")
+            ws.cell(row=row_num, column=6, value=0)
+            ws.cell(row=row_num, column=7, value=pedido.observations or '')
+            ws.cell(row=row_num, column=8, value=float(pedido.diametro_min or 0))
+            ws.cell(row=row_num, column=9, value='')
+            ws.cell(row=row_num, column=10, value=float(pedido.novo_diametro) if pedido.novo_diametro else 0)
+            ws.cell(row=row_num, column=11, value=str(pedido.pedido_por or ''))
+            ws.cell(row=row_num, column=12, value=pedido.created_at.strftime("%d/%m/%Y") if pedido.created_at else date.today().strftime("%d/%m/%Y"))
+            ws.cell(row=row_num, column=13, value=box_nr)
+            row_num += 1
+
+    toma_full = primeiro_qr.toma_order_full if primeiro_qr else f"{order_year}_{order_nr}"
+    filename = f"Pedidos_Marcados_{toma_full}.xlsx"
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
 def exportOrderExcel(request, order_id):
     order = get_object_or_404(Order, id=order_id)
     orders_coming = order.orders_coming.all()
@@ -617,12 +750,10 @@ def exportOrderExcel(request, order_id):
     with pd.ExcelWriter(response, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='Dados', index=False)
 
-    # Se chegou aqui, a exportação foi gerada — marca como exportado
     if not order.exportado:
         order.exportado = True
         order.save(update_fields=['exportado'])
 
-    # Log (mantém o teu)
     globalLogs.objects.create(
         user=request.user,
         action=f"{request.user.username} criou um exel da ordem {order.tracking_number}.",
@@ -738,18 +869,22 @@ def toggle_partido_feito_ajax(request, pk):
         "label": "Sim" if obj.checkbox else "Não"
     })
 
+@login_required
 @require_POST
-def toggle_pedido_diametro_feito_ajax(request, pk):
-    obj = get_object_or_404(PedidosDiametro, pk=pk)
-    checked = _parse_checked(request)
-    obj.checkbox = checked
-    obj.save(update_fields=['checkbox'])
-    return JsonResponse({
-        "ok": True,
-        "id": obj.id,
-        "checked": obj.checkbox,
-        "label": "Sim" if obj.checkbox else "Não"
-    })
+def toggle_pedido_diametro_feito_ajax(request, pk): 
+    try:
+        data = json.loads(request.body)
+        is_checked = data.get('checked', False)
+
+        pedido = get_object_or_404(PedidosDiametro, pk=pk)
+
+        pedido.checkbox = is_checked
+        pedido.save()
+
+        return JsonResponse({'success': True, 'checked': pedido.checkbox})
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
 
@@ -817,20 +952,21 @@ def trocarTomaOrder(request, codigo):
 
     return JsonResponse({'success': True, 'message': "Atualizado com sucesso!"})
 
-def trocarCaixaFieiras(request):
+def trocarCaixaFieiras(request, toma_order_nr, toma_order_year):
     listarDies = None 
-    form_data = {}
+    form_data = {
+        'toma_order_nr': toma_order_nr.strip(),
+        'toma_order_year': toma_order_year.strip(),
+    }
 
     if request.method == 'POST':
-        toma_order_nr = request.POST.get('toma_order_nr', '').strip()
-        toma_order_year = request.POST.get('toma_order_year', '').strip()
+        toma_order_number = toma_order_nr.strip()
+        toma_order_yr = toma_order_year.strip()
         
-        form_data = {
-            'toma_order_nr': toma_order_nr,
-            'toma_order_year': toma_order_year
-        }
+        form_data['toma_order_nr'] = toma_order_number
+        form_data['toma_order_year'] = toma_order_yr
     
-        pedido = QRData.objects.filter(toma_order_nr=toma_order_nr, toma_order_year=toma_order_year)
+        pedido = QRData.objects.filter(toma_order_nr=toma_order_number, toma_order_year=toma_order_yr)
 
         if not pedido.exists():
             messages.error(request, "Pedido não encontrado.")
@@ -1053,7 +1189,7 @@ def listQrcodes(request):
 
         #Ordena por numero de caixa
         for group in grouped_data.values():
-            group['boxes'].sort(key=lambda x: int(x.box_nr) if x.box_nr.isdigit() else 0)
+            group['boxes'].sort(key=lambda x: int(x.box_nr) if x.box_nr else 0)
 
     # Convertemos o dicionário numa lista para o template ler facilmente
     # Ordenamos pela data de criação da primeira caixa (opcional)
@@ -2649,6 +2785,118 @@ def add_worker_to_die_work(request, work_id):
         'users': users
     })
 
+
+def export_qrcodes_excel(request, qr_id):
+    pedidoQr = get_object_or_404(QRData, id=qr_id)
+
+    # 1. Buscar todas as caixas da mesma encomenda
+    caixas_da_toma = (
+        QRData.objects.filter(
+            toma_order_nr=pedidoQr.toma_order_nr,
+            toma_order_year=pedidoQr.toma_order_year,
+        )
+        .order_by("box_nr")
+        .prefetch_related("die_instances")
+    )
+
+    # 2. Carregar o Template
+    template_path = safe_join(
+        settings.BASE_DIR, "theme", "templates", "template_dgReport.xlsx"
+    )
+    wb = openpyxl.load_workbook(template_path)
+    ws = wb.active
+
+    # Cabeçalho da Encomenda
+    ws["A3"] = pedidoQr.toma_order_year or ""
+    ws["B3"] = pedidoQr.toma_order_nr or ""
+    ws["C3"] = pedidoQr.customer or ""
+    ws["D3"] = pedidoQr.customer_order_nr or ""
+    ws["E3"] = (
+        pedidoQr.production_start.strftime("%d/%m/%Y")
+        if pedidoQr.production_start
+        else ""
+    )
+    ws["F3"] = pedidoQr.envio.strftime("%d/%m/%Y") if pedidoQr.envio else ""
+
+    # 3. Preencher as fieiras de todas as caixas
+    row_num = 5
+    for caixa in caixas_da_toma:
+        for die in caixa.die_instances.all().order_by("diameter_text"):
+            ws.cell(
+                row=row_num,
+                column=1,
+                value=float(die.diameter_text) if die.diameter_text else 0,
+            )
+            ws.cell(row=row_num, column=2, value=die.cone or "")
+            ws.cell(row=row_num, column=3, value=die.serial_number or "")
+            ws.cell(
+                row=row_num,
+                column=4,
+                value=float(die.diameter_text) if die.diameter_text else 0,
+            )
+            ws.cell(
+                row=row_num,
+                column=5,
+                value=float(die.diam_requerido) if die.diam_requerido else 0,
+            )
+            ws.cell(
+                row=row_num,
+                column=6,
+                value=float(die.diam_sugerido) if die.diam_sugerido else 0,
+            )
+            ws.cell(row=row_num, column=7, value=0)
+            ws.cell(
+                row=row_num,
+                column=8,
+                value="F" if die.fieira_final else " ",
+            )
+            ws.cell(row=row_num, column=9, value=die.job.job if die.job else "")
+            ws.cell(
+                row=row_num,
+                column=10,
+                value=die.die.get_die_type_display() if die.die else "",
+            )
+            ws.cell(
+                row=row_num,
+                column=11,
+                value=(
+                    float(die.tolerance.min)
+                    if (die.tolerance and die.tolerance.min)
+                    else 0
+                ),
+            )
+            ws.cell(
+                row=row_num,
+                column=12,
+                value=(
+                    float(die.tolerance.max)
+                    if (die.tolerance and die.tolerance.max)
+                    else 0
+                ),
+            )
+            ws.cell(
+                row=row_num,
+                column=13,
+                value=float(die.diam_min) if die.diam_min else 0,
+            )
+            ws.cell(
+                row=row_num,
+                column=14,
+                value=float(die.diam_max) if die.diam_max else 0,
+            )
+            ws.cell(row=row_num, column=15, value=die.observations or "")
+            ws.cell(row=row_num, column=16, value=caixa.box_nr or "")
+            row_num += 1
+
+    filename = f"dgReport_{pedidoQr.toma_order_full or pedidoQr.id}.xlsx"
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    wb.save(response)
+    return response
+
 def export_qrcode_excel(request, qr_id):
     qr = get_object_or_404(QRData, id=qr_id)
     dies = qr.die_instances.all()
@@ -2802,228 +3050,273 @@ def contar_dies_por_usuario(qr_id, user_id):
 
     return count
 
-@login_required
-def editar_pedido_inline(request, id):
-    pedido = get_object_or_404(PedidosDiametro, id=id)
+
+@login_required 
+@group_required('Q-Office', 'Administracao', 'Comercial') 
+def editar_pedido_inline(request, id): 
+    pedido = get_object_or_404(PedidosDiametro, id=id) 
     serial_nr = pedido.serie_dies 
+    die = dieInstance.objects.filter(serial_number=serial_nr).first() 
 
-    die = dieInstance.objects.filter(serial_number=serial_nr).first()
-    
-    print(f"Serial number da fieira associada ao pedido {pedido.id}: {serial_nr}")
-    
-    if request.method == "POST":
-        novo_diametro_valor = request.POST.get('novo_diametro')
-        diametro_min_valor = request.POST.get('diametro_min')
-        
-        # Validações
-        if not novo_diametro_valor:
-            messages.error(request, "O novo diâmetro é obrigatório.")
-            return redirect('listarPedidosDiametro') # Sugestão: redirect costuma ser melhor aqui para não perderes o contexto
-        
-        if not diametro_min_valor:
-            messages.error(request, "O diâmetro mínimo é obrigatório.")
-            return redirect('listarPedidosDiametro')
-        
-        try:
-            # 1. Atualizar e guardar o pedido
-            pedido.diametro_min = diametro_min_valor
-            pedido.novo_diametro = novo_diametro_valor
-            pedido.save()
+    if request.method == "POST": 
+        novo_diametro_raw = request.POST.get('novo_diametro') 
+        diametro_min_raw = request.POST.get('diametro_min') 
 
-            # 2. Validar se a fieira foi encontrada
-            if not die:
-                messages.error(request, "Fieira associada ao pedido não encontrada.")
-                return redirect('listarPedidosDiametro')
+        if not diametro_min_raw: 
+            messages.error(request, "O diâmetro mínimo é obrigatório.") 
+            return redirect('listarPedidosDiametro') 
 
-            # 3. Atualizar e guardar a fieira (agora já vai funcionar!)
-            die.new_diameter = novo_diametro_valor
-            die.save()
+        try: 
+            # 1. Atualizar o diâmetro mínimo no pedido
+            pedido.diametro_min = diametro_min_raw.strip() 
 
-            user = request.user
+            # 2. Verificar se existe um Novo Diâmetro real (diferente de None e de texto vazio)
+            tem_novo_diametro = novo_diametro_raw is not None and bool(novo_diametro_raw.strip())
 
-            contexto = {
-                'pedido': pedido,
-                'user': user
-            }
+            if tem_novo_diametro:
+                novo_valor_formatado = novo_diametro_raw.strip().replace(',', '.')
+                pedido.novo_diametro = novo_valor_formatado
 
-            # 2. Transforma o seu template HTML numa string renderizada
-            html_content = render_to_string('emails/RespostaPedDiam_email.html', contexto)
-            
-            # 3. Cria uma versão sem formatação (texto puro) como fallback
-            text_content = strip_tags(html_content)
+                # Atualiza a fieira APENAS se houver um valor decimal válido
+                if die:
+                    die.new_diameter = novo_valor_formatado
+                    die.save()
 
-            try:
-                send_mail(
-                    subject=f"Pedido de Diâmetro - Toma {pedido.qr_code.toma_order_full}",
-                    message=text_content, # Versão em texto
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=['andrepimentel@toma.tools'],
-                    html_message=html_content, 
-                )
-                messages.success(request, 'Email enviado com sucesso para ambos os qc')
-            except Exception as e:
-                messages.error(request, f"Erro ao enviar email: {str(e)}")
+            # Guarda as alterações do pedido
+            pedido.save() 
 
-            globalLogs.objects.create(
-                user=request.user,
-                action=f"{request.user.username} atualizou o pedido {pedido.id} com novo diâmetro {novo_diametro_valor}.",
-            )
+            # 3. Enviar email APENAS se um novo diâmetro tiver sido preenchido
+            if tem_novo_diametro: 
+                contexto = { 
+                    'pedido': pedido, 
+                    'user': request.user 
+                } 
+                html_content = render_to_string('emails/RespostaPedDiam_email.html', contexto) 
+                text_content = strip_tags(html_content) 
 
-            messages.success(request, "Pedido atualizado com sucesso!")
-            return redirect('listarPedidosDiametro')
+                try: 
+                    send_mail( 
+                        subject=f"Novo Diâmetro Definido - Toma {pedido.qr_code.toma_order_full if pedido.qr_code else pedido.id}", 
+                        message=text_content, 
+                        from_email=settings.DEFAULT_FROM_EMAIL, 
+                        recipient_list=['qc@toma.tools', 'qc2@toma.tools'], 
+                        html_message=html_content, 
+                    ) 
+                    messages.success(request, 'Pedido e fieira atualizados! Email enviado ao QC.') 
+                except Exception as e: 
+                    messages.error(request, f"Pedido guardado, mas erro ao enviar email: {str(e)}") 
+            else:
+                messages.success(request, 'Diâmetro mínimo atualizado com sucesso!')
 
-        except Exception as e:
-            messages.error(request, f"Erro ao atualizar pedido: {str(e)}")
-            return redirect('listarPedidosDiametro')
-    
-    return render(request, 'theme/editar_pedido.html', {
-        'pedido': pedido,
-        'die': die,
-        'form_data': {}
-    })
+            globalLogs.objects.create( 
+                user=request.user, 
+                action=f"{request.user.username} atualizou o pedido {pedido.id}.", 
+            ) 
+            return redirect('listarPedidosDiametro') 
 
+        except Exception as e: 
+            messages.error(request, f"Erro ao atualizar pedido: {str(e)}") 
+            return redirect('listarPedidosDiametro') 
 
-@login_required
-def exportar_pedido_excel(request, id):
-    # 1. Buscar o pedido
-    pedido = get_object_or_404(PedidosDiametro, id=id)
-
-    # 2. Replicar a lógica para encontrar a Caixa e Diâmetros (igual à tua listagem)
-    numeros_serie = dieInstance.objects.filter(customer=pedido.qr_code).values_list('serial_number', flat=True)
-    serie_dies_pedido = pedido.serie_dies.split(', ')
-    numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
-
-    box_nr = "-"
-    original_dims_str = "-"
-    requerido_dim_str = "-"
-
-    if pedido.qr_code:
-        die_instances = dieInstance.objects.filter(customer=pedido.qr_code, serial_number__in=numeros_iguais)
-        if die_instances.exists():
-            box_nr = die_instances.first().customer.box_nr
-            
-            # Formatar originais
-            original_dims = [die.diameter_text for die in die_instances]
-            original_dims_str = ', '.join(original_dims)
-            
-            # Formatar requeridos
-            requerido_dims = [str(die.diam_requerido) for die in die_instances]
-            requerido_dim_str = ', '.join(requerido_dims)
-
-    # 3. Criar o ficheiro Excel
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = f"Pedido {pedido.id}"
-
-    # Cabeçalhos
-    headers = [
-        "Cliente", "Serial", "Box Nr", "Ø Original", "Ø Atual", 
-        "Trabalhado", "Ø Requerido", "Descrição", "Ø Mínimo", 
-        "Ø Novo", "Pedido Por", "Data", "Estado"
-    ]
-    ws.append(headers)
-
-    # Dados
-    row = [
-        str(pedido.qr_code.customer if pedido.qr_code else "-"),
-        pedido.serie_dies,
-        str(box_nr),
-        original_dims_str,
-        str(pedido.diametro),
-        "Sim" if pedido.trabalhado else "Não",
-        requerido_dim_str,
-        pedido.get_observations_display(),
-        str(pedido.diametro_min),
-        str(pedido.novo_diametro),
-        pedido.pedido_por,
-        pedido.created_at.strftime("%d/%m/%Y %H:%M"),
-        "Feito" if pedido.checkbox else "Pendente"
-    ]
-    ws.append(row)
-
-    # Ajustar largura das colunas (opcional, para ficar bonito)
-    for col in ws.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column].width = adjusted_width
-
-    # 4. Preparar resposta HTTP
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = f'attachment; filename=Pedido_{pedido.serie_dies}_{pedido.id}.xlsx'
-    
-    wb.save(response)
-    return response
+    return render(request, 'theme/editar_pedido.html', {'pedido': pedido, 'die': die})
 
 @csrf_exempt
 @login_required
+def enviarEmailCaixaDiametro(request, order_year, order_nr, box_nr):
+    if request.method == 'POST':
+        emails = request.POST.getlist('emails')
+        observacao = request.POST.get('observacoes', '').strip()
+
+        if not emails:
+            messages.error(request, "O campo Emails é obrigatório.")
+            return redirect('listarPedidosDiametro')
+
+        emails = [email.strip() for email in emails if email.strip()]
+
+        # 1. Buscar pedidos marcados como feitos (checkbox=True) com Novo Diâmetro preenchido
+        pedidos_toma = PedidosDiametro.objects.filter(
+            qr_code__toma_order_year=order_year,
+            qr_code__toma_order_nr=order_nr,
+            checkbox=True
+        ).select_related('qr_code')
+
+        # 2. Filtrar os pedidos pertencentes à caixa específica
+        pedidos_caixa = []
+        for pedido in pedidos_toma:
+            qr_code = pedido.qr_code
+            b_nr = '-'
+            if qr_code:
+                numeros_serie = dieInstance.objects.filter(customer=qr_code).values_list('serial_number', flat=True)
+                serie_dies_pedido = pedido.serie_dies.split(', ') if pedido.serie_dies else []
+                numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
+                die_instances = dieInstance.objects.filter(customer=qr_code, serial_number__in=numeros_iguais)
+                if die_instances.exists() and die_instances.first().customer:
+                    b_nr = die_instances.first().customer.box_nr or '-'
+
+            if str(b_nr) == str(box_nr):
+                pedidos_caixa.append(pedido)
+
+        if not pedidos_caixa:
+            messages.error(request, f"Nenhum pedido com checkbox ativa e Novo Diâmetro encontrado na Caixa {box_nr}.")
+            return redirect('listarPedidosDiametro')
+
+        # 3. Renderizar email com a lista de pedidos ativos da caixa
+        contexto = {
+            'pedidos': pedidos_caixa,
+            'box_nr': box_nr,
+            'observacao': observacao
+        }
+
+        html_content = render_to_string('emails/EnvioAdminReqDiamtemplate_email.html', contexto)
+        text_content = strip_tags(html_content)
+
+        try:
+            toma_order_full = pedidos_caixa[0].qr_code.toma_order_full if pedidos_caixa[0].qr_code else f"{order_year}/{order_nr}"
+            send_mail(
+                subject=f"Pedido de Diâmetro - Caixa {box_nr} - Toma {toma_order_full}",
+                message=text_content,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=emails,
+                html_message=html_content,
+            )
+            messages.success(request, f'Email enviado com sucesso para: {", ".join(emails)}')
+        except Exception as e:
+            messages.error(request, f"Erro ao enviar email: {str(e)}")
+
+        return redirect('listarPedidosDiametro')
+
+
+@csrf_exempt 
+@login_required 
 def listarPedidosDiametro(request):
-    pedidos = PedidosDiametro.objects.all().order_by('-created_at')
-    pedidos_com_box = []
+    pedidos = PedidosDiametro.objects.all().select_related('qr_code').order_by('-created_at')
+    
     email_choices = [
-        ('anicetagraf@toma.tools','Aniceta Graf'),
-        ('danielapenagos@toma.tools','Daniela Penagos'),
-        ('patrickgraf@toma.tools','Patrick Graf'),
-        ('miguelfernandes@toma.tools','Miguel Fernandes'),
-        ('mariamacedo@toma.tools','Maria Macedo'),
-        ('qc@toma.tools','Alexandra Quesado'),
-        ('qc2@toma.tools','Jadna D Avila'),
-        ('michaelgraf@toma.tools','Michael Graf'),
-        ('andrepimentel@toma.tools','Andre Pimentel')
+        ('anicetagraf@toma.tools', 'Aniceta Graf'),
+        ('danielapenagos@toma.tools', 'Daniela Penagos'),
+        ('patrickgraf@toma.tools', 'Patrick Graf'),
+        ('miguelfernandes@toma.tools', 'Miguel Fernandes'),
+        ('mariamacedo@toma.tools', 'Maria Macedo'),
+        ('qc@toma.tools', 'Alexandra Quesado'),
+        ('qc2@toma.tools', 'Jadna D Avila'),
+        ('michaelgraf@toma.tools', 'Michael Graf'),
+        ('andrepimentel@toma.tools', 'Andre Pimentel')
     ]
+
+    def _sort_token(value):
+        texto = '' if value is None else str(value).strip()
+        if not texto:
+            return (1, '')
+        try:
+            return (0, int(texto))
+        except (TypeError, ValueError):
+            return (1, texto.lower())
+
+    pedidos_agrupados_map = {}
 
     for pedido in pedidos:
         if pedido.observations:
             pedido.obs_limpa = pedido.observations.replace('_', ' ').title()
-        numeros_serie = dieInstance.objects.filter(customer=pedido.qr_code).values_list('serial_number', flat=True)
+            if pedido.obs_limpa == 'Outros' and pedido.outras_observacoes:
+                pedido.obs_limpa = pedido.obs_limpa + '|' + pedido.outras_observacoes
 
-        serie_dies_pedido = pedido.serie_dies.split(', ')  # Access 'serie_dies' on the individual 'pedido' object
-        numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
+        box_nr = '-'
+        original_dims_str = '-'
+        requerido_dim_str = '-'
+        diam_requerido = '-'
+        n_encomenda = '-'
+        cliente = '-'
+        qr_code = pedido.qr_code
 
-        # Verifica se o pedido está associado a um Pedido e obtém o box_nr
-        qr_code = pedido.qr_code  
-
-
-        box_nr = None
-        original_dim = None
-        requerido_dim = None
-        if qr_code is not None:
+        if qr_code:
+            numeros_serie = dieInstance.objects.filter(customer=qr_code).values_list('serial_number', flat=True)
+            serie_dies_pedido = pedido.serie_dies.split(', ') if pedido.serie_dies else []
+            numeros_iguais = [num for num in numeros_serie if num in serie_dies_pedido]
             die_instances = dieInstance.objects.filter(customer=qr_code, serial_number__in=numeros_iguais)
+            
             if die_instances.exists():
-                n_encomenda = die_instances.first().customer.customer_order_nr
-                cliente = die_instances.first().customer.customer
-                box_nr = die_instances.first().customer.box_nr
-                requerido_dim = []
-                for die in die_instances:
-                    requerido_dim_value = die.diam_requerido
-                    requerido_dim.append(f"{requerido_dim_value}")
-                    requerido_dim_str = ' \n'.join(requerido_dim)
-                diam_requerido = die_instances.first().diam_requerido
-                original_dims = []
-                for die in die_instances:
-                    original_dim = die.diameter_text
-                    original_dims.append(f"{original_dim}")
-                    original_dims_str = ' \n'.join(original_dims)
+                primeira_die = die_instances.first()
+                if primeira_die and primeira_die.customer:
+                    n_encomenda = primeira_die.customer.customer_order_nr or '-'
+                    cliente = primeira_die.customer.customer or '-'
+                    box_nr = primeira_die.customer.box_nr or '-'
+                    diam_requerido = primeira_die.diam_requerido or '-'
+                    requerido_dim = [f"{die.diam_requerido}" for die in die_instances if die.diam_requerido]
+                    requerido_dim_str = ' \n'.join(requerido_dim) if requerido_dim else '-'
+                    original_dims = [f"{die.diameter_text}" for die in die_instances if die.diameter_text]
+                    original_dims_str = ' \n'.join(original_dims) if original_dims else '-'
 
-        pedidos_com_box.append({
+        order_year = qr_code.toma_order_year if qr_code else '-'
+        order_nr = qr_code.toma_order_nr if qr_code else '-'
+        customer_name = cliente
+        customer_order_nr = n_encomenda
+        box_key = box_nr if box_nr else '-'
+        order_key = (order_year, order_nr, customer_name, customer_order_nr)
+
+        if order_key not in pedidos_agrupados_map:
+            pedidos_agrupados_map[order_key] = {
+                'qr_id': qr_code.id if qr_code else None,
+                'toma_order_year': order_year,
+                'toma_order_nr': order_nr,
+                'cliente': customer_name,
+                'customer_order_nr': customer_order_nr,
+                'boxes_map': {},
+                'total_pedidos': 0,
+            }
+
+        order_group = pedidos_agrupados_map[order_key]
+
+        if box_key not in order_group['boxes_map']:
+            order_group['boxes_map'][box_key] = {
+                'box_nr': box_key,
+                'pedidos': [],
+                'total_pedidos': 0,
+            }
+
+        box_group = order_group['boxes_map'][box_key]
+
+        # Inserção sem validações restritivas para a checkbox
+        box_group['pedidos'].append({
+            'qr_id': order_group['qr_id'],
             'pedido': pedido,
-            'box_nr': box_nr,
+            'box_nr': box_key,
             'original_dim': original_dims_str,
             'diam_requerido': diam_requerido,
             'requerido_dim_str': requerido_dim_str,
             'n_encomenda': n_encomenda,
             'cliente': cliente,
-            'obs_limpa': getattr(pedido, 'obs_limpa', '-')
-
+            'obs_limpa': getattr(pedido, 'obs_limpa', '-'),
         })
 
-    return render(request, 'theme/listarPedidosDiametro.html', {'pedidos_com_box': pedidos_com_box, 'email_choices': email_choices})
+        box_group['total_pedidos'] += 1
+        order_group['total_pedidos'] += 1
+
+    pedidos_agrupados = []
+    for order_group in pedidos_agrupados_map.values():
+        boxes = list(order_group['boxes_map'].values())
+        boxes.sort(key=lambda box: _sort_token(box['box_nr']))
+        pedidos_agrupados.append({
+            'toma_order_year': order_group['toma_order_year'],
+            'toma_order_nr': order_group['toma_order_nr'],
+            'cliente': order_group['cliente'],
+            'customer_order_nr': order_group['customer_order_nr'],
+            'boxes': boxes,
+            'total_pedidos': order_group['total_pedidos'],
+            'total_caixas': len(boxes),
+        })
+
+    pedidos_agrupados.sort(
+        key=lambda group: (
+            _sort_token(group['toma_order_year']),
+            _sort_token(group['toma_order_nr']),
+        ),
+        reverse=True,
+    )
+
+    return render(request, 'theme/listarPedidosDiametro.html', {
+        'pedidos_agrupados': pedidos_agrupados,
+        'email_choices': email_choices
+    })
 
 @csrf_exempt
 @login_required
@@ -3133,6 +3426,7 @@ def inspecao_inicial(request, toma_order_full):
                 trabalhada_val = request.POST.get(f'trabalhada_{serie_die}', '').strip().lower()
                 trabalhada = trabalhada_val in {'true', 'sim', '1', 'on'}
                 observations = request.POST.get(f'observacoes_{serie_die}', '').strip()
+                outras_observacoes = request.POST.get(f'outras_observacoes_{serie_die}', '').strip()
 
                 # Validar campos obrigatórios para cada fieira
                 if not diametro or not diametro_min:
@@ -3154,8 +3448,10 @@ def inspecao_inicial(request, toma_order_full):
                         diametro_min=diametro_min_decimal,
                         numero_fieiras=1,
                         pedido_por=pedido_por,
+                        novo_diametro=None,  
                         serie_dies=serie_die,
                         observations=observations,
+                        outras_observacoes=outras_observacoes,
                         trabalhado=trabalhada,
                     )
                     pedidos_criados.append({
@@ -3164,7 +3460,8 @@ def inspecao_inicial(request, toma_order_full):
                         'diametro': diametro,
                         'diametro_min': diametro_min,
                         'trabalhado': 'Sim' if trabalhada else 'Não',
-                        'observacoes': observations
+                        'observacoes': observations,
+                        'outras_observacoes': outras_observacoes
                     })
                 except Exception as e:
                     pedidos_falhas.append(f"Fieira {serie_die}: Erro ao guardar - {str(e)}")
@@ -3215,7 +3512,7 @@ def inspecao_inicial(request, toma_order_full):
                     corpo_email_texto += f"  Ø Mínimo: {p['diametro_min']}\n"
                     corpo_email_texto += f"  Trabalhada: {p['trabalhado']}\n"
                     corpo_email_texto += f"  Observações: {p['observacoes'] or '-'}\n"
-
+                    corpo_email_texto += f"  Outras Observações: {p['outras_observacoes'] or '-'}\n"
                 # 4. Envia o email com o parâmetro html_message
                 send_mail(
                     subject=f"Inspeção Inicial Completa - Toma {qr_code.toma_order_nr}",
@@ -3259,46 +3556,6 @@ def inspecao_inicial(request, toma_order_full):
         'email_choices': email_choices,
     })
 
-@csrf_exempt
-@login_required
-def enviarEmailPedidoDiametro(request, pedido_id):
-    pedido = get_object_or_404(PedidosDiametro, id=pedido_id)
-
-    if request.method == 'POST':
-        emails = request.POST.getlist('emails')
-        observacao = request.POST.get('observacoes', '').strip()
-
-        if not emails:
-            messages.error(request, "O campo Emails é obrigatório.")
-            return redirect('listarPedidosDiametro')
-
-        emails = [email.strip() for email in emails if email.strip()]
-
-        # 1. Cria o dicionário com as variáveis que vão para o HTML
-        contexto = {
-            'pedido': pedido,
-            'observacao': observacao
-        }
-
-        # 2. Transforma o seu template HTML numa string renderizada
-        html_content = render_to_string('emails/PedidoEnvioAdminReqDiamtemplate_email.html', contexto)
-        
-        # 3. Cria uma versão sem formatação (texto puro) como fallback
-        text_content = strip_tags(html_content)
-
-        try:
-            send_mail(
-                subject=f"Pedido de Diâmetro - Toma {pedido.qr_code.toma_order_full}",
-                message=text_content, # Versão em texto
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=emails,
-                html_message=html_content, # Versão HTML bonita
-            )
-            messages.success(request, f'Email enviado com sucesso para: {", ".join(emails)}')
-        except Exception as e:
-            messages.error(request, f"Erro ao enviar email: {str(e)}")
-
-    return redirect('listarPedidosDiametro')
 
 @csrf_exempt
 @login_required
@@ -3321,7 +3578,7 @@ def diametroMenu(request, toma_order_full):
         diametro_min = request.POST.get('diametroMin', '').strip()
         pedido_por = request.POST.get('pedidoPor', '').strip()
         observations = request.POST.get('observations', '').strip()
-        
+        outras_observacoes = request.POST.get('outras_observacoes', '').strip()
         ''''emails = request.POST.getlist('emails')  # Múltipla escolha retorna lista
 
 
@@ -3336,7 +3593,6 @@ def diametroMenu(request, toma_order_full):
 
 
         emails = ['qc@toma.tools','qc2@toma.tools']  # Lista fixa de emails para envio
-
 
         # Checkboxes (Lista)
         serie_dies = request.POST.get('serieDies')
@@ -3376,16 +3632,24 @@ def diametroMenu(request, toma_order_full):
                 'choices': observation_choices, 'form_data': request.POST
             })
 
+        novo_diametro_input = request.POST.get('novo_diametro')
+        if novo_diametro_input:
+            novo_diametro_input = novo_diametro_input.strip()
+            if novo_diametro_input.lower() in ['none', '']:
+                novo_diametro_input = None
+
         # 5. Criação e Envio de Email (Envolvido em try/except)
         try:
             PedidosDiametro.objects.create(
                 qr_code=qr_code,
                 diametro=diametro,
-                diametro_min=diametro_min,  # O teu FlexibleDecimalField vai tratar de converter a string "1.23" ou "1,23"
+                diametro_min=diametro_min,  
                 numero_fieiras=numero,
+                novo_diametro=novo_diametro_input,
                 pedido_por=pedido_por,
                 serie_dies=serie_dies,
                 observations=observations,
+                outras_observacoes=outras_observacoes,
                 trabalhado=fieira_trabalhada,
             )
             
@@ -3403,7 +3667,7 @@ def diametroMenu(request, toma_order_full):
                 'numero': numero,
                 'pedido_por': pedido_por,
                 'serie_dies': serie_dies,
-                'observations': observations
+                'observations': observations,
             }
 
             html_content = render_to_string('emails/PedidoDiamProd_email.html', contexto)
@@ -3750,11 +4014,8 @@ def listar_trackings(request):
 
 @login_required
 def listar_medicoes(request):
-    medicao = Medicao.objects.all().order_by('-date')
-    detalhes = DetalhesMedicao.objects.all()
     maquina = Maquinas.objects.all()
     medidas_maquinas = MedidasMaquinas.objects.all()
-    user = request.user
 
     def to_decimal(value):
         return value if value not in (None, '') else None
@@ -3865,13 +4126,6 @@ def listar_medicoes(request):
         'medidas_maquinas': medidas_maquinas,
         'user': request.user,
     })
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.utils import timezone
-from django.db import transaction # IMPORTANTE: Adicionar este import no topo
-from .models import CalibracaoMaquina, CalibracaoFieira, Maquinas
 
 @login_required
 def listar_calibracoes(request):
@@ -4094,11 +4348,15 @@ def charts(request):
 
 @login_required
 @admin_required
-def listarFaturas(request):
+def listarFaturas(request): #checkpoint
     ordenacao = request.GET.get('ordenacao', 'recentes')
+    q = request.GET.get('q', '').strip()
 
     # 1. Trata o limite de faturas
-    limite_param = request.GET.get('limite_faturas', '10')
+    limite_param = request.GET.get('limite_faturas', '50')
+
+    if q:
+        limite_param = 'todos'
 
     if limite_param == 'todos':
         limite_faturas = None  # Sem limite no Django QuerySet
@@ -4106,8 +4364,8 @@ def listarFaturas(request):
         try:
             limite_faturas = int(limite_param)
         except ValueError:
-            limite_param = '10'
-            limite_faturas = 10
+            limite_param = '50'
+            limite_faturas = 50
 
     # 2. Ordenação inicial
     if ordenacao == 'nao_pagos':
@@ -4137,6 +4395,13 @@ def listarFaturas(request):
     if ate_date:
         invoice_qs = invoice_qs.filter(data_emissao__lte=ate_date)
 
+    if q:
+        invoice_qs = invoice_qs.filter(
+            Q(fornecedor__name__icontains=q)
+            | Q(numero_fatura__icontains=q)
+            | Q(descricao__icontains=q)
+        )
+
     # 4. Filtro de pagamento
     filtro_pago = request.GET.get('pago')
     if filtro_pago == 'sim':
@@ -4159,6 +4424,7 @@ def listarFaturas(request):
             'filtro_pago': filtro_pago,
             'ordenacao': ordenacao,
             'limite_faturas': limite_param,  # Passa a string '10', '20', '50' ou 'todos' para o template
+            'q': q,
         },
     )
 
@@ -4237,6 +4503,7 @@ def criarFatura(request):
                 valor=valor,
                 moeda=moeda,
                 descricao=descricao,
+                created_by=request.user
             )
             nova_fatura.save() # Aqui o fatura_unica é gerado pelo teu model
             # Adiciona ficheiros após salvar a fatura
@@ -5325,9 +5592,6 @@ def upload_excel_view(request):
             reception_date = order_row.get('Reception Date')
             shipping_date = order_row.get('Shipping Date')
 
-            # --- SALVAGUARDA ---
-            # Como no teu print do Excel NÃO existe a coluna 'BoxNR', caso ela falte, 
-            # criamos uma virtual para o código não dar erro de Key no GroupBy.
             if 'BoxNR' not in df_dies.columns:
                 df_dies['BoxNR'] = '1'
 
@@ -5545,16 +5809,82 @@ def toggle_acesso_externo(request):
 @login_required
 @group_required('Administracao')
 def listarProformas(request):
-    proformas = P2Control.objects.all().order_by('-proforma_number')
+    proformas = P2Control.objects.all()
 
+    # 1. Obter os parâmetros GET
+    de = request.GET.get('de', '')
+    ate = request.GET.get('ate', '')
+    tipo_data = request.GET.get('tipo_data', 'proforma_date')  # <-- NOVO: Qual data filtrar?
+    invoice_filter = request.GET.get('invoice', '')
+    sort = request.GET.get('sort', 'proforma_number') 
+    direction = request.GET.get('dir', 'desc') 
+
+    # 2. Filtro de Datas
+    de_date = parse_date(de) if de else None
+    ate_date = parse_date(ate) if ate else None
+
+    if de_date and ate_date and de_date > ate_date:
+        messages.error(request, 'Im just a filter, i cannot travel through space.')
+        return redirect('listarProformas')
+
+    # Aplicar o filtro "De" consuante a escolha do utilizador
+    if de_date:
+        if tipo_data == 'paydate_1':
+            proformas = proformas.filter(paydate_1__gte=de_date)
+        elif tipo_data == 'paydate_2':
+            proformas = proformas.filter(paydate_2__gte=de_date)
+        else:
+            proformas = proformas.filter(proforma_date__gte=de_date)
+
+    # Aplicar o filtro "Até" consuante a escolha do utilizador
+    if ate_date:
+        if tipo_data == 'paydate_1':
+            proformas = proformas.filter(paydate_1__lte=ate_date)
+        elif tipo_data == 'paydate_2':
+            proformas = proformas.filter(paydate_2__lte=ate_date)
+        else:
+            proformas = proformas.filter(proforma_date__lte=ate_date)
+
+    # 2. Filtro de Datas
+    de_date = parse_date(de) if de else None
+    ate_date = parse_date(ate) if ate else None
+
+    if de_date and ate_date and de_date > ate_date:
+        messages.error(request, 'Im just a filter, i cannot travel through space.')
+        return redirect('listarProformas')
+
+    if de_date:
+        proformas = proformas.filter(proforma_date__gte=de_date)
+    if ate_date:
+        proformas = proformas.filter(proforma_date__lte=ate_date)
+
+    # 3. Filtro de Invoices CORRIGIDO (Usa a relação com o model Invoice)
+    if invoice_filter == 'has_invoice':
+        proformas = proformas.filter(invoices__isnull=False).distinct()
+    elif invoice_filter == 'has_no_invoice':
+        proformas = proformas.filter(invoices__isnull=True).distinct()
+
+    # 4. Ordenação Clicável (Validação para segurança)
+    allowed_sorts = [
+        'customer_PO', 'total_amount', 'proforma_number', 
+        'proforma_date', 'amount_1', 'paydate_1', 
+        'amount_2', 'paydate_2'
+    ]
+    if sort not in allowed_sorts:
+        sort = 'proforma_number'
+
+    order_prefix = '-' if direction == 'desc' else ''
+    proformas = proformas.order_by(f'{order_prefix}{sort}')
+
+    # 5. Lógica de Criação (POST)
     if request.method == 'POST':
+        # ... (O teu código POST mantém-se EXATAMENTE igual)
         customer_PO = request.POST.get('customer_PO', '').strip()
         total_amount = request.POST.get('total_amount', '').strip()
         proforma_number = request.POST.get('proforma_number', '').strip()
         proforma_date = request.POST.get('proforma_date', '').strip()
         percentage_1 = request.POST.get('percentage_1', '').strip()
 
-        # ficheiros
         proforma = request.FILES.get('proforma_file')
         proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
         proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
@@ -5572,17 +5902,27 @@ def listarProformas(request):
                 proof_of_payment_2=proof_of_payment_2,
                 proforma_invoice=proforma_invoice,
                 proforma_date=proforma_date,
-                comments=comments
+                comments=comments,
             )
             messages.success(request, 'Proforma criada com sucesso!')
             return redirect('listarProformas')
         except Exception as e:
             messages.error(request, f"Erro ao criar a proforma: {str(e)}")
 
-    paid = proformas.filter(proof_of_payment_1__isnull=False).exists() 
+    # 6. Variáveis de contexto extras
+    paid = proformas.filter(proof_of_payment_1__isnull=False).exists()
     not_paid = proformas.filter(proof_of_payment_1__isnull=True).exists()
-        
-    return render(request, 'theme/listarProforma.html', {'proformas': proformas, 'paid': paid, 'not_paid': not_paid})
+
+    return render(request, 'theme/listarProforma.html', {
+        'proformas': proformas,
+        'paid': paid,
+        'not_paid': not_paid,
+        'invoice_filter': invoice_filter,
+        'de': de,
+        'ate': ate,
+        'current_sort': sort,         # Passamos para o HTML saber qual setinha desenhar
+        'current_dir': direction,     # Passamos para o HTML saber qual setinha desenhar
+    })
 
 @login_required
 @group_required('Administracao')
@@ -5601,7 +5941,6 @@ def editarProforma(request, pk):
 
         proof_of_payment_1 = request.FILES.get('proof_of_payment_1')
         proof_of_payment_2 = request.FILES.get('proof_of_payment_2')
-        proforma_invoice = request.FILES.get('proforma_invoice')
 
         try:
             proforma.customer_PO = customer_PO
@@ -5616,8 +5955,7 @@ def editarProforma(request, pk):
                 proforma.proof_of_payment_1 = proof_of_payment_1
             if proof_of_payment_2:
                 proforma.proof_of_payment_2 = proof_of_payment_2
-            if proforma_invoice:
-                proforma.proforma_invoice = proforma_invoice
+ 
 
             proforma.save()
             messages.success(request, 'Proforma atualizada com sucesso!')
@@ -5635,6 +5973,58 @@ def delete_p2(request,pk):
         messages.success(request, 'Proforma eliminada com sucesso!')
         return redirect('listarProformas')
     return render(request, 'theme/listarProforma.html', {'proforma': proforma})
+
+def editarInvoice(request, pk):
+    invoice = get_object_or_404(Invoice, id=pk)
+
+    if request.method == 'POST':
+        invoice_number = request.POST.get('invoice_number', '').strip()
+        invoice_date = request.POST.get('invoice_date', '').strip()
+        invoice_file = request.FILES.get('invoice_file')
+
+        try:
+            invoice.invoice_number = invoice_number
+            invoice.invoice_date = invoice_date
+            if invoice_file:
+                invoice.invoice_file = invoice_file
+            invoice.save()
+            messages.success(request, 'Invoice atualizada com sucesso!')
+            return redirect('listarProformas')
+
+        except Exception as e:
+            messages.error(request, f"Erro ao atualizar a invoice: {str(e)}")
+
+    return render(request, 'theme/editarInvoice.html', {'invoice': invoice})
+
+def delete_invoice_file_ajax(request, pk):
+    if request.method == 'POST':
+        invoice = get_object_or_404(Invoice, id=pk)
+        
+        if invoice.invoice_file:
+            # Opção: Apagar o ficheiro físico do disco (opcional, mas recomendado)
+            if os.path.isfile(invoice.invoice_file.path):
+                os.remove(invoice.invoice_file.path)
+            
+            # Limpar o campo na base de dados
+            invoice.invoice_file = None
+            invoice.save()
+            
+            return JsonResponse({'status': 'success', 'message': 'Ficheiro apagado'})
+            
+    return JsonResponse({'status': 'error', 'message': 'Pedido inválido'}, status=400)
+
+@login_required
+@group_required('Administracao')
+def unlink_proforma_invoice(request, proforma_id, invoice_id):
+    if request.method == 'POST':
+        proforma = get_object_or_404(P2Control, id=proforma_id)
+        invoice = get_object_or_404(Invoice, id=invoice_id)
+        
+        invoice.proformas.remove(proforma) #desassociar
+        
+        messages.success(request, f'Proforma {proforma.proforma_number} desassociada da fatura {invoice.invoice_number} com sucesso.')
+        
+    return redirect('listarProformas')
 
 @login_required
 @group_required('Administracao')
@@ -5730,6 +6120,11 @@ def upload_p2control_file_ajax(request, pk):
         return JsonResponse({'status': 'error', 'message': f'Erro no servidor: {str(e)}'}, status=500)
 
 
+def calculadoraProformas(request):
+    proformas = P2Control.objects.all()
+    total_amount = proformas.aggregate(total=Sum('total_amount'))['total'] or 0
+    return render(request, 'theme/calculadoraProformas.html', {'total_amount': total_amount, 'proformas': proformas})
+
 def adicionarInvoice(request):
     proformas_list = (
         P2Control.objects
@@ -5745,20 +6140,35 @@ def adicionarInvoice(request):
         invoice_file = request.FILES.get('invoice_file')
 
         try:
-            invoice = Invoice.objects.create(
-                invoice_number=invoice_number,
-                invoice_date=invoice_date,
-            )
+            invoice = Invoice.objects.filter(invoice_number=invoice_number).first()
+            if invoice is None:
+                invoice = Invoice.objects.create(
+                    invoice_number=invoice_number,
+                    invoice_date=invoice_date,
+                    invoice_file=invoice_file,
+                )
+            else:
+                invoice.proformas.add(*P2Control.objects.filter(id__in=proformas_ids))
+                invoice.update_total_amount()
+
+                for proforma in P2Control.objects.filter(id__in=proformas_ids):
+                    if invoice_file and not proforma.proforma_invoice:
+                        proforma.proforma_invoice = invoice_file
+                        proforma.save()
+
+                messages.success(request, 'Invoice existente associada com sucesso!')
+                return redirect('listarProformas')
 
             proformas_qs = P2Control.objects.filter(id__in=proformas_ids)
-            invoice.proformas.set(proformas_qs)
+            invoice.proformas.add(*proformas_qs)
             invoice.update_total_amount()
 
             for proforma in proformas_qs:
-                proforma.proforma_invoice = invoice_file
-                proforma.save()
+                if invoice_file and not proforma.proforma_invoice:
+                    proforma.proforma_invoice = invoice_file
+                    proforma.save()
 
-            messages.success(request, 'Invoice criada com sucesso!')
+            messages.success(request, 'Invoice criada/atualizada com sucesso!')
             return redirect('listarProformas')
 
         except Exception as e:

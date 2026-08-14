@@ -5,19 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Toma Tools{% endblock %}</title>
-
     <meta name="description" content="Toma Tools - Soluções para Gestão de Produção e Logística interno TOMATools.">
-    <link rel="stylesheet" href="{% static 'theme/css/output.css' %}"> 
+    <link rel="stylesheet" href="{% static 'theme/css/output.css' %}">
     <link rel="icon" type="image/x-icon" href="{% static 'theme/media/favicon.ico' %}">
-
     <style>
-        body {
-            font-family: 'Calibri', sans-serif;
-        }
+        body { font-family: 'Calibri', sans-serif; }
     </style>
 </head>
-
-<body class="min-h-screen relative" style="background: white; overflow-x: hidden;">
+<!-- hx-headers agora é um atributo HTML próprio fora do style -->
+<body class="min-h-screen relative" 
+      style="background: white; overflow-x: hidden;" 
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
     <div class="absolute inset-0 z-0 pointer-events-none">
         <div class="absolute top-10 left-10 w-72 h-72 bg-black/10 rounded-full blur-xl"></div>
@@ -36,14 +34,9 @@
                     {% else %}
                         <a href="{% url 'login' 0 %}">
                     {% endif %}
-                        <img src="{% static 'theme/media/logo.jpg' %}" 
-                            alt="Logo" 
-                            width="200" height="64"
-                            class="h-16 w-auto rounded border-1 border-black shadow-lg"
-                            fetchpriority="high">
+                        <img src="{% static 'theme/media/logo.jpg' %}" alt="Logo" width="200" height="64" class="h-16 w-auto rounded border-1 border-black shadow-lg" fetchpriority="high">
                     </a>
                 </div>
-
                 <div class="hidden md:flex space-x-6">
                     {% if request.user.is_authenticated %}
                         <a href="{% url 'mainMenu' %}" class="hover:text-blue-500 transition">Menus</a>
@@ -52,7 +45,6 @@
                         <a href="{% url 'login' 0 %}" class="hover:text-blue-500 transition">Login</a>
                     {% endif %}
                 </div>
-
                 <div class="md:hidden">
                     <button id="menu-btn" class="text-black hover:text-blue-500 focus:outline-none">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,7 +54,6 @@
                 </div>
             </div>
         </div>
-
         <div id="mobile-menu" class="hidden md:hidden bg-gray-200 px-4 pb-4">
             {% if request.user.is_authenticated %}
                 <a href="{% url 'mainMenu' %}" class="block py-2 hover:text-blue-500 transition">Menus</a>
@@ -80,14 +71,19 @@
         {% block content %}{% endblock %}
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    <!-- Mantenho apenas uma versão do HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.11"></script>
 
     <script>
+        // Configuração de segurança global para requisições HTMX
+        document.body.addEventListener('htmx:configRequest', (event) => {
+            event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+        });
+
         const menuBtn = document.getElementById('menu-btn');
         const mobileMenu = document.getElementById('mobile-menu');
-
         if (menuBtn && mobileMenu) {
             menuBtn.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
@@ -96,34 +92,31 @@
     </script>
 
     {% if messages %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
-                }
-            });
-
-            {% for message in messages %}
-                var tempo = 3000;
-                {% if 'error' in message.tags %} tempo = 4000; {% endif %}
-
-                Toast.fire({
-                    icon: "{% if 'success' in message.tags %}success{% elif 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}",
-                    title: "{{ message|escapejs }}",
-                    timer: tempo
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
                 });
-            {% endfor %}
-        });
-    </script>
+                {% for message in messages %}
+                    var tempo = 3000;
+                    {% if 'error' in message.tags %} tempo = 4000; {% endif %}
+                    Toast.fire({
+                        icon: "{% if 'success' in message.tags %}success{% elif 'error' in message.tags %}error{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}",
+                        title: "{{ message|escapejs }}",
+                        timer: tempo
+                    });
+                {% endfor %}
+            });
+        </script>
     {% endif %}
 
     {% block extra_js %}{% endblock %}
-
 </body>
 </html>

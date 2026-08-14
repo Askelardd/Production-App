@@ -114,6 +114,7 @@
                 <th class="px-4 py-3 text-left text-sm font-semibold">Ø Mínimo</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold">Trabalhada</th>
                 <th class="px-4 py-3 text-left text-sm font-semibold">Observações</th>
+                <th class="px-4 py-3 text-left text-sm font-semibold hidden" id="outras-observacoes">Outras Observações</th>
                 <th class="px-4 py-3 text-center text-sm font-semibold">Ação</th>
               </tr>
             </thead>
@@ -143,7 +144,7 @@
       <!-- Botões -->
       <div class="flex justify-between items-center border-t-2 pt-8 gap-4">
         <button type="submit" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold shadow hover:bg-blue-700 flex-1">✓ Submeter Inspeção</button>
-        <a href="{% url 'listarDies' %}" class="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-500 flex-1 text-center">✕ Sair</a>
+        <a href="{% url 'listQrcodes' %}" class="bg-gray-400 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-500 flex-1 text-center">✕ Sair</a>
       </div>
     </form>
   </div>
@@ -204,10 +205,13 @@
           </div>
         </td>
         <td class="px-4 py-3">
-          <select name="observacoes_${serial}" class="border border-gray-300 rounded p-2 w-full text-sm focus:ring-2 focus:ring-blue-400">
+          <select name="observacoes_${serial}" class="border border-gray-300 rounded p-2 w-full text-sm focus:ring-2 focus:ring-blue-400" data-serial="${serial}">
             <option value="">-- Selecionar --</option>
             ${Object.entries(choicesData).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}
           </select>
+        </td>
+        <td class="px-4 py-3 hidden" data-outras-observacoes-cell="${serial}">
+          <textarea name="outras_observacoes_${serial}" rows="2" class="border border-gray-300 rounded p-2 w-full text-sm focus:ring-2 focus:ring-blue-400" placeholder="Digite outras observações..."></textarea>
         </td>
         <td class="px-4 py-3 text-center">
           <button type="button" onclick="removerFieiraCheckbox('${serial}')" class="text-red-600 hover:text-red-800 font-bold">✕ Remover</button>
@@ -215,6 +219,14 @@
       `;
 
       tbody.appendChild(row);
+
+      const select = row.querySelector(`select[name="observacoes_${serial}"]`);
+      select.addEventListener('change', function () {
+        toggleOutrasObservacoesLinha(serial, this.value);
+      });
+
+      toggleOutrasObservacoesLinha(serial, select.value);
+      atualizarCabecalhoOutrasObservacoes();
     }
 
     function removerFieiraTabela(serial) {
@@ -222,6 +234,7 @@
       if (row) {
         row.remove();
       }
+      atualizarCabecalhoOutrasObservacoes();
     }
 
     function removerFieiraCheckbox(serial) {
@@ -240,6 +253,24 @@
         emptyMsg.style.display = 'block';
       } else {
         emptyMsg.style.display = 'none';
+      }
+    }
+
+    function toggleOutrasObservacoesLinha(serial, selectedValue) {
+      const cell = document.querySelector(`[data-outras-observacoes-cell="${serial}"]`);
+      if (!cell) return;
+
+      const isOutros = selectedValue && selectedValue.toLowerCase() === 'outros';
+      cell.classList.toggle('hidden', !isOutros);
+      atualizarCabecalhoOutrasObservacoes();
+    }
+
+    function atualizarCabecalhoOutrasObservacoes() {
+      const cabecalho = document.getElementById('outras-observacoes');
+      const algumaLinhaVisivel = document.querySelector('[data-outras-observacoes-cell]:not(.hidden)');
+
+      if (cabecalho) {
+        cabecalho.classList.toggle('hidden', !algumaLinhaVisivel);
       }
     }
 

@@ -1,357 +1,358 @@
-{% extends 'theme/base.html' %}
+{% extends 'theme/base.html' %} 
 
-{% block title %}Pedidos por Diâmetro{% endblock %}
+{% block title %} Pedidos por Diâmetro {% endblock %} 
 
-{% block content %}
-<div class="min-h-screen bg-gray-50 p-6">
-    <div class="max-w-9xl mx-auto mb-8">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos por Diâmetro</h1>
-                <p class="text-sm text-gray-500 mt-1">Gestão de requisições de alteração de diâmetro</p>
-                <p class="text-sm text-gray-400 mt-1 italic">* Faça Scroll lateral com o uso de Shift ⭡ + Scroll</p>
-            </div>
-            
-            <div class="relative w-full md:w-96">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-                    </svg>
-                </div>
-                <input type="text" id="searchInput" placeholder="Search serial, diameter..."
-                    class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" />
-            </div>
-        </div>
-    </div>
+{% block content %} 
+<div class="min-h-screen bg-gray-50 p-6"> 
+  <div class="max-w-9xl mx-auto mb-8"> 
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4"> 
+      <div> 
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Pedidos por Diâmetro</h1> 
+        <p class="text-sm text-gray-500 mt-1">Gestão de requisições de alteração de diâmetro</p> 
+        <p class="text-sm text-gray-400 mt-1 italic">* Faça Scroll lateral com o uso de Shift ⭡ + Scroll</p> 
+      </div> 
+      <div class="relative w-full md:w-96"> 
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> 
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400"> 
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /> 
+          </svg> 
+        </div> 
+        <input type="text" id="searchInput" placeholder="Pesquisar..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm bg-white" /> 
+      </div> 
+    </div> 
+  </div> 
 
-    <div class="max-w-9xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200" id="pedidoTable">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Client</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Order Number</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fieiras Serial</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Original Ø</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Ø</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Worked</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Required Ø</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Minimum Ø</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">New Ø</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Box Nr.</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Done</th>
-                        <th class="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 bg-white">
-                    {% for item in pedidos_com_box %}
-                        <tr class="hover:bg-blue-50 transition-colors group" id="row-{{ item.pedido.id }}">
+  <div class="max-w-9xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"> 
+    <div class="overflow-x-auto"> 
+      <table class="min-w-full divide-y divide-gray-200" id="pedidoTable"> 
+        <thead class="bg-gray-800 text-white"> 
+          <tr> 
+            <th class="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Grupos de Encomendas (TOMA)</th> 
+          </tr> 
+        </thead> 
+        <tbody class="divide-y divide-gray-200 bg-white"> 
+          {% for grupo in pedidos_agrupados %} 
+            <!-- NÍVEL 1: LINHA TOMA (Grupo Principal / Pedido) --> 
+            <tr class="bg-gray-100 hover:bg-gray-200 cursor-pointer transition-colors select-none group/toma border-b border-gray-300 search-row" onclick="toggleAnimate('toma-{{ forloop.counter }}', this)"> 
+              <td class="p-4 font-bold"> 
+                <div class="flex justify-between items-center w-full"> 
+                  <span class="text-lg text-gray-800">TOMA: {{ grupo.toma_order_year }}/{{ grupo.toma_order_nr }} - Cliente: {{ grupo.cliente }} - Num Ordem: {{ grupo.customer_order_nr }}</span> 
+                  
+                  <div class="flex items-center gap-3"> 
+                    <!-- Botão de Enviar Email (Ao nível do Pedido / Grupo TOMA) -->
+                    <button type="button" 
+                            data-url-diam="{% url 'enviar_email_grupo_diametro' grupo.toma_order_year grupo.toma_order_nr %}" 
+                            onclick="event.stopPropagation(); abrirModalEmail(this)" 
+                            class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors font-normal"
+                            title="Enviar email dos pedidos marcados neste grupo"> 
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"> 
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36-.076L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75m19.5 0h-19.5" /> 
+                      </svg> 
+                      Enviar Email 
+                    </button>
 
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                {{ item.cliente }}
-                            </td>
+                    <!-- Botão de Exportar Excel (Ao nível do Pedido / Grupo TOMA) -->
+                    <a href="{% url 'export_pedidos_diam' grupo.toma_order_year grupo.toma_order_nr %}" 
+                       onclick="event.stopPropagation();" 
+                       class="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors font-normal"
+                       title="Exportar Excel dos pedidos marcados neste grupo"> 
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"> 
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" /> 
+                      </svg> 
+                      Exportar Excel 
+                    </a> 
 
+                    <span class="bg-gray-300 text-gray-800 text-xs font-semibold px-2.5 py-1 rounded-md">{{ grupo.total_caixas }} Caixa(s)</span> 
+                    <span class="bg-blue-200 text-blue-900 text-xs font-semibold px-2.5 py-1 rounded-md">{{ grupo.total_pedidos }} Pedido(s)</span> 
+                    <span class="arrow transition-transform duration-300 text-gray-500 text-xl">▼</span> 
+                  </div> 
+                </div> 
+              </td> 
+            </tr> 
 
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                {{ item.n_encomenda }}
-                            </td>
+            <!-- NÍVEL 1 CONTEÚDO: CAIXAS --> 
+            <tr id="toma-{{ forloop.counter }}" class="hidden"> 
+              <td class="p-0 border-b-4 border-blue-500"> 
+                <div class="toggle-content max-h-0 opacity-0 translate-y-2 overflow-hidden transition-all duration-300 ease-in-out bg-gray-50"> 
+                  <table class="w-full"> 
+                    <tbody> 
+                      {% for caixa in grupo.boxes %} 
+                        <!-- NÍVEL 2: LINHA CAIXA --> 
+                        <tr class="bg-blue-50 hover:bg-blue-100 cursor-pointer transition-colors select-none border-y border-white search-row" onclick="toggleAnimate('caixa-{{ forloop.parentloop.counter }}-{{ forloop.counter }}', this)"> 
+                          <td class="p-3 pl-8 font-semibold text-blue-900"> 
+                            <div class="flex justify-between items-center w-full"> 
+                              <span>Caixa Nº: {{ caixa.box_nr }}</span> 
+                              <div class="flex items-center gap-4"> 
+                                <span class="text-sm font-normal text-blue-700">{{ caixa.total_pedidos }} Pedido(s) nesta caixa</span> 
+                                <span class="arrow transition-transform duration-300 text-blue-500">▼</span> 
+                              </div> 
+                            </div> 
+                          </td> 
+                        </tr> 
 
-                            
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                {{ item.pedido.serie_dies }}
-                            </td>
+                        <!-- NÍVEL 2 CONTEÚDO: PEDIDOS --> 
+                        <tr id="caixa-{{ forloop.parentloop.counter }}-{{ forloop.counter }}" class="hidden"> 
+                          <td class="p-0"> 
+                            <div class="toggle-content max-h-0 opacity-0 translate-y-2 overflow-hidden transition-all duration-300 ease-in-out bg-white shadow-inner"> 
+                              <table class="w-full text-sm"> 
+                                <thead class="bg-gray-100 text-gray-700 border-b"> 
+                                  <tr> 
+                                    <th class="p-3 pl-12 text-left font-semibold">Dies Serial</th> 
+                                    <th class="p-3 text-left font-semibold">Original Ø</th> 
+                                    <th class="p-3 text-left font-semibold">Current Ø</th> 
+                                    <th class="p-3 text-left font-semibold">Worked</th> 
+                                    <th class="p-3 text-left font-semibold">Ø Required</th> 
+                                    <th class="p-3 text-left font-semibold">Description</th> 
+                                    <th class="p-3 text-left font-semibold">Minimum Ø</th> 
+                                    <th class="p-3 text-left font-semibold">New Ø</th> 
+                                    <th class="p-3 text-left font-semibold">Date</th> 
+                                    <th class="p-3 text-center font-semibold">Estado</th> 
+                                    <th class="p-3 text-center font-semibold">Ações</th> 
+                                  </tr> 
+                                </thead> 
+                                <tbody> 
+                                  {% for item in caixa.pedidos %} 
+                                    <tr id="row-{{ item.pedido.id }}" class="border-b hover:bg-gray-50 transition-colors search-row"> 
+                                      <td class="p-3 pl-12 font-medium text-gray-900">{{ item.pedido.serie_dies }}</td> 
+                                      <td class="p-3 text-gray-600 whitespace-pre-line">{{ item.original_dim }}</td> 
+                                      <td class="p-3 text-blue-600 font-bold whitespace-pre-line">{{ item.pedido.diametro }}</td> 
+                                      <td class="px-6 py-4 text-sm"> 
+                                        {% if item.pedido.trabalhado %} 
+                                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Yes</span> 
+                                        {% else %} 
+                                          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">No</span> 
+                                        {% endif %} 
+                                      </td> 
+                                      <td class="p-3 text-gray-600 whitespace-pre-line">{{ item.diam_requerido }}</td> 
+                                      <td class="p-3 text-gray-600">{{ item.obs_limpa }}</td> 
+                                      <td class="px-6 py-4 text-sm text-gray-900"> 
+                                        <span class="view-mode">{{ item.pedido.diametro_min }}</span> 
+                                        <input type="text" form="form-{{ item.pedido.id }}" name="diametro_min" value="{{ item.pedido.diametro_min }}" class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"> 
+                                      </td> 
+                                      <td class="px-6 py-4 text-sm font-bold text-gray-900"> 
+                                        <span class="view-mode">{{ item.pedido.novo_diametro }}</span> 
+                                        <input type="text" form="form-{{ item.pedido.id }}" name="novo_diametro" value="{{ item.pedido.novo_diametro }}" class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"> 
+                                      </td> 
+                                      <td class="p-3 text-gray-600 whitespace-pre-line leading-tight"> 
+                                        <div>{{ item.pedido.created_at|date:"d/m/Y" }}</div> 
+                                        <div class="text-sm text-gray-500">{{ item.pedido.pedido_por }}</div> 
+                                      </td> 
+                                      <td class="p-3 text-center"> 
+                                        <input type="checkbox" class="js-toggle-feito h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" data-url="{% url 'toggle_pedido_diametro_feito_ajax' item.pedido.pk %}" {% if item.pedido.checkbox %}checked{% endif %}> 
+                                      </td> 
+                                      <td class="px-6 py-4 text-center"> 
+                                        <div class="flex items-center justify-center gap-3"> 
+                                          <form id="form-{{ item.pedido.id }}" method="POST" action="{% url 'editar_pedido_inline' item.pedido.id %}"> 
+                                            {% csrf_token %} 
+                                            <div class="view-mode flex items-center gap-2"> 
+                                              <button type="button" onclick="enableEdit('{{ item.pedido.id }}')" class="text-gray-400 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-blue-50" title="Edit"> 
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"> 
+                                                  <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /> 
+                                                </svg> 
+                                              </button> 
+                                            </div> 
+                                            <div class="edit-mode hidden flex items-center gap-2"> 
+                                              <button type="submit" class="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm" title="Save"> 
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"> 
+                                                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /> 
+                                                </svg> 
+                                              </button> 
+                                              <button type="button" onclick="disableEdit('{{ item.pedido.id }}')" class="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Cancel"> 
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5"> 
+                                                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /> 
+                                                </svg> 
+                                              </button> 
+                                            </div> 
+                                          </form> 
+                                        </div> 
+                                      </td> 
+                                    </tr> 
+                                  {% empty %} 
+                                    <tr> 
+                                      <td colspan="11" class="p-4 text-center text-gray-500 italic">Sem pedidos nesta caixa.</td> 
+                                    </tr> 
+                                  {% endfor %} 
+                                </tbody> 
+                              </table> 
+                            </div> 
+                          </td> 
+                        </tr> 
+                      {% endfor %} 
+                    </tbody> 
+                  </table> 
+                </div> 
+              </td> 
+            </tr> 
+          {% empty %} 
+            <tr> 
+              <td class="px-6 py-10 text-center text-gray-500 italic bg-gray-50">Nenhum pedido encontrado.</td> 
+            </tr> 
+          {% endfor %} 
+        </tbody> 
+      </table> 
+    </div> 
+  </div> 
+</div> 
 
-                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-pre-line">
-                                {{ item.original_dim }}
-                            </td>
+<!-- Modal de Email --> 
+<div id="modalOverlay" class="hidden fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity"> 
+  <form method="POST" action="" class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md" id="formEmailGenerico"> 
+    {% csrf_token %} 
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Enviar Email</h2> 
+    <div class="mb-4"> 
+      <label for="emails" class="block mb-2 font-semibold text-gray-700">Emails:</label> 
+      <select id="emails" name="emails" multiple size="4" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400"> 
+        {% for key, value in email_choices %} 
+          <option value="{{ key }}">{{ value }}</option> 
+        {% endfor %} 
+      </select> 
+      <p class="text-sm text-gray-500 mt-1">Mantenha Ctrl (Cmd no Mac) pressionado para selecionar vários.</p> 
+    </div> 
+    <div class="mb-4"> 
+      <label for="observacoes" class="block mb-2 font-semibold text-gray-700">Observações:</label> 
+      <input id="observacoes" name="observacoes" type="text" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400" /> 
+    </div> 
+    <div class="flex justify-end gap-3 mt-6"> 
+      <button type="button" onclick="fecharModalEmail()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors">Cancelar</button> 
+      <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow">Enviar Email</button> 
+    </div> 
+  </form> 
+</div> 
+{% endblock %} 
 
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                {{ item.pedido.diametro }}
-                            </td>
+{% block extra_js %} 
+<script> 
+  const editSnapshots = {}; 
 
-                            <td class="px-6 py-4 text-sm">
-                                {% if item.pedido.trabalhado %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Yes</span>
-                                {% else %}
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">No</span>
-                                {% endif %}
-                            </td>
+  function enableEdit(id) { 
+    const row = document.getElementById(`row-${id}`); 
+    if (!row) return; 
+    if (!editSnapshots[id]) { 
+      editSnapshots[id] = {}; 
+      row.querySelectorAll('.edit-mode').forEach((el) => { 
+        if (el.name) { 
+          editSnapshots[id][el.name] = el.value; 
+        } 
+      }); 
+    } 
+    row.classList.add('bg-blue-50', 'border-blue-200'); 
+    row.querySelectorAll('.view-mode').forEach((el) => el.classList.add('hidden')); 
+    row.querySelectorAll('.edit-mode').forEach((el) => el.classList.remove('hidden')); 
+    const editActions = row.querySelector('.edit-mode.items-center'); 
+    if (editActions) { 
+      editActions.classList.add('flex'); 
+    } 
+  } 
 
-                            <td class="px-6 py-4 text-sm text-blue-600 font-mono whitespace-pre-line">
-                                {{ item.requerido_dim_str }}
-                            </td>
+  function disableEdit(id) { 
+    const row = document.getElementById(`row-${id}`); 
+    if (!row) return; 
+    row.classList.remove('bg-blue-50', 'border-blue-200'); 
+    row.querySelectorAll('.view-mode').forEach((el) => el.classList.remove('hidden')); 
+    row.querySelectorAll('.edit-mode').forEach((el) => el.classList.add('hidden')); 
+    const editActions = row.querySelector('.edit-mode.items-center'); 
+    if (editActions) { 
+      editActions.classList.remove('flex'); 
+    } 
+  } 
 
-                            <td class="px-6 py-4 text-sm text-gray-600">
-                                {{ item.pedido.get_observations_display }}
-                            </td>
+  function abrirModalEmail(botao) { 
+    const urlCorreta = botao.getAttribute('data-url-diam'); 
+    const form = document.getElementById('formEmailGenerico'); 
+    form.action = urlCorreta; 
+    const modal = document.getElementById('modalOverlay'); 
+    modal.classList.remove('hidden'); 
+  } 
 
-                            <td class="px-6 py-4 text-sm text-gray-900">
-                                <span class="view-mode">{{ item.pedido.diametro_min }}</span>
-                                <input type="text" form="form-{{ item.pedido.id }}" name="diametro_min" value="{{ item.pedido.diametro_min }}" 
-                                    class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            </td>
+  function fecharModalEmail() { 
+    const modal = document.getElementById('modalOverlay'); 
+    modal.classList.add('hidden'); 
+  } 
 
-                            <td class="px-6 py-4 text-sm font-bold text-gray-900">
-                                <span class="view-mode">{{ item.pedido.novo_diametro }}</span>
-                                <input type="text" form="form-{{ item.pedido.id }}" name="novo_diametro" value="{{ item.pedido.novo_diametro }}" 
-                                    class="edit-mode hidden w-20 px-2 py-1 text-sm border border-blue-400 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            </td>
+  window.toggleAnimate = (id, el) => { 
+    const row = document.getElementById(id); 
+    const contentDiv = row.querySelector('.toggle-content'); 
+    const arrow = el.querySelector('.arrow'); 
+    if (row.classList.contains('hidden')) { 
+      row.classList.remove('hidden'); 
+      if (arrow) arrow.style.transform = "rotate(180deg)"; 
+      setTimeout(() => { 
+        contentDiv.classList.remove('max-h-0', 'opacity-0', 'translate-y-2'); 
+        contentDiv.classList.add('max-h-[5000px]', 'opacity-100', 'translate-y-0'); 
+      }, 10); 
+    } else { 
+      contentDiv.classList.remove('max-h-[5000px]', 'opacity-100', 'translate-y-0'); 
+      contentDiv.classList.add('max-h-0', 'opacity-0', 'translate-y-2'); 
+      if (arrow) arrow.style.transform = "rotate(0deg)"; 
+      setTimeout(() => { 
+        row.classList.add('hidden'); 
+      }, 300); 
+    } 
+  }; 
 
-                            <td class="px-6 py-4 text-sm text-gray-500">
-                                {{ item.box_nr|default:"-" }}
-                            </td>
+  function getCookie(name) { 
+    let cookieValue = null; 
+    if (document.cookie && document.cookie !== '') { 
+      const cookies = document.cookie.split(';'); 
+      for (let i = 0; i < cookies.length; i++) { 
+        const cookie = cookies[i].trim(); 
+        if (cookie.substring(0, name.length + 1) === name + '=') { 
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1)); 
+          break; 
+        } 
+      } 
+    } 
+    return cookieValue; 
+  } 
 
-                            <td class="px-6 py-4 text-xs text-gray-500">
-                                <div>{{ item.pedido.created_at|date:"d/m/Y" }}</div>
-                                <div class="text-gray-400">{{ item.pedido.pedido_por }}</div>
-                            </td>
-                            {% if request.user.groups.all.0.name in "Q-Office Administracao" %}
-                            <td class="px-6 py-4 text-center">
-                                <label class="inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="h-4 w-4 text-green-600 rounded border-gray-300 focus:ring-green-500 js-toggle-feito"
-                                        data-url="{% url 'toggle_pedido_diametro_feito_ajax' item.pedido.id %}"
-                                        {% if item.pedido.checkbox %}checked{% endif %} />
-                                </label>
-                            </td>
-                            
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex items-center justify-center gap-3">
-                                    <form id="form-{{ item.pedido.id }}" method="POST" action="{% url 'editar_pedido_inline' item.pedido.id %}">
-                                        {% csrf_token %}
-                                        
-                                        <div class="view-mode flex items-center gap-2">
-                                            <button type="button" onclick="enableEdit('{{ item.pedido.id }}')" 
-                                                class="text-gray-400 hover:text-blue-600 transition-colors p-1.5 rounded-full hover:bg-blue-50" title="Edit">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-                                                </svg>
-                                            </button>
-                                            
-                                            <a href="{% url 'exportar_pedido_excel' item.pedido.id %}" 
-                                                class="text-gray-400 hover:text-green-600 transition-colors p-1.5 rounded-full hover:bg-green-50" title="Download Excel">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                                                </svg>
-                                            </a>
-                                            <button type="button" 
-                                                    data-url-diam="{% url 'enviar_pedido_diametro_email' item.pedido.id %}" 
-                                                    onclick="abrirModalEmail(this)"
-                                                    class="text-gray-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36-.076L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75m19.5 0h-19.5" />
-                                                </svg>
-                                            </button>
-                                        </div>
+  const csrftoken = getCookie('csrftoken'); 
 
-                                        <div class="edit-mode hidden flex items-center gap-2">
-                                            <button type="submit" class="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition-colors shadow-sm" title="Save">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                                </svg>
-                                            </button>
-                                            
-                                            <button type="button" onclick="disableEdit('{{ item.pedido.id }}')" class="bg-red-100 text-red-700 p-1.5 rounded-full hover:bg-red-200 transition-colors shadow-sm" title="Cancel">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-5 h-5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        
-                                        </div>
-                                    </form>
-                                </div>
-                            </td>
-                            {% else %}
-                            <td class="px-6 py-4 text-center">
-                                <p> No authorization </p>
-                            </td>
-                            {% endif %}
-                        </tr>
-                        
-                    {% empty %}
-                        <tr>
-                            <td colspan="12" class="px-6 py-10 text-center text-gray-500 italic bg-gray-50">
-                                <div class="flex flex-col items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mb-2 text-gray-300">
-                                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.31c-.195 0-.382-.078-.52-.217L13.06 6.31Z" />
-                                    </svg>
-                                    <span>No orders found.</span>
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+  document.addEventListener('change', async (e) => { 
+    const input = e.target.closest('.js-toggle-feito'); 
+    if (!input) return; 
+    const url = input.getAttribute('data-url'); 
+    if (!url) return; 
+    input.disabled = true; 
+    input.classList.add('opacity-50'); 
+    try { 
+      const resp = await fetch(url, { 
+        method: 'POST', 
+        headers: { 
+          'Content-Type': 'application/json', 
+          'X-CSRFToken': csrftoken 
+        }, 
+        body: JSON.stringify({ checked: input.checked }) 
+      }); 
+      if (!resp.ok) { 
+        const payload = await resp.json().catch(() => ({})); 
+        throw new Error(payload.message || `Erro ${resp.status}`); 
+      } 
+    } catch (err) { 
+      console.error(err); 
+      input.checked = !input.checked; 
+      alert(err.message || 'Erro ao atualizar estado da checkbox.'); 
+    } finally { 
+      input.disabled = false; 
+      input.classList.remove('opacity-50'); 
+    } 
+  }); 
 
-<div id="modalOverlay" class="hidden fixed inset-0 z-50 bg-transparent-500/20 flex items-center justify-center p-4">
-    
-    <form method="POST" action="" class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md" id="formEmailGenerico">
-        {% csrf_token %}
-        
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Send Email</h2>
-
-        <div class="mb-4">
-            <label for="emails" class="block mb-2 font-semibold text-gray-700">Emails:</label>
-            <select id="emails" name="emails" multiple size="4"
-                    class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400">
-                {% for key, value in email_choices %}
-                <option value="{{ key }}">{{ value }}</option>
-                {% endfor %}
-            </select>
-            <p class="text-sm text-gray-500 mt-1">Hold Ctrl (Cmd on Mac) to select multiple.</p>
-        </div>
-
-        <div class="mb-4">
-            <label for="observacoes" class="block mb-2 font-semibold text-gray-700">Observations:</label>
-            <input id="observacoes" name="observacoes" type="text" 
-                   class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400">
-        </div>
-        
-        <div class="flex justify-end gap-3 mt-6">
-            <button type="button" onclick="fecharModalEmail()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300 transition-colors">
-                Cancel
-            </button>
-            <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors shadow">
-                Send Email
-            </button>
-        </div>
-    </form>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // --- FUNÇÕES DE EDIÇÃO INLINE ---
-    function enableEdit(id) {
-        const row = document.getElementById(`row-${id}`);
-        if(!row) return;
-
-        // Estilo visual da linha em edição
-        row.classList.add('bg-blue-50', 'border-blue-200');
-        
-        // Esconde view-mode e mostra edit-mode
-        row.querySelectorAll('.view-mode').forEach(el => el.classList.add('hidden'));
-        row.querySelectorAll('.edit-mode').forEach(el => el.classList.remove('hidden'));
-    }
-
-    function disableEdit(id) {
-        const row = document.getElementById(`row-${id}`);
-        if(!row) return;
-
-        // Remove estilo
-        row.classList.remove('bg-blue-50', 'border-blue-200');
-        
-        // Reverte visibilidade
-        row.querySelectorAll('.view-mode').forEach(el => el.classList.remove('hidden'));
-        row.querySelectorAll('.edit-mode').forEach(el => el.classList.add('hidden'));
-    }
-
-    function abrirModalEmail(botao) {
-        // 1. Pega a URL do botão clicado
-        const urlCorreta = botao.getAttribute('data-url-diam');
-        
-        // 2. Coloca a action no formulário
-        const form = document.getElementById('formEmailGenerico');
-        form.action = urlCorreta;
-        
-        // 3. Mostra o Modal inteiro removendo o hidden da div de fundo
-        const modal = document.getElementById('modalOverlay');
-        modal.classList.remove('hidden');
-    }
-
-    function fecharModalEmail() {
-        // Adiciona o hidden de volta na div de fundo para esconder tudo
-        const modal = document.getElementById('modalOverlay');
-        modal.classList.add('hidden');
-    }
-
-
-    // --- LÓGICA DO CHECKBOX FEITO (AJAX) ---
-    function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        return cookieValue;
-    }
-    const csrftoken = getCookie('csrftoken');
-
-    document.addEventListener('change', async (e) => {
-        const input = e.target.closest('.js-toggle-feito');
-        if (!input) return;
-
-        const url = input.getAttribute('data-url');
-        if (!url) return;
-
-        // Desabilita temporariamente para evitar cliques duplos
-        input.disabled = true;
-        input.classList.add('opacity-50');
-
-        try {
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({ checked: input.checked })
-            });
-
-            if (!resp.ok) throw new Error('Erro servidor');
-            
-            // Sucesso visual (opcional)
-            // console.log('Atualizado com sucesso');
-
-        } catch (err) {
-            console.error(err);
-            input.checked = !input.checked; // Reverte
-            alert('Erro ao atualizar estado.');
-        } finally {
-            input.disabled = false;
-            input.classList.remove('opacity-50');
-        }
-    });
-
-    // --- PESQUISA NA TABELA ---
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.getElementById('searchInput');
-        const tableBody = document.querySelector('#pedidoTable tbody');
-
-        if (searchInput && tableBody) {
-            searchInput.addEventListener('keyup', function () {
-                const filter = searchInput.value.toLowerCase();
-                const rows = tableBody.getElementsByTagName('tr');
-
-                for (let i = 0; i < rows.length; i++) {
-                    // Ignora linhas de cabeçalho ou mensagens de vazio se houver
-                    if(rows[i].getElementsByTagName('td').length > 1) {
-                        const cells = rows[i].getElementsByTagName('td');
-                        let found = false;
-                        
-                        // Procura em todas as células da linha
-                        for (let j = 0; j < cells.length; j++) {
-                            if (cells[j].textContent.toLowerCase().includes(filter)) {
-                                found = true;
-                                break;
-                            }
-                        }
-                        rows[i].style.display = found ? '' : 'none';
-                    }
-                }
-            });
-        }
-    });
-</script>
+  document.addEventListener('DOMContentLoaded', function () { 
+    const searchInput = document.getElementById('searchInput'); 
+    if (searchInput) { 
+      searchInput.addEventListener('keyup', function () { 
+        const filter = searchInput.value.toLowerCase(); 
+        const rows = document.querySelectorAll('.search-row'); 
+        rows.forEach((row) => { 
+          const text = row.textContent.toLowerCase(); 
+          if (text.includes(filter)) { 
+            row.style.display = ''; 
+          } else { 
+            row.style.display = 'none'; 
+          } 
+        }); 
+      }); 
+    } 
+  }); 
+</script> 
 {% endblock %}

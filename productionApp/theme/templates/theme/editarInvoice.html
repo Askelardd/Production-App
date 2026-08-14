@@ -1,0 +1,108 @@
+{% extends 'theme/base.html' %}
+{% load static %}
+
+{% block title %}
+  Edit Invoice
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-10 px-4">
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+        <div class="p-6">
+            <h2 class="text-xl font-semibold text-neutral-900">
+                Edit Invoice #{{ invoice.invoice_number }}
+            </h2>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden mt-6">
+        <div class="p-6">
+            <!-- INÍCIO DO FORMULÁRIO -->
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="invoice_number" class="block text-gray-700">Invoice Number:</label>
+                    <input type="text" id="invoice_number" name="invoice_number" value="{{ invoice.invoice_number }}" class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+
+                <div class="mb-4">
+                    <label for="invoice_date" class="block text-gray-700">Invoice Date:</label>
+                    <input type="date" id="invoice_date" name="invoice_date" value="{{ invoice.invoice_date|date:'Y-m-d' }}" class="w-full border border-gray-300 rounded px-3 py-2">
+                </div>
+
+                <div class="mb-4">
+                    <label for="invoice" class="block text-gray-700">Invoice:</label>
+                    <input type="file" id="invoice" name="invoice_file" class="w-full border border-gray-300 rounded px-3 py-2">
+                    
+                    {% if invoice.invoice_file %}
+                    <div id="invoice_box" class="mt-2">
+                        <p class="text-sm text-gray-600">
+                        Current file:
+                        <a href="{{ invoice.invoice_file.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            {{ invoice.invoice_file.name }}
+                        </a>
+                        </p>
+                        <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs" data-field="invoice">
+                            Delete
+                        </button>
+                    </div> 
+                    {% endif %}
+                </div>
+        
+                <!-- O BOTÃO TEM DE ESTAR AQUI DENTRO -->
+                <div class="flex justify-end mt-6">
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Save Changes</button>
+
+                    <a href="{% url 'listarProformas' %}" class="ml-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Cancel</a>
+                </div>
+                
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const deleteBtn = document.querySelector('.delete-file-btn');
+        const invoiceBox = document.getElementById('invoice_box');
+        const fileInput = document.getElementById('invoice');
+
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function () {
+                // Pede confirmação antes de apagar
+                if (confirm('Tem a certeza que pretende apagar este ficheiro? Esta ação é irreversível.')) {
+                    
+                    // URL dinâmico usando a tag do Django
+                    const url = "{% url 'delete_invoice_file_ajax' invoice.id %}";
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}', // Obrigatório no Django para POST
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // 1. Remove a caixa com o nome do ficheiro e o botão
+                            if (invoiceBox) invoiceBox.remove();
+                            
+                            // 2. Limpa o input de ficheiros para poderes escolher um novo
+                            if (fileInput) fileInput.value = '';
+                        } else {
+                            alert('Erro ao apagar o ficheiro: ' + (data.message || 'Desconhecido'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro no pedido AJAX:', error);
+                        alert('Ocorreu um erro ao tentar apagar o ficheiro.');
+                    });
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

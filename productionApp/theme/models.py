@@ -91,7 +91,7 @@ class QRData(models.Model):
     toma_order_nr = models.CharField(max_length=50)
     toma_order_year = models.CharField(max_length=10)
     toma_order_full = models.CharField(max_length=20, unique=True, blank=True, null=True)  # novo campo único
-    box_nr = models.CharField(max_length=10)
+    box_nr = models.IntegerField()
     qt = models.IntegerField()
     created_at = models.DateTimeField(default=timezone.now)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -102,7 +102,7 @@ class QRData(models.Model):
     inspected_by = models.CharField(max_length=100, blank=True, null=True)
     box_files = models.ManyToManyField('BoxFiles', related_name='qrdata', blank=True)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs): 
         self.toma_order_full = f"{self.toma_order_year}-{self.toma_order_nr}-{self.box_nr}"
         super().save(*args, **kwargs)
 
@@ -165,7 +165,7 @@ class globalLogs(models.Model):
 
 class dieInstance(models.Model):
     customer = models.ForeignKey(QRData, on_delete=models.CASCADE, related_name='die_instances')
-    serial_number = models.CharField(max_length=20, unique=True, null=False, blank=False)
+    serial_number = models.CharField(max_length=20, null=False, blank=False)
     diameter_text = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)  # <-- Novo campo
     diam_sugerido = DiameterDecimalField(max_digits=6, decimal_places=4, null=True, blank=True)
     cone = models.CharField(max_length=20)  
@@ -228,6 +228,7 @@ class PedidosDiametro(models.Model):
         ],
         default='buraco_no_cone'
     )
+    outras_observacoes = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -550,6 +551,7 @@ class faturas(models.Model):
     data_enviado = models.DateField(null=True, blank=True)
     descricao = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         self.fatura_unica = f"{self.fornecedor.name}-{self.numero_fatura}"

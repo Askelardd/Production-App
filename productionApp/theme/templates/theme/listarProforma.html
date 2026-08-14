@@ -1,502 +1,613 @@
-{% extends 'theme/base.html' %}
+{% extends 'theme/base.html' %} 
 
-{% block title %}
-  Proforma
-{% endblock %}
+{% block title %} Proforma {% endblock %} 
 
-{% block content %}
-  <div class="mb-4 flex justify-between items-center">
-    <input type="text" id="searchInput" placeholder="Search all fields..." class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+{% block content %} 
+<div class="mb-4 flex justify-between items-center"> 
+  <input type="text" id="searchInput" placeholder="Search all fields..." class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" /> 
+  <div class="flex space-x-2"> 
+    <button type="button" id="openAddProformaButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">Add Proforma</button> 
+    <button type="button" id="openCalcularProformaButton" class="bg-red-300 text-white px-4 py-2 rounded hover:bg-red-500 transition">Calculate Proformas</button> 
+    <a href="{% url 'adicionarInvoice' %}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-900 transition">Add Invoice</a> 
+  </div> 
+</div> 
 
-    <div class="flex space-x-2">
-      <button type="button" id="openAddProformaButton" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">Add Proforma</button>
-      <a href="{% url 'adicionarInvoice' %}" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-900 transition">Add Invoice</a>
-    </div>
-  </div>
+<form method="GET" action="{% url 'listarProformas' %}" id="proformasFilter" class="mb-6"> 
+  <input type="hidden" name="sort" id="sortInput" value="{{ current_sort }}"> 
+  <input type="hidden" name="dir" id="dirInput" value="{{ current_dir }}"> 
+  <div class="flex flex-wrap gap-4 items-end"> 
+    <div> 
+      <label for="de" class="block text-sm font-medium text-gray-700">From</label> 
+      <input type="date" id="de" name="de" value="{{ de }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" /> 
+    </div> 
+    <div> 
+      <label for="ate" class="block text-sm font-medium text-gray-700">To</label> 
+      <input type="date" id="ate" name="ate" value="{{ ate }}" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" /> 
+    </div> 
+    <div> 
+      <label class="block text-sm font-medium text-gray-700">Invoice</label> 
+      <select name="invoice" class="mt-1 border border-gray-300 rounded-md shadow-sm p-2 bg-white focus:ring-blue-500 focus:border-blue-500"> 
+        <option value="">All Invoices</option> 
+        <option value="has_invoice" {% if invoice_filter == 'has_invoice' %}selected{% endif %}>Has Invoice</option> 
+        <option value="has_no_invoice" {% if invoice_filter == 'has_no_invoice' %}selected{% endif %}>No Invoice</option> 
+      </select> 
+    </div> 
+    <div class="flex gap-2"> 
+      <button class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button> 
+      <a href="{% url 'listarProformas' %}" id="clearProformasFiltersLink" class="px-4 py-2 border rounded hover:bg-gray-100">Clear</a> 
+    </div> 
+  </div> 
+</form> 
 
-  <!-- Tabela otimizada com o mesmo visual, sticky header e sombras da tabela de Faturas -->
-  <div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg">
-    <table class="min-w-full bg-white border-collapse" id="proformasTable">
-      <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm">
-        <tr>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">PO</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proforma Number</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proforma Date</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">First Payment</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">PayDate</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Rest</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">PayDate Rest</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proforma</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Prof.Pay.</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Prof.Pay.Rest</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Comments</th>
-          <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for proforma in proformas %}
-          <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors {% if paid %} bg-green-100 hover:bg-green-50 {% elif not_paid %} bg-red-100 hover:bg-red-50 {% endif %}">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ proforma.customer_PO }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ proforma.total_amount }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ proforma.proforma_number }}</td>
+<!-- Tabela de Proformas -->
+<div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg"> 
+  <table class="min-w-full bg-white border-collapse" id="proformasTable"> 
+    <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm select-none"> 
+      <tr> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="customer_PO"> PO {% if current_sort == 'customer_PO' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="total_amount"> Amount {% if current_sort == 'total_amount' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="proforma_number"> Proforma Number {% if current_sort == 'proforma_number' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="proforma_date"> Proforma Date {% if current_sort == 'proforma_date' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="amount_1"> First Payment {% if current_sort == 'amount_1' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="paydate_1"> PayDate {% if current_sort == 'paydate_1' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="amount_2"> Rest {% if current_sort == 'amount_2' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-200 transition sortable-col" data-sort="paydate_2"> PayDate Rest {% if current_sort == 'paydate_2' %}{% if current_dir == 'asc' %}▲{% else %}▼{% endif %}{% endif %} </th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proforma</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Prof.Pay.</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Prof.Pay.Rest</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Comments</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th> 
+      </tr> 
+    </thead> 
+    <tbody> 
+      {% for proforma in proformas %} 
+        <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors {% if paid %} bg-green-100 hover:bg-green-50 {% elif not_paid %} bg-red-100 hover:bg-red-50 {% endif %}"> 
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ proforma.customer_PO }}</td> 
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ proforma.total_amount }}</td> 
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ proforma.proforma_number }}</td> 
+          <td id="proforma_date-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"> {{ proforma.proforma_date|date:'Y-m-d' }} </td> 
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900"> {{ proforma.amount_1 }} <br /> <span class="text-gray-500 text-xs font-normal">{{ proforma.percentage_1 }}%</span> </td> 
+          <td id="paydate-1-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"> {{ proforma.paydate_1|date:'Y-m-d' }} </td> 
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900"> {{ proforma.amount_2 }} <br /> <span class="text-gray-500 text-xs font-normal">{{ proforma.percentage_2 }}%</span> </td> 
+          <td id="paydate-2-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"> {{ proforma.paydate_2|date:'Y-m-d' }} </td> 
 
-            <td id="proforma_date-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-              {{ proforma.proforma_date|date:'Y-m-d' }}
-            </td>
+          <!-- Dropzone Proforma File -->
+          <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200" id="dropzone-prof-{{ proforma.id }}" data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}" data-field="proforma" ondragover="handleDragOver(event, '{{ proforma.id }}', 'prof')" ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'prof')" ondrop="handleDrop(event, '{{ proforma.id }}', 'prof')"> 
+            <div id="overlay-prof-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+              <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> 
+              <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span> 
+            </div> 
+            <div id="list-prof-{{ proforma.id }}" class="space-y-1"> 
+              {% if proforma.proforma %} 
+                <div class="flex items-center group"> 
+                  <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> 
+                  <a href="{{ proforma.proforma.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proforma.name }}"> {{ proforma.proforma|cut:'p2_control_files/' }} </a> 
+                </div> 
+              {% else %} 
+                <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'prof')">Drag proforma...</span> 
+              {% endif %} 
+            </div> 
+            <input type="file" id="input-prof-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'prof')"> 
+          </td> 
 
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-              {{ proforma.amount_1 }} <br />
-              <span class="text-gray-500 text-xs font-normal">{{ proforma.percentage_1 }}%</span>
-            </td>
+          <!-- Dropzone POP 1 -->
+          <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200" id="dropzone-pop1-{{ proforma.id }}" data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}" data-field="proof_of_payment_1" ondragover="handleDragOver(event, '{{ proforma.id }}', 'pop1')" ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'pop1')" ondrop="handleDrop(event, '{{ proforma.id }}', 'pop1')"> 
+            <div id="overlay-pop1-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+              <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> 
+              <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span> 
+            </div> 
+            <div id="list-pop1-{{ proforma.id }}" class="space-y-1"> 
+              {% if proforma.proof_of_payment_1 %} 
+                <div class="flex items-center group"> 
+                  <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> 
+                  <a href="{{ proforma.proof_of_payment_1.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proof_of_payment_1.name }}"> {{ proforma.proof_of_payment_1|cut:'p2_control_files/' }} </a> 
+                </div> 
+              {% else %} 
+                <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'pop1')">Drag proof 1...</span> 
+              {% endif %} 
+            </div> 
+            <input type="file" id="input-pop1-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'pop1')"> 
+          </td> 
 
-            <td id="paydate-1-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-              {{ proforma.paydate_1|date:'Y-m-d' }}
-            </td>
+          <!-- Dropzone POP 2 -->
+          <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200" id="dropzone-pop2-{{ proforma.id }}" data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}" data-field="proof_of_payment_2" ondragover="handleDragOver(event, '{{ proforma.id }}', 'pop2')" ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'pop2')" ondrop="handleDrop(event, '{{ proforma.id }}', 'pop2')"> 
+            <div id="overlay-pop2-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+              <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> 
+              <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span> 
+            </div> 
+            <div id="list-pop2-{{ proforma.id }}" class="space-y-1"> 
+              {% if proforma.proof_of_payment_2 %} 
+                <div class="flex items-center group"> 
+                  <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> 
+                  <a href="{{ proforma.proof_of_payment_2.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proof_of_payment_2.name }}"> {{ proforma.proof_of_payment_2|cut:'p2_control_files/' }} </a> 
+                </div> 
+              {% else %} 
+                <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'pop2')">Drag proof 2...</span> 
+              {% endif %} 
+            </div> 
+            <input type="file" id="input-pop2-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'pop2')"> 
+          </td> 
 
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-              {{ proforma.amount_2 }} <br />
-              <span class="text-gray-500 text-xs font-normal">{{ proforma.percentage_2 }}%</span>
-            </td>
+          <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700"> 
+            <div class="space-y-1"> 
+              {% with invoice=proforma.invoices.first %} 
+                {% if invoice %} 
+                  {% if invoice.invoice_file %} 
+                    <div class="flex items-center group"> 
+                      <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"> 
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path> 
+                      </svg> 
+                      <a href="{{ invoice.invoice_file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ invoice.invoice_file.name }}"> {{ invoice.invoice_file|cut:'invoice_files/' }} </a> 
+                    </div> 
+                  {% endif %} 
+                  <p class="text-sm font-bold text-gray-900 italic"> {{ invoice.invoice_number }} <br> <span class="font-normal">{{ invoice.invoice_date|date:'Y-m-d' }}</span> </p> 
+                {% else %} 
+                  <span class="text-neutral-400 text-xs italic">No invoice</span> 
+                {% endif %} 
+              {% endwith %} 
+            </div> 
+          </td> 
 
-            <td id="paydate-2-{{ proforma.id }}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-              {{ proforma.paydate_2|date:'Y-m-d' }}
-            </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700"> 
+            {% if proforma.comments %} 
+              <span class="text-gray-800">{{ proforma.comments|truncatechars:40 }}</span> 
+            {% else %} 
+              <span class="text-neutral-400 text-xs italic">-</span> 
+            {% endif %} 
+          </td> 
 
-              <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
-                  id="dropzone-prof-{{ proforma.id }}"
-                  data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}"
-                  data-field="proforma"
-                  ondragover="handleDragOver(event, '{{ proforma.id }}', 'prof')"
-                  ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'prof')"
-                  ondrop="handleDrop(event, '{{ proforma.id }}', 'prof')">
+          <td class="px-6 py-4 whitespace-nowrap text-sm"> 
+            <a href="{% url 'editarProforma' proforma.id %}" class="text-blue-600 hover:text-blue-800 font-semibold mr-3">Edit</a> 
+            {% with invoice=proforma.invoices.first %} 
+              {% if invoice %} 
+                <a href="{% url 'editarInvoice' invoice.id %}" class="text-blue-600 hover:text-blue-800 font-semibold mr-3">Edit invoice</a> 
+                <form action="{% url 'unlink_proforma_invoice' proforma.id invoice.id %}" method="post" class="inline" onsubmit="return confirm('Tem a certeza que pretende desassociar esta proforma da fatura {{ invoice.invoice_number }}?');"> 
+                  {% csrf_token %} 
+                  <button type="submit" class="text-orange-500 hover:text-orange-700 font-semibold mr-3">Unlink</button> 
+                </form> 
+              {% endif %} 
+            {% endwith %} 
+            <form action="{% url 'delete_p2' proforma.id %}" method="post" class="inline" onsubmit="return confirm('Tem a certeza que pretende eliminar esta proforma?');"> 
+              {% csrf_token %} 
+              <button type="submit" class="text-red-600 hover:text-red-800 font-semibold">Delete</button> 
+            </form> 
+          </td> 
+        </tr> 
+      {% empty %} 
+        <tr> 
+          <td colspan="12" class="text-center px-6 py-4 text-sm text-gray-500">No Proformas found.</td> 
+        </tr> 
+      {% endfor %} 
+    </tbody> 
+  </table> 
+</div> 
 
-                  <div id="overlay-prof-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                      <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                      <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span>
-                  </div>
+<!-- Modal Adicionar Proforma -->
+<div class="fixed inset-0 bg-neutral-900 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 hidden overflow-y-auto p-4" id="addProformaModal"> 
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative my-4 max-h-[90dvh] overflow-y-auto"> 
+    <button type="button" id="closeAddProformaButton" class="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 text-2xl font-semibold">&times;</button> 
+    <h2 class="text-xl font-semibold mb-6 text-neutral-900 border-b pb-3 tracking-tight">Add Proforma</h2> 
+    <form method="post" action="{% url 'listarProformas' %}" enctype="multipart/form-data" id="addProformaForm"> 
+      {% csrf_token %} 
+      <div class="grid grid-cols-1 gap-5"> 
+        <div> 
+          <label for="customer_PO" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">PO</label> 
+          <input type="text" name="customer_PO" id="customer_PO" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" /> 
+        </div> 
+        <div> 
+          <label for="total_amount" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Total Amount</label> 
+          <input type="number" step="0.01" name="total_amount" id="total_amount" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" /> 
+        </div> 
+        <div> 
+          <label for="proforma_number" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proforma Number</label> 
+          <input type="text" name="proforma_number" id="proforma_number" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" /> 
+        </div> 
+        <div> 
+          <label for="proforma_date" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proforma Date</label> 
+          <input type="date" name="proforma_date" id="proforma_date" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" /> 
+        </div> 
+        <div> 
+          <label for="percentage_1" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proportion (first)</label> 
+          <input type="number" step="0.01" name="percentage_1" id="percentage_1" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" /> 
+        </div> 
+        <div> 
+          <label for="comments" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Comments</label> 
+          <textarea name="comments" id="comments" rows="3" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800"></textarea> 
+        </div> 
 
-                  <div id="list-prof-{{ proforma.id }}" class="space-y-1">
-                      {% if proforma.proforma %}
-                          <div class="flex items-center group">
-                              <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                              <a href="{{ proforma.proforma.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proforma.name }}">
-                                  {{ proforma.proforma|cut:'p2_control_files/' }}
-                              </a>
-                          </div>
-                      {% else %}
-                          <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'prof')">Drag proforma...</span>
-                      {% endif %}
-                  </div>
-                  <input type="file" id="input-prof-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'prof')">
-              </td>
-            
-            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
-                id="dropzone-pop1-{{ proforma.id }}"
-                data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}"
-                data-field="proof_of_payment_1"
-                ondragover="handleDragOver(event, '{{ proforma.id }}', 'pop1')"
-                ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'pop1')"
-                ondrop="handleDrop(event, '{{ proforma.id }}', 'pop1')">
+        <div class="grid gap-4 md:grid-cols-3"> 
+          <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proforma_file"> 
+            <input type="file" name="proforma_file" id="proforma_file" class="hidden" /> 
+            <label for="proforma_file" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none"> 
+              <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span> 
+              <span class="text-xs font-medium text-neutral-700">Proforma</span> 
+              <span class="text-[10px] text-neutral-400" data-file-name="proforma_file">Click or Drag</span> 
+            </label> 
+          </div> 
+          <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proof_of_payment_1"> 
+            <input type="file" name="proof_of_payment_1" id="proof_of_payment_1" class="hidden" /> 
+            <label for="proof_of_payment_1" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none"> 
+              <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span> 
+              <span class="text-xs font-medium text-neutral-700">Proof of Payment 1</span> 
+              <span class="text-[10px] text-neutral-400" data-file-name="proof_of_payment_1">Click or Drag</span> 
+            </label> 
+          </div> 
+          <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proof_of_payment_2"> 
+            <input type="file" name="proof_of_payment_2" id="proof_of_payment_2" class="hidden" /> 
+            <label for="proof_of_payment_2" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none"> 
+              <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span> 
+              <span class="text-xs font-medium text-neutral-700">Proof of Payment 2</span> 
+              <span class="text-[10px] text-neutral-400" data-file-name="proof_of_payment_2">Click or Drag</span> 
+            </label> 
+          </div> 
+        </div> 
+      </div> 
+      <div class="mt-8 flex justify-end space-x-3"> 
+        <button type="button" id="cancelAddProformaButton" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium px-5 py-2.5 rounded-lg transition text-sm">Cancel</button> 
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition text-sm">Add Proforma</button> 
+      </div> 
+    </form> 
+  </div> 
+</div> 
 
-                <div id="overlay-pop1-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                    <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span>
-                </div>
+<!-- Modal Calcular Proformas -->
+<div class="fixed inset-0 bg-neutral-900 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 hidden overflow-y-auto p-4" id="calcularProformaModal"> 
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative my-4 max-h-[90dvh] overflow-y-auto"> 
+    <button type="button" id="closeCalcularProformaButton" class="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 text-2xl font-semibold">&times;</button> 
+    <h2 class="text-xl font-semibold mb-6 text-neutral-900 border-b pb-3 tracking-tight">Calculadora de Proformas</h2> 
+    <form method="post" action="{% url 'calcular_proforma' %}" enctype="multipart/form-data" id="calcularProformaForm"> 
+      {% csrf_token %} 
+      <div class="grid grid-cols-1 gap-5"> 
+        <div> 
+          <span class="block text-gray-700 mb-1">Search Proforma:</span> 
+          <!-- ID alterado para modalSearchInput para evitar conflito com a página principal -->
+          <input type="text" id="modalSearchInput" placeholder="Search Proforma" class="w-full border border-gray-300 rounded px-3 py-2 mt-1"> 
+          
+          <label for="proformas" class="block text-gray-700 mt-3">Select Proformas:</label> 
+          <select id="proformas" name="proformas" multiple class="w-full border border-gray-300 rounded px-3 py-2 mt-1"> 
+            <option value="">-- Select Proforma --</option> 
+            {% for proforma in proformas %} 
+              <!-- Adicionados data-first-amount e data-second-amount -->
+              <option value="{{ proforma.id }}" 
+                      data-amount="{{ proforma.amount_2|default:0 }}"
+                      data-first-amount="{{ proforma.amount_1|default:0 }}"
+                      data-second-amount="{{ proforma.amount_2|default:0 }}"> 
+                {{ proforma.customer_PO }} - 1º: {{ proforma.amount_1|default:0 }} - 2º: {{ proforma.amount_2|default:0 }} 
+              </option> 
+            {% endfor %} 
+          </select> 
+        </div> 
 
-                <div id="list-pop1-{{ proforma.id }}" class="space-y-1">
-                    {% if proforma.proof_of_payment_1 %}
-                        <div class="flex items-center group">
-                            <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                            <a href="{{ proforma.proof_of_payment_1.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proof_of_payment_1.name }}">
-                                {{ proforma.proof_of_payment_1|cut:'p2_control_files/' }}
-                            </a>
-                        </div>
-                    {% else %}
-                        <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'pop1')">Drag proof 1...</span>
-                    {% endif %}
-                </div>
-                <input type="file" id="input-pop1-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'pop1')">
-            </td>
+        <div> 
+          <label class="block text-gray-700">Total Amounts:</label> 
+          <label for="total_amount_first_pay" class="block text-gray-700 mt-1">First Payment Total:</label>
+          <input type="text" id="total_amount_first_pay" name="amount_1" readonly class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 mt-1" value="0.00"> 
+          <label for="total_amount_second_pay" class="block text-gray-700 mt-1">Second Payment Total:</label>
+          <input type="text" id="total_amount_second_pay" name="amount_2" readonly class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 mt-1" value="0.00"> 
+          <label for="total_payment" class="block text-gray-700 mt-1">Total Payment (first + second):</label>
+          <input type="text" id="total_payment" name="total_amount" readonly class="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 mt-1" value="0.00"> 
+        </div> 
+      </div> 
+    </form> 
+  </div> 
+</div> 
+{% endblock %} 
 
-            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
-                id="dropzone-pop2-{{ proforma.id }}"
-                data-upload-url="{% url 'upload_p2control_file_ajax' proforma.id %}"
-                data-field="proof_of_payment_2"
-                ondragover="handleDragOver(event, '{{ proforma.id }}', 'pop2')"
-                ondragleave="handleDragLeave(event, '{{ proforma.id }}', 'pop2')"
-                ondrop="handleDrop(event, '{{ proforma.id }}', 'pop2')">
+{% block extra_js %} 
+<script> 
+  document.addEventListener('DOMContentLoaded', function () { 
+    // --- 1. ELEMENTOS DOS MODAIS ---
+    const addModal = document.getElementById('addProformaModal'); 
+    const openAddBtn = document.getElementById('openAddProformaButton'); 
+    const closeAddBtn = document.getElementById('closeAddProformaButton'); 
+    const cancelAddBtn = document.getElementById('cancelAddProformaButton'); 
 
-                <div id="overlay-pop2-{{ proforma.id }}" class="absolute inset-0 bg-neutral-100 bg-opacity-95 border-2 border-dashed border-neutral-400 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                    <svg class="w-4 h-4 text-neutral-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    <span class="text-neutral-700 font-bold text-[10px] tracking-wider uppercase">Soltar aqui</span>
-                </div>
+    const calcModal = document.getElementById('calcularProformaModal'); 
+    const openCalcBtn = document.getElementById('openCalcularProformaButton'); 
+    const closeCalcBtn = document.getElementById('closeCalcularProformaButton'); 
 
-                <div id="list-pop2-{{ proforma.id }}" class="space-y-1">
-                    {% if proforma.proof_of_payment_2 %}
-                        <div class="flex items-center group">
-                            <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                            <a href="{{ proforma.proof_of_payment_2.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proof_of_payment_2.name }}">
-                                {{ proforma.proof_of_payment_2|cut:'p2_control_files/' }}
-                            </a>
-                        </div>
-                    {% else %}
-                        <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('{{ proforma.id }}', 'pop2')">Drag proof 2...</span>
-                    {% endif %}
-                </div>
-                <input type="file" id="input-pop2-{{ proforma.id }}" class="hidden" onchange="handleFileSelect(this, '{{ proforma.id }}', 'pop2')">
-            </td>
+    const navBar = document.querySelector('nav'); 
 
-            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">
-              <div class="space-y-1">
-                {% if proforma.proforma_invoice %}
-                  <div class="flex items-center group">
-                    <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-                    </svg>
-                    <a href="{{ proforma.proforma_invoice.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="{{ proforma.proforma_invoice.name }}">
-                      {{ proforma.proforma_invoice|cut:'p2_control_files/' }}
-                    </a>
-                  </div>
-                  {% with invoice=proforma.invoices.first %}
-                  {% if invoice %}
-                    <p class="text-sm font-bold text-black-500 italic">
-                      {{ invoice.invoice_number }} <br> {{ invoice.invoice_date|date:'Y-m-d' }}
-                    </p>
-                  {% else %}
-                    <span class="text-neutral-400 text-xs italic">No invoice</span>
-                  {% endif %}
-                {% endwith %}
-                {% else %}
-                  <span class="text-neutral-400 text-xs italic ">No invoice</span>
-                {% endif %}
-              </div>
-            </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-              {% if proforma.comments %}
-                <span class="text-gray-800">{{ proforma.comments|truncatechars:40 }}</span>
-              {% else %}
-                <span class="text-neutral-400 text-xs italic">-</span>
-              {% endif %}
-            </td>
-
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
-              <a href="{% url 'editarProforma' proforma.id %}" class="text-blue-600 hover:text-blue-800 font-semibold mr-3">Edit</a>
-              <form action="{% url 'delete_p2' proforma.id %}" method="post" class="inline" onsubmit="return confirm('Tem a certeza que pretende eliminar esta proforma?');">
-                {% csrf_token %}
-                <button type="submit" class="text-red-600 hover:text-red-800 font-semibold">Delete</button>
-              </form>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="12" class="text-center px-6 py-4 text-sm text-gray-500">No Proformas found.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="fixed inset-0 bg-neutral-900 bg-opacity-40 backdrop-blur-sm flex items-center justify-center z-50 hidden overflow-y-auto p-4" id="addProformaModal">
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-8 relative my-4 max-h-[90dvh] overflow-y-auto">
-      <button type="button" id="closeAddProformaButton" class="absolute top-5 right-5 text-neutral-400 hover:text-neutral-700 text-2xl font-semibold">&times;</button>
-      <h2 class="text-xl font-semibold mb-6 text-neutral-900 border-b pb-3 tracking-tight">Add Proforma</h2>
-      <form method="post" action="{% url 'listarProformas' %}" enctype="multipart/form-data" id="addProformaForm">
-        {% csrf_token %}
-        <div class="grid grid-cols-1 gap-5">
-          <div>
-            <label for="customer_PO" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">PO</label>
-            <input type="text" name="customer_PO" id="customer_PO" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" />
-          </div>
-          <div>
-            <label for="total_amount" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Total Amount</label>
-            <input type="number" step="0.01" name="total_amount" id="total_amount" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" />
-          </div>
-          <div>
-            <label for="proforma_number" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proforma Number</label>
-            <input type="text" name="proforma_number" id="proforma_number" required class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" />
-          </div>
-
-          <div>
-            <label for="proforma_date" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proforma Date</label>
-            <input type="date" name="proforma_date" id="proforma_date" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" />
-          </div>
-
-          <div>
-            <label for="percentage_1" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Proportion (first)</label>
-            <input type="number" step="0.01" name="percentage_1" id="percentage_1" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800" />
-          </div>
-
-          <div>
-            <lebel for="comments" class="block text-xs font-medium text-neutral-500 uppercase tracking-wider">Comments</lebel>
-            <textarea name="comments" id="comments" rows="3" class="mt-1 block w-full border border-neutral-200 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-1 focus:ring-neutral-500 focus:border-neutral-500 sm:text-sm text-neutral-800"></textarea>
-          </div>
-
-          <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proforma_file">
-            <input type="file" name="proforma_file" id="proforma_file" class="hidden" />
-            <label for="proforma_file" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none">
-              <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span>
-              <span class="text-xs font-medium text-neutral-700">Proforma</span>
-              <span class="text-[10px] text-neutral-400" data-file-name="proforma_file">Click or Drag</span>
-            </label>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-3">
-            <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proof_of_payment_1">
-              <input type="file" name="proof_of_payment_1" id="proof_of_payment_1" class="hidden" />
-              <label for="proof_of_payment_1" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none">
-                <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span>
-                <span class="text-xs font-medium text-neutral-700">Proof of Payment 1</span>
-                <span class="text-[10px] text-neutral-400" data-file-name="proof_of_payment_1">Click or Drag</span>
-              </label>
-            </div>
-
-            <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proof_of_payment_2">
-              <input type="file" name="proof_of_payment_2" id="proof_of_payment_2" class="hidden" />
-              <label for="proof_of_payment_2" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none">
-                <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span>
-                <span class="text-xs font-medium text-neutral-700">Proof of Payment 2</span>
-                <span class="text-[10px] text-neutral-400" data-file-name="proof_of_payment_2">Click or Drag</span>
-              </label>
-            </div>
-
-            <div class="rounded-lg border border-dashed border-neutral-200 bg-white p-4 transition duration-300 hover:border-neutral-400 hover:bg-neutral-50/50 cursor-pointer" data-dropzone="proforma_invoice">
-              <input type="file" name="proforma_invoice" id="proforma_invoice" class="hidden" />
-              <label for="proforma_invoice" class="flex h-full cursor-pointer flex-col items-center justify-center gap-2 text-center pointer-events-none">
-                <span class="rounded-full bg-neutral-100 border border-neutral-200 px-2.5 py-0.5 text-[10px] font-medium tracking-tight text-neutral-500 uppercase">Dropzone</span>
-                <span class="text-xs font-medium text-neutral-700">Invoice</span>
-                <span class="text-[10px] text-neutral-400" data-file-name="proforma_invoice">Click or Drag</span>
-              </label>
-            </div>
-          </div>
-        </div>
-        <div class="mt-8 flex justify-end space-x-3">
-          <button type="button" id="cancelAddProformaButton" class="bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-medium px-5 py-2.5 rounded-lg transition text-sm">Cancel</button>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg transition text-sm">Add Proforma</button>
-        </div>
-      </form>
-    </div>
-  </div>
-{% endblock %}
-
-{% block extra_js %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const modal = document.getElementById('addProformaModal')
-      const openModalButton = document.getElementById('openAddProformaButton')
-      const closeModalButton = document.getElementById('closeAddProformaButton')
-      const cancelModalButton = document.getElementById('cancelAddProformaButton')
-      const navBar = document.querySelector('nav');
-      
-      function openModal() {
-        modal.classList.remove('hidden')
-        document.body.classList.add('overflow-hidden')
-        if (navBar) navBar.classList.add('hidden');
+    // Funções de Abrir/Fechar Modais
+    function openAddModal() { 
+      if (addModal) {
+        addModal.classList.remove('hidden'); 
+        document.body.classList.add('overflow-hidden'); 
+        if (navBar) navBar.classList.add('hidden'); 
       }
+    } 
 
-      function closeModal() {
-        modal.classList.add('hidden')
-        document.body.classList.remove('overflow-hidden')
-        if (navBar) navBar.classList.remove('hidden');
+    function closeAddModal() { 
+      if (addModal) {
+        addModal.classList.add('hidden'); 
+        document.body.classList.remove('overflow-hidden'); 
+        if (navBar) navBar.classList.remove('hidden'); 
       }
+    } 
 
-      if (modal && openModalButton && closeModalButton && cancelModalButton) {
-        openModalButton.addEventListener('click', openModal)
-        closeModalButton.addEventListener('click', closeModal)
-        cancelModalButton.addEventListener('click', closeModal)
+    function openCalcModal() { 
+      if (calcModal) {
+        calcModal.classList.remove('hidden'); 
+        document.body.classList.add('overflow-hidden'); 
+        if (navBar) navBar.classList.add('hidden'); 
       }
-      
-    
-      // ---- DROPZONES  ----
-      const dropzoneNames = ['proof_of_payment_1', 'proof_of_payment_2', 'proforma_invoice', 'proforma_file']
-    
-      dropzoneNames.forEach(function (fieldName) {
-        const dropzone = modal.querySelector(`[data-dropzone="${fieldName}"]`)
-        const input = document.getElementById(fieldName)
-        const fileLabel = modal.querySelector(`[data-file-name="${fieldName}"]`)
-    
-        if (!dropzone || !input || !fileLabel) return;
-    
-        const setFileName = function () {
-          fileLabel.textContent = input.files && input.files.length ? input.files[0].name : 'Click or Drag'
-        }
-    
-        dropzone.addEventListener('click', () => input.click())
-        input.addEventListener('change', setFileName)
-    
-        dropzone.addEventListener('dragover', function (event) {
-          event.preventDefault()
-          dropzone.classList.add('border-neutral-500', 'bg-neutral-50')
-        })
-    
-        dropzone.addEventListener('dragleave', function () {
-          dropzone.classList.remove('border-neutral-500', 'bg-neutral-50')
-        })
-    
-        dropzone.addEventListener('drop', function (event) {
-          event.preventDefault()
-          dropzone.classList.remove('border-neutral-500', 'bg-neutral-50')
-    
-          if (!event.dataTransfer || !event.dataTransfer.files.length) return;
-    
-          const dataTransfer = new DataTransfer()
-          dataTransfer.items.add(event.dataTransfer.files[0])
-          input.files = dataTransfer.files
-          setFileName()
-        })
-      })
+    } 
 
-      // ---- BARRA DE PESQUISA ----
-      const searchInput = document.getElementById('searchInput')
-      const table = document.getElementById('proformasTable').getElementsByTagName('tbody')[0]
-    
-      if (searchInput && table) {
-        searchInput.addEventListener('keyup', function () {
-          const filter = searchInput.value.toLowerCase()
-          const rows = table.getElementsByTagName('tr')
-    
-          for (let i = 0; i < rows.length; i++) {
-            const cells = rows[i].getElementsByTagName('td')
-            let found = false
-    
-            for (let j = 0; j < cells.length - 1; j++) {
-              if (cells[j].textContent.toLowerCase().includes(filter)) {
-                found = true
-                break
-              }
-            }
-            rows[i].style.display = found ? '' : 'none'
-          }
-        })
+    function closeCalcModal() { 
+      if (calcModal) {
+        calcModal.classList.add('hidden'); 
+        document.body.classList.remove('overflow-hidden'); 
+        if (navBar) navBar.classList.remove('hidden'); 
       }
-    });
+    } 
 
-    // ---- FUNÇÕES DE ARRASTAR E SOLTAR (TABELA) IGUAL AO DE FATURAS ----
-    function handleDragOver(e, id, tipo) {
-        e.preventDefault();
-        e.stopPropagation();
-        const overlay = document.getElementById(`overlay-${tipo}-${id}`);
-        if (overlay) overlay.classList.remove('hidden');
+    if (openAddBtn) openAddBtn.addEventListener('click', openAddModal); 
+    if (closeAddBtn) closeAddBtn.addEventListener('click', closeAddModal); 
+    if (cancelAddBtn) cancelAddBtn.addEventListener('click', closeAddModal); 
+
+    if (openCalcBtn) openCalcBtn.addEventListener('click', openCalcModal); 
+    if (closeCalcBtn) closeCalcBtn.addEventListener('click', closeCalcModal); 
+
+    // --- 2. CALCULADORA DE PROFORMAS (MODAL) ---
+    const selectProformas = document.getElementById('proformas'); 
+    const firstAmountInput = document.getElementById('total_amount_first_pay'); 
+    const secondAmountInput = document.getElementById('total_amount_second_pay'); 
+    const totalPaymentInput = document.getElementById('total_payment'); 
+    const modalSearchInput = document.getElementById('modalSearchInput'); 
+
+    function allamounts() { 
+      if (!selectProformas) return;
+      let total = 0; 
+      let total_first = 0; 
+      let total_second = 0; 
+
+      Array.from(selectProformas.selectedOptions).forEach(option => { 
+        total += parseFloat(option.dataset.amount || 0); 
+        total_first += parseFloat(option.dataset.firstAmount || 0); 
+        total_second += parseFloat(option.dataset.secondAmount || 0); 
+      }); 
+
+      if (totalPaymentInput) totalPaymentInput.value = firstAmountInput && secondAmountInput ? (total_first + total_second).toFixed(2) : total.toFixed(2);
+      if (firstAmountInput) firstAmountInput.value = total_first.toFixed(2); 
+      if (secondAmountInput) secondAmountInput.value = total_second.toFixed(2); 
+    } 
+
+    if (selectProformas) {
+      selectProformas.addEventListener('change', allamounts); 
+      allamounts(); // Executa ao carregar para recalcular caso haja seleções
     }
 
-    function handleDragLeave(e, id, tipo) {
-        e.preventDefault();
-        e.stopPropagation();
-        const overlay = document.getElementById(`overlay-${tipo}-${id}`);
-        if (overlay) overlay.classList.add('hidden');
+    // Filtro de Pesquisa dentro do Modal
+    function filterProformas() { 
+      if (!modalSearchInput || !selectProformas) return;
+      const filter = modalSearchInput.value.toLowerCase().trim(); 
+      const options = selectProformas.options; 
+
+      for (let i = 0; i < options.length; i++) { 
+        const option = options[i]; 
+        if (option.value === "") continue; 
+        
+        const text = option.text.toLowerCase(); 
+        // Mostra a opção se bater certo com o filtro OU se já estiver selecionada
+        if (text.includes(filter) || option.selected) { 
+          option.style.display = ''; 
+        } else { 
+          option.style.display = 'none'; 
+        } 
+      } 
+    } 
+
+    if (modalSearchInput) {
+      modalSearchInput.addEventListener('input', filterProformas); 
     }
 
-    function handleDrop(e, id, tipo) {
-        e.preventDefault();
-        e.stopPropagation();
-        const overlay = document.getElementById(`overlay-${tipo}-${id}`);
-        if (overlay) overlay.classList.add('hidden');
+    // --- 3. DROPZONES (MODAL DE ADICIONAR) ---
+    const dropzoneNames = ['proof_of_payment_1', 'proof_of_payment_2', 'proforma_invoice', 'proforma_file']; 
+    dropzoneNames.forEach(function (fieldName) { 
+      if (!addModal) return;
+      const dropzone = addModal.querySelector(`[data-dropzone="${fieldName}"]`); 
+      const input = document.getElementById(fieldName); 
+      const fileLabel = addModal.querySelector(`[data-file-name="${fieldName}"]`); 
+      if (!dropzone || !input || !fileLabel) return; 
 
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            uploadFiles(files, id, tipo);
-        }
+      const setFileName = function () { 
+        fileLabel.textContent = input.files && input.files.length ? input.files[0].name : 'Click or Drag'; 
+      }; 
+
+      dropzone.addEventListener('click', () => input.click()); 
+      input.addEventListener('change', setFileName); 
+
+      dropzone.addEventListener('dragover', function (event) { 
+        event.preventDefault(); 
+        dropzone.classList.add('border-neutral-500', 'bg-neutral-50'); 
+      }); 
+
+      dropzone.addEventListener('dragleave', function () { 
+        dropzone.classList.remove('border-neutral-500', 'bg-neutral-50'); 
+      }); 
+
+      dropzone.addEventListener('drop', function (event) { 
+        event.preventDefault(); 
+        dropzone.classList.remove('border-neutral-500', 'bg-neutral-50'); 
+        if (!event.dataTransfer || !event.dataTransfer.files.length) return; 
+
+        const dataTransfer = new DataTransfer(); 
+        dataTransfer.items.add(event.dataTransfer.files[0]); 
+        input.files = dataTransfer.files; 
+        setFileName(); 
+      }); 
+    }); 
+
+    // --- 4. BARRA DE PESQUISA DA TABELA PRINCIPAL ---
+    const mainSearchInput = document.getElementById('searchInput'); 
+    const tableBody = document.getElementById('proformasTable') ? document.getElementById('proformasTable').getElementsByTagName('tbody')[0] : null; 
+
+    if (mainSearchInput) { 
+      mainSearchInput.value = sessionStorage.getItem('proformasSearch') || ''; 
+    } 
+
+    function applySearchFilter() { 
+      if (!mainSearchInput || !tableBody) return; 
+      const filter = mainSearchInput.value.toLowerCase(); 
+      const rows = tableBody.getElementsByTagName('tr'); 
+
+      for (let i = 0; i < rows.length; i++) { 
+        const cells = rows[i].getElementsByTagName('td'); 
+        let found = false; 
+        for (let j = 0; j < cells.length - 1; j++) { 
+          if (cells[j].textContent.toLowerCase().includes(filter)) { 
+            found = true; 
+            break; 
+          } 
+        } 
+        rows[i].style.display = found ? '' : 'none'; 
+      } 
+    } 
+
+    if (mainSearchInput && tableBody) { 
+      mainSearchInput.addEventListener('keyup', function () { 
+        sessionStorage.setItem('proformasSearch', mainSearchInput.value); 
+        applySearchFilter(); 
+      }); 
+      applySearchFilter(); 
+    } 
+
+    const clearLink = document.getElementById('clearProformasFiltersLink'); 
+    if (clearLink && mainSearchInput) { 
+      clearLink.addEventListener('click', function () { 
+        sessionStorage.removeItem('proformasSearch'); 
+      }); 
+    } 
+
+    // --- 5. ORDENAÇÃO DE COLUNAS ---
+    const sortableCols = document.querySelectorAll('.sortable-col'); 
+    const sortInput = document.getElementById('sortInput'); 
+    const dirInput = document.getElementById('dirInput'); 
+    const filterForm = document.getElementById('proformasFilter'); 
+
+    if (sortableCols && sortInput && dirInput && filterForm) {
+      sortableCols.forEach(col => { 
+        col.addEventListener('click', function() { 
+          const sortField = this.getAttribute('data-sort'); 
+          if (sortInput.value === sortField) { 
+            dirInput.value = dirInput.value === 'asc' ? 'desc' : 'asc'; 
+          } else { 
+            sortInput.value = sortField; 
+            dirInput.value = 'asc'; 
+          } 
+          filterForm.submit(); 
+        }); 
+      }); 
     }
+  }); 
 
-    function triggerFileInput(id, tipo) {
-        const input = document.getElementById(`input-${tipo}-${id}`);
-        if (input) input.click();
-    }
+  // --- 6. FUNÇÕES DE ARRASTAR E SOLTAR DA TABELA (GLOBAIS) ---
+  function handleDragOver(e, id, tipo) { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlay = document.getElementById(`overlay-${tipo}-${id}`); 
+    if (overlay) overlay.classList.remove('hidden'); 
+  } 
 
-    function handleFileSelect(input, id, tipo) {
-        if (input.files && input.files.length > 0) {
-            uploadFiles(input.files, id, tipo);
-        }
-    }
+  function handleDragLeave(e, id, tipo) { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlay = document.getElementById(`overlay-${tipo}-${id}`); 
+    if (overlay) overlay.classList.add('hidden'); 
+  } 
 
-    // Processamento de upload via AJAX 
-    function uploadFiles(files, proformaId, tipo) {
-        const file = files[0];
-        if (!file) return;
+  function handleDrop(e, id, tipo) { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlay = document.getElementById(`overlay-${tipo}-${id}`); 
+    if (overlay) overlay.classList.add('hidden'); 
+    const files = e.dataTransfer.files; 
+    if (files.length > 0) { 
+      uploadFiles(files, id, tipo); 
+    } 
+  } 
 
-        const cell = document.getElementById(`dropzone-${tipo}-${proformaId}`);
-        const listDiv = document.getElementById(`list-${tipo}-${proformaId}`);
-        if (!cell || !listDiv) return;
+  function triggerFileInput(id, tipo) { 
+    const input = document.getElementById(`input-${tipo}-${id}`); 
+    if (input) input.click(); 
+  } 
 
-        const uploadUrl = cell.dataset.uploadUrl;
-        const fieldName = cell.dataset.field;
+  function handleFileSelect(input, id, tipo) { 
+    if (input.files && input.files.length > 0) { 
+      uploadFiles(input.files, id, tipo); 
+    } 
+  } 
 
-        // Feedback visual
-        listDiv.innerHTML = `
-            <span class="text-neutral-400 text-xs italic animate-pulse">Uploading...</span>
-        `;
+  function uploadFiles(files, proformaId, tipo) { 
+    const file = files[0]; 
+    if (!file) return; 
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('field', fieldName);
+    const cell = document.getElementById(`dropzone-${tipo}-${proformaId}`); 
+    const listDiv = document.getElementById(`list-${tipo}-${proformaId}`); 
+    if (!cell || !listDiv) return; 
 
-        fetch(uploadUrl, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: formData
-        })
-        .then(async response => {
-            const contentType = response.headers.get('content-type');
-            const isJson = contentType && contentType.includes('application/json');
-            
-            // Se a resposta não for JSON (ex: erro HTML do servidor), data será null
-            const data = isJson ? await response.json() : null;
+    const uploadUrl = cell.dataset.uploadUrl; 
+    const fieldName = cell.dataset.field; 
 
-            if (!response.ok) {
-                // Acesso seguro usando optional chaining (data?.message ou data?.error)
-                const errorMsg = data?.message || data?.error || `Erro no servidor (Código ${response.status})`;
-                throw new Error(errorMsg);
-            }
+    listDiv.innerHTML = `<span class="text-neutral-400 text-xs italic animate-pulse">Uploading...</span>`; 
 
-            if (!data || data.status !== 'success') {
-                const errorMsg = data?.message || data?.error || 'Erro ao carregar o ficheiro.';
-                throw new Error(errorMsg);
-            }
+    const formData = new FormData(); 
+    formData.append('file', file); 
+    formData.append('field', fieldName); 
 
-            return data;
-        })
-        .then(data => {
-            // Atualizar células de datas na tabela se existirem
-            if (fieldName === 'proof_of_payment_1') {
-                const paydateCell = document.getElementById(`paydate-1-${proformaId}`);
-                if (paydateCell) paydateCell.textContent = data.paydate_1 || '';
-            }
+    fetch(uploadUrl, { 
+      method: 'POST', 
+      headers: { 
+        'X-CSRFToken': '{{ csrf_token }}' 
+      }, 
+      body: formData 
+    }) 
+    .then(async response => { 
+      const contentType = response.headers.get('content-type'); 
+      const isJson = contentType && contentType.includes('application/json'); 
+      const data = isJson ? await response.json() : null; 
+      if (!response.ok) { 
+        const errorMsg = data?.message || data?.error || `Erro no servidor (Código ${response.status})`; 
+        throw new Error(errorMsg); 
+      } 
+      if (!data || data.status !== 'success') { 
+        const errorMsg = data?.message || data?.error || 'Erro ao carregar o ficheiro.'; 
+        throw new Error(errorMsg); 
+      } 
+      return data; 
+    }) 
+    .then(data => { 
+      if (fieldName === 'proof_of_payment_1') { 
+        const paydateCell = document.getElementById(`paydate-1-${proformaId}`); 
+        if (paydateCell) paydateCell.textContent = data.paydate_1 || ''; 
+      } 
+      if (fieldName === 'proof_of_payment_2') { 
+        const paydateCell = document.getElementById(`paydate-2-${proformaId}`); 
+        if (paydateCell) paydateCell.textContent = data.paydate_2 || ''; 
+      } 
 
-            if (fieldName === 'proof_of_payment_2') {
-                const paydateCell = document.getElementById(`paydate-2-${proformaId}`);
-                if (paydateCell) paydateCell.textContent = data.paydate_2 || '';
-            }
+      const fileUrl = data.file_url || ('/media/' + data.file_name); 
+      const fileNameCleaned = (data.file_name || '').replace('p2_control_files/', ''); 
+      listDiv.innerHTML = ` 
+        <div class="flex items-center group"> 
+          <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> 
+          <a href="${fileUrl}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="${data.file_name}"> ${fileNameCleaned} </a> 
+        </div> 
+      `; 
+    }) 
+    .catch(error => { 
+      console.error('Erro no upload:', error); 
+      let placeholderText = "Drag file..."; 
+      if (tipo === 'prof') placeholderText = "Drag proforma..."; 
+      if (tipo === 'pop1') placeholderText = "Drag proof 1..."; 
+      if (tipo === 'pop2') placeholderText = "Drag proof 2..."; 
 
-            const fileUrl = data.file_url || ('/media/' + data.file_name);
-            const fileNameCleaned = (data.file_name || '').replace('p2_control_files/', '');
-
-            listDiv.innerHTML = `
-                <div class="flex items-center group">
-                    <svg class="w-3 h-3 text-neutral-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                    <a href="${fileUrl}" target="_blank" class="text-blue-600 hover:underline truncate w-24 block" title="${data.file_name}">
-                        ${fileNameCleaned}
-                    </a>
-                </div>
-            `;
-        })
-        .catch(error => {
-            console.error('Erro no upload:', error);
-            
-            let placeholderText = "Drag file...";
-            if (tipo === 'prof') placeholderText = "Drag proforma...";
-            if (tipo === 'pop1') placeholderText = "Drag proof 1...";
-            if (tipo === 'pop2') placeholderText = "Drag proof 2...";
-
-            listDiv.innerHTML = `
-                <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('${proformaId}', '${tipo}')">${placeholderText}</span>
-            `;
-            
-            // Exibe a mensagem de erro tratada no alert
-            alert(error?.message || 'Ocorreu um erro ao carregar o ficheiro.');
-        });
-    }
-  </script>
+      listDiv.innerHTML = ` 
+        <span class="text-neutral-400 text-xs italic empty-msg cursor-pointer hover:text-neutral-600" onclick="triggerFileInput('${proformaId}', '${tipo}')">${placeholderText}</span> 
+      `; 
+      alert(error?.message || 'Ocorreu um erro ao carregar o ficheiro.'); 
+    }); 
+  } 
+</script> 
 {% endblock %}

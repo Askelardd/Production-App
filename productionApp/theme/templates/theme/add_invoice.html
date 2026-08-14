@@ -35,6 +35,8 @@
             </div>
 
             <div>
+                <span class="block text-gray-700 mb-1">Search Proforma:</span>
+                <input type="text" id="searchInput" placeholder="Search Proforma" class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
                 <label for="proformas" class="block text-gray-700">Select Proformas:</label>
                 <select id="proformas" name="proformas" multiple class="w-full border border-gray-300 rounded px-3 py-2 mt-1">
                     <option value="">-- Select Proforma --</option>
@@ -64,29 +66,52 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function () {
     const select = document.getElementById('proformas');
     const totalInput = document.getElementById('total_amount');
+    const searchInput = document.getElementById('searchInput');
 
-    // 3. Bloquear o scroll da página principal
+    // Bloquear scroll da página de fundo
     document.body.classList.add('overflow-hidden');
-
     const navBar = document.querySelector('nav');
     if (navBar) navBar.classList.add('hidden');
 
+    // --- 1. LÓGICA DO TOTAL ---
     function updateTotal() {
-        let total = 0;
-
-        Array.from(select.selectedOptions).forEach(option => {
-            total += parseFloat(option.dataset.amount || 0);
-        });
-
-        totalInput.value = total.toFixed(2);
+      let total = 0;
+      Array.from(select.selectedOptions).forEach(option => {
+        total += parseFloat(option.dataset.amount || 0);
+      });
+      totalInput.value = total.toFixed(2);
     }
 
     select.addEventListener('change', updateTotal);
-    select.addEventListener('click', updateTotal);
+
+    function filterProformas() {
+      const filter = searchInput.value.toLowerCase().trim();
+      const options = select.options;
+
+      for (let i = 0; i < options.length; i++) {
+        const option = options[i];
+        
+        // Ignora a opção genérica "-- Select Proforma --"
+        if (option.value === "") continue;
+
+        const text = option.text.toLowerCase();
+        
+        // Se o texto incluir a pesquisa OU se a opção já estiver selecionada, mostra-a!
+        if (text.includes(filter) || option.selected) {
+          option.style.display = '';
+        } else {
+          option.style.display = 'none';
+        }
+      }
+    }
+
+    searchInput.addEventListener('input', filterProformas);
+
+    // Inicializar o total no arranque
     updateTotal();
-});
+  });
 </script>
 {% endblock %}

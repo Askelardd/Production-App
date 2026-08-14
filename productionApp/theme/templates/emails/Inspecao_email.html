@@ -74,7 +74,12 @@
                                 Não
                             {% endif %}
                         </td>
-                        <td style="padding: 10px; border: 1px solid #eeeeee; color: #777777;">{{ p.observacoes|default:"-" }}</td>
+                        <td style="padding: 10px; border: 1px solid #eeeeee; color: #777777;">
+                            {{ p.observacoes|default:"-" }}
+                            {% if p.outras_observacoes %}
+                                <br>{{ p.outras_observacoes }}
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

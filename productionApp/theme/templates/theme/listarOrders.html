@@ -41,7 +41,7 @@
     <div class="flex items-center gap-2">
       <label for="limitSelect" class="text-sm font-semibold text-gray-700">Show:</label>
       <select name="limit" id="limitSelect" onchange="this.form.submit()" class="border border-gray-300 rounded shadow-sm px-3 py-1 text-sm focus:ring-blue-300">
-        <option value="15" {% if limite_escolhido == '15' %}selected{% endif %}>15 lines</option>
+        <option value="25" {% if limite_escolhido == '25' %}selected{% endif %}>25 lines</option>
         <option value="50" {% if limite_escolhido == '50' %}selected{% endif %}>50 lines</option>
         <option value="100" {% if limite_escolhido == '100' %}selected{% endif %}>100 lines</option>
         <option value="todos" {% if limite_escolhido == 'todos' %}selected{% endif %}>All orders</option>

@@ -32,15 +32,18 @@ urlpatterns = [
     path('edit-qr-inline/<hashid:qr_id>/', views.edit_qr_inline, name='edit_qr_inline'),
     path('qrdata/detalhes/<hashid:qr_id>/', views.showDetails, name='showDetails'),
     path('qrcode/<hashid:qr_id>/dies/', views.adicionar_dies, name='adicionar_dies'),
-    path('qrcode/<hashid:qr_id>/export-excel/', views.export_qrcode_excel, name='export_qrcode_excel'),
+    path('qrcode/<hashid:qr_id>/export-excel/', views.export_qrcodes_excel, name='export_qrcodes_excel'), # Report todo
+    path('qrcode/<hashid:qr_id>/export-excel-individual/', views.export_qrcode_excel, name='export_qrcode_excel'), # Uma caixa do report
     path('die/<hashid:qr_id>/observacoesProd/', views.observacoes_caixa, name='observacoes_caixa'),
     path('listarQrcodes/ClonarLinha/<hashid:qr_id>/', views.clonar_linha, name='clonar_linha'),
     path('die/inspecao-inicial/<str:toma_order_full>/', views.inspecao_inicial, name='inspecao_inicial'),
     path('criar-caixa/', views.criarCaixa, name='criar_caixa'),
     path('die/<hashid:qr_id>/excluir/', views.excluir_qrcode, name='excluir_qrcode'),
     path('qrdata/upload_exel/', views.upload_excel_view, name='upload_excel_view'),
-    path('qrdata/editar-campo/<int:codigo>/', views.trocarTomaOrder, name='trocarTomaOrder'),
-    
+    path('qrdata/editar-campo/<hashid:codigo>/', views.trocarTomaOrder, name='trocarTomaOrder'),
+
+
+
     # Dies
     path('dies/', views.listar_qrcodes_geral, name='listarDies'),
     path('die/<hashid:die_id>/', views.die_details, name='die_details'),
@@ -52,7 +55,7 @@ urlpatterns = [
     path('enviar-fieira/<hashid:die_id>/', views.enviar_fieira, name='enviar_fieira'),
     path('localizarFieira/', views.localizarFieira, name='localizarFieira'),
     path('die/<hashid:die_id>/delete/', views.remove_die, name='remove_die'),
-    path('trocarCaixa', views.trocarCaixaFieiras, name='trocarCaixa'),
+    path('trocarCaixa/<str:toma_order_nr>/<str:toma_order_year>/', views.trocarCaixaFieiras, name='trocarCaixa'),
     path('editarCaixa/<hashid:die_id>/', views.edit_nrbox_inline, name='edit_nrbox_inline'),
     path('trocarCaixa/bulk-edit/', views.bulk_edit_nrbox, name='bulk_edit_nrbox'),
 
@@ -72,12 +75,13 @@ urlpatterns = [
     path('diametroMenu/<path:toma_order_full>/', views.diametroMenu, name='diametroMenu'),
     path('listarPedidosDiametro/', views.listarPedidosDiametro, name='listarPedidosDiametro'),
     path('pedidos/diametro/editar/<hashid:id>/', views.editar_pedido_inline, name='editar_pedido_inline'),
-    path('pedidos/diametro/excel/<hashid:id>/', views.exportar_pedido_excel, name='exportar_pedido_excel'),
     path('listarPartidos/', views.listarPartidos, name='listarPartidos'),
     path('partidos/<hashid:pk>/toggle-feito-ajax/', views.toggle_partido_feito_ajax, name='toggle_partido_feito_ajax'),
     path('pedidos/<hashid:pk>/toggle-feito-ajax/', views.toggle_pedido_diametro_feito_ajax, name='toggle_pedido_diametro_feito_ajax'),
-    path('pedidos/diametro/enviar-email/<hashid:pedido_id>/', views.enviarEmailPedidoDiametro, name='enviar_pedido_diametro_email'),
-    
+    path('pedidos/diametro/enviar-email/<hashid:order_year>/<hashid:order_nr>/<hashid:box_nr>/', views.enviarEmailCaixaDiametro, name='enviar_email_caixa_diametro'),
+    path('pedidos/diametro/enviar-email-grupo/<str:order_year>/<str:order_nr>/', views.enviarEmailPedidoGrupo, name='enviar_email_grupo_diametro'),
+    path('pedidos/diametro/exportar-grupo/<str:order_year>/<str:order_nr>/', views.export_pedidos_diam, name='export_pedidos_diam'),
+        
     # Delivery
     path('deliveryIdentification/<path:toma_order_full>/', views.deliveryIdentification, name='deliveryIdentification'),
     path('delivery/calendar/', views.deliveryCalendar, name='deliveryCalendar'),
@@ -137,7 +141,11 @@ urlpatterns = [
     path('proformas/<hashid:pk>/delete-file/', views.delete_p2control_file_ajax, name='delete_p2control_file_ajax'),
 
     path('adicionarInvoice/', views.adicionarInvoice, name='adicionarInvoice'),
-    
+    path('editarInvoice/<hashid:pk>/', views.editarInvoice, name='editarInvoice'),
+    path('invoice/<int:pk>/delete-file/', views.delete_invoice_file_ajax, name='delete_invoice_file_ajax'),
+    path('unlink-proforma/<int:proforma_id>/invoice/<int:invoice_id>/', views.unlink_proforma_invoice, name='unlink_proforma_invoice'),
+    path('calculadoraProformas/', views.calculadoraProformas, name='calcular_proforma'),
+
 ]
 
 if settings.DEBUG:

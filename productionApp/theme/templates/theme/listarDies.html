@@ -101,10 +101,6 @@
               <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Ano</th>
               <th class="px-6 py-4 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Total Peças</th>
               <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Caixas</th>
-
-              {% if user_group != 'Producao' %}
-                <th class="px-6 py-4 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Ações Pedido</th>
-              {% endif %}
             </tr>
           </thead>
 
@@ -124,17 +120,6 @@
                 <td class="px-6 py-4 text-center">
                   <span class="bg-gray-100 text-gray-600 py-1 px-3 rounded-full text-xs font-bold shadow-sm border">{{ group.boxes|length }}</span>
                 </td>
-
-                {% if user_group != 'Producao' %}
-                  <td class="px-6 py-4 text-center" onclick="event.stopPropagation()">
-                    <a href="{% url 'inspecao_inicial' group.boxes.0.toma_order_full %}" title="Inspeção Final (Pedido Inteiro)" class="text-blue-500 hover:text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded shadow-sm inline-flex items-center gap-1">
-                      <svg class="fa-solid fa-search w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                      </svg>
-                      <span class="text-xs font-bold uppercase">Inspecionar Toma</span>
-                    </a>
-                  </td>
-                {% endif %}
               </tr>
 
               <tr id="group-{{ forloop.counter }}" class="hidden bg-gray-50 shadow-inner">
@@ -290,9 +275,9 @@
                                         <th class="px-4 py-2 text-center font-medium text-gray-500">Diam. Original</th>
                                         <th class="px-4 py-2 text-center font-bold text-black-500">Diam. Desbastado</th>
                                         <th class="px-4 py-2 text-center font-medium text-gray-500">Diam. Requerido</th>
-                                        <th class="px-4 py-2 text-center font-bold text-black-500">Diam. Sugerido</th>
-                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Trabalho</th>
+                                        <th class="px-4 py-2 text-center font-bold text-black-500">Diam. Sugerido</th>                           
                                         <th class="px-4 py-2 text-center font-medium text-gray-500">Tipo Die</th>
+                                        <th class="px-4 py-2 text-center font-medium text-gray-500">Trabalho</th>
                                         <th class="px-4 py-2 text-center font-medium text-gray-500">Final</th>
                                         <th class="px-4 py-2 text-center font-medium text-gray-500">Tolerâncias</th>
                                         <th class="px-4 py-2 text-center font-bold text-black-500">Diam Min/Max</th>
@@ -661,7 +646,7 @@
             clearTimeout(searchDebounceId)
             searchDebounceId = setTimeout(() => {
               triggerServerSearch()
-            }, 450)
+            }, 2000)
           })
 
           searchInput.addEventListener('keydown', function (e) {

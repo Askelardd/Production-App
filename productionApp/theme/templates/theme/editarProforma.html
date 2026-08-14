@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\PC-IT\Documents\Programacao\productionApp\theme\templates\theme\editarProforma.html -->
 {% extends 'theme/base.html' %}
 {% load static %}
 
@@ -71,22 +70,24 @@
                 </div>
 
                 <div class="mb-4">
-                    <label for="proforma" class="block text-gray-700">Proforma:</label>
-                    <input type="file" id="proforma" name="proforma" class="w-full border border-gray-300 rounded px-3 py-2">
-                    {% if proforma.proforma %}
-                    <div id="proforma_box" class="mt-2">
+                    <label for="invoice" class="block text-gray-700">Invoice:</label>
+                    <!-- O name tem de ser "invoice_file" para bater certo com a View -->
+                    <input type="file" id="invoice" name="invoice_file" class="w-full border border-gray-300 rounded px-3 py-2">
+                    
+                    {% if invoice.invoice_file %}
+                    <div id="invoice_box" class="mt-2">
                         <p class="text-sm text-gray-600">
                         Current file:
-                        <a href="{{ proforma.proforma.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
-                            {{ proforma.proforma.name }}
+                        <a href="{{ invoice.invoice_file.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
+                            {{ invoice.invoice_file.name }}
                         </a>
                         </p>
-                        <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs"
-                                data-field="proforma">
-                        Delete
+                        <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs" data-field="invoice">
+                            Delete
                         </button>
+                    </div> <!-- Esta div estava a faltar -->
+                    {% endif %}
                 </div>
-                {% endif %}
 
                 <div class="mb-4">
                 <label for="proof_of_payment_1" class="block text-gray-700">Proof of Payment 1:</label>
@@ -124,24 +125,7 @@
                 </div>
                 {% endif %}
 
-                <div class="mb-4">
-                <label for="proforma_invoice" class="block text-gray-700">Invoice:</label>
-                <input type="file" id="proforma_invoice" name="proforma_invoice" class="w-full border border-gray-300 rounded px-3 py-2">
-                {% if proforma.proforma_invoice %}
-                <div id="proforma_invoice_box" class="mt-2">
-                    <p class="text-sm text-gray-600">
-                    Current file:
-                    <a href="{{ proforma.proforma_invoice.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">
-                        {{ proforma.proforma_invoice.name }}
-                    </a>
-                    </p>
-                    <button type="button" class="delete-file-btn mt-2 bg-red-500 text-white px-1 py-1 rounded hover:bg-red-600 text-xs"
-                            data-field="proforma_invoice">
-                    Delete File
-                    </button>
-                </div>
-                {% endif %}
-
+               
                 <div class="flex justify-end">
                     <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                         Update Proforma
