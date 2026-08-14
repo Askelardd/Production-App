@@ -1420,7 +1420,7 @@ def partidosMenu(request, toma_order_full):
     dies_existentes = dieInstance.objects.filter(customer=qr_code).order_by('-created_at')
     user = request.user
     if request.method == 'POST':
-        numero = request.POST.get('numeroPartidos')
+        numero = 1
         serie_dies_list = request.POST.getlist('serieDies')  # <-- recebe checkboxes
         serie_dies_partidos = ', '.join(serie_dies_list)     # <-- transforma em string
         observations = request.POST.get('observations', '')
@@ -2305,6 +2305,33 @@ def listar_qrcodes_geral(request):
     except Exception:
         tipo_choices = []
 
+    # Verificar diam requerido
+    for die in all_dies_in_page:
+        die.warning_min = False
+        die.warning_max = False
+        die.has_warning = False
+
+        # Valida apenas se tiver o diâmetro requerido e o objeto de tolerância
+        if die.diam_requerido is not None and die.tolerance is not None:
+
+            # 1. Validar diam_max (se estiver preenchido)
+            if die.diam_max is not None and die.tolerance.max is not None:
+                limite_max = die.diam_requerido + die.tolerance.max
+                if die.diam_max > limite_max:
+                    die.warning_max = True
+                    die.has_warning = True
+
+            # 2. Validar diam_min (se estiver preenchido)
+            if die.diam_min is not None and die.tolerance.min is not None:
+                # Subtrai caso o valor guardado seja positivo (ex: 0.0010)
+                # Se no teu banco o tolerance.min já for negativo (ex: -0.0010), muda para +
+                limite_min = die.diam_requerido - abs(die.tolerance.min)
+
+                if die.diam_min < limite_min:
+                    die.warning_min = True
+                    die.has_warning = True
+
+
     context = {
         'grouped_qrcodes': final_list,
         'page_obj': page_obj,  # Objeto com controlo da Paginação no Django
@@ -2315,75 +2342,85 @@ def listar_qrcodes_geral(request):
     }
 
     return render(request, 'theme/listarDies.html', context)
-@login_required
-@require_POST
-def update_dies_inline(request, die_id):
-    die = get_object_or_404(dieInstance, id=die_id)
-    field = (request.POST.get('field') or '').strip()
-    value = (request.POST.get('value') or '').strip()
 
-    if field not in {'diam_desbastado', 'diam_min', 'diam_max', 'diam_sugerido', 'observations'}:
-        return JsonResponse({'status': 'error', 'message': 'Campo não permitido.'}, status=400)
-
-    # 1. TRATAMENTO PARA DIÂMETROS (Decimais)
-    if field != 'observations':
-        if not value:
-            return JsonResponse({'status': 'error', 'message': 'Valor obrigatório.'}, status=400)
-            
-        try:
-            valor_final = Decimal(value.replace(',', '.'))
-        except (InvalidOperation, TypeError):
-            return JsonResponse({'status': 'error', 'message': 'Valor numérico inválido.'}, status=400)
-
-        if field == 'diam_desbastado':
-            die.diam_desbastado = valor_final
-        elif field == 'diam_min':
-            die.diam_min = valor_final
-        elif field == 'diam_max':
-            die.diam_max = valor_final
-        elif field == 'diam_sugerido':
-            die.diam_sugerido = valor_final
-
-    # 2. TRATAMENTO PARA OBSERVAÇÕES (Texto cumulativo)
-    else:
-        novo_texto = value.strip()
-        
-        if novo_texto: 
-            if die.observations:
-                valor_final = f"{die.observations} | {novo_texto}"
-            else:
-                valor_final = novo_texto
-                
-            die.observations = valor_final
-        else:
-            valor_final = die.observations or ''
-            novo_texto = "Nada" # Fallback apenas para o log não ficar vazio
-
-    die.modified_by = request.user.username
-    die.save(update_fields=[field, 'modified_by'])
-
-    # 3. REGISTO NO LOG (Protegido contra textos gigantes)
-    if field == 'observations':
-        # Cortamos a nova observação aos 50 caracteres só para o registo no log
-        texto_log = novo_texto[:50] + '...' if len(novo_texto) > 50 else novo_texto
-        mensagem_log = f"O utilizador {request.user.username} adicionou a obs '{texto_log}' ao die {die.serial_number}."
-    else:
-        mensagem_log = f"O utilizador {request.user.username} atualizou {field} para {valor_final} no die {die.serial_number}."
-
-    # Boa prática: Envolver os logs num try/except para que um erro no log NUNCA impeça 
-    # o utilizador de trabalhar (e limitamos sempre a frase a 250 chars).
+@login_required 
+@require_POST 
+def update_dies_inline(request, die_id): 
+    # 1. Obter o registo pelo pk (compatível com hashid)
     try:
-        globalLogs.objects.create(
-            user=request.user,
-            action=mensagem_log[:100] 
-        )
-    except Exception as e:
-        print(f"Erro ao gravar log: {e}")
+        die = get_object_or_404(dieInstance, pk=die_id)
+    except Exception:
+        # Fallback caso seja inteiro direto
+        die = get_object_or_404(dieInstance, id=int(die_id))
 
-    return JsonResponse({
-        'status': 'success',
-        'field': field,
-        'value': str(valor_final),
+    # 2. Ler os dados (suporta tanto FormData como JSON do Fetch)
+    field = ''
+    value = ''
+    
+    if request.content_type == 'application/json':
+        try:
+            body_data = json.loads(request.body)
+            field = str(body_data.get('field', '')).strip()
+            value = str(body_data.get('value', '')).strip()
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'JSON inválido.'}, status=400)
+    else:
+        field = (request.POST.get('field') or '').strip()
+        value = (request.POST.get('value') or '').strip()
+
+    # Validação do campo
+    campos_permitidos = {'diam_desbastado', 'diam_min', 'diam_max', 'diam_sugerido', 'observations'}
+    if field not in campos_permitidos: 
+        return JsonResponse({'status': 'error', 'message': f'Campo "{field}" não permitido.'}, status=400) 
+
+    # 3. Tratamento para Diâmetros (Decimais)
+    if field != 'observations': 
+        if not value or value == '-': 
+            return JsonResponse({'status': 'error', 'message': 'Valor obrigatório.'}, status=400) 
+        
+        try: 
+            valor_final = Decimal(value.replace(',', '.')) 
+        except (InvalidOperation, TypeError, ValueError): 
+            return JsonResponse({'status': 'error', 'message': 'Valor numérico decimal inválido.'}, status=400) 
+
+        setattr(die, field, valor_final)
+
+    # 4. Tratamento para Observações (Texto cumulativo)
+    else: 
+        novo_texto = value.strip() 
+        if novo_texto: 
+            if die.observations: 
+                valor_final = f"{die.observations} | {novo_texto}" 
+            else: 
+                valor_final = novo_texto 
+            die.observations = valor_final 
+        else: 
+            valor_final = die.observations or '' 
+            novo_texto = "Sem observações" 
+
+    # 5. Guardar as alterações
+    die.modified_by = request.user.username 
+    die.save(update_fields=[field, 'modified_by']) 
+
+    # 6. Registo de Log
+    try: 
+        if field == 'observations': 
+            texto_log = novo_texto[:50] + '...' if len(novo_texto) > 50 else novo_texto 
+            msg = f"{request.user.username} adicionou obs '{texto_log}' na die {die.serial_number}."
+        else: 
+            msg = f"{request.user.username} atualizou {field} para {valor_final} na die {die.serial_number}."
+
+        globalLogs.objects.create( 
+            user=request.user, 
+            action=msg[:100] 
+        ) 
+    except Exception as e: 
+        print(f"Erro ao gravar log: {e}") 
+
+    return JsonResponse({ 
+        'status': 'success', 
+        'field': field, 
+        'value': str(valor_final), 
     })
 
 
@@ -3364,7 +3401,7 @@ def inspecao_inicial(request, toma_order_full):
 
     if request.method == 'POST':
         # --- LÓGICA DE POST PARA MÚLTIPLAS FIEIRAS ---
-        pedido_por = request.POST.get('pedidoPor', '').strip()
+        pedido_por = request.user.username
         emails = request.POST.getlist('emails')
 
         if not emails:
@@ -3576,7 +3613,7 @@ def diametroMenu(request, toma_order_full):
         numero_str = 1
         diametro = request.POST.get('diametroAtual', '').strip()
         diametro_min = request.POST.get('diametroMin', '').strip()
-        pedido_por = request.POST.get('pedidoPor', '').strip()
+        pedido_por = request.user.username
         observations = request.POST.get('observations', '').strip()
         outras_observacoes = request.POST.get('outras_observacoes', '').strip()
         ''''emails = request.POST.getlist('emails')  # Múltipla escolha retorna lista

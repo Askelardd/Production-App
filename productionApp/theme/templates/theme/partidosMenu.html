@@ -12,19 +12,6 @@
         {% csrf_token %}
 
         <div class="mb-4">
-            <label class="block mb-1 text-sm font-medium text-gray-700">Quantidade Partida:</label>
-            <input
-                id="numeroPartidos"
-                class="border border-gray-300 rounded-lg p-3 w-full focus:outline-none focus:ring-2 focus:ring-red-400"
-                placeholder="Ex: 2"
-                type="number"
-                min="1"
-                name="numeroPartidos"
-                required
-            />
-        </div>
-
-        <div class="mb-4">
             <label class="block mb-1 text-sm font-medium text-gray-700">Detalhes da Ocorrência:</label>
             <textarea
                 id="observations"
@@ -73,7 +60,6 @@
     document.getElementById('partidosForm').addEventListener('submit', function (e) {
         const errorMsg = document.getElementById('error-msg');
         const checkboxes = document.querySelectorAll('input[name="serieDies"]:checked');
-        const numeroInput = document.getElementById('numeroPartidos').value;
         
         // Resetar erros
         errorMsg.classList.add('hidden');
@@ -83,11 +69,6 @@
         // 1. Validação de Checkboxes
         if (checkboxes.length === 0) {
             errors.push('Deve selecionar pelo menos uma <b>fieira</b> da lista.');
-        }
-
-        // 2. Validação de Coerência (Opcional: verificar se o número inserido bate com as selecionadas)
-        if (parseInt(numeroInput) !== checkboxes.length && checkboxes.length > 0) {
-            errors.push(`A quantidade indicada (${numeroInput}) não coincide com o número de séries selecionadas (${checkboxes.length}).`);
         }
 
         // Exibir erros

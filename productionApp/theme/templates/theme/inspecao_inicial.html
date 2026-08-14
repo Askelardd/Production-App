@@ -63,15 +63,6 @@
     <form id="inspecaoForm" method="POST" action="{% url 'inspecao_inicial' qr_code.toma_order_full %}">
       {% csrf_token %}
 
-      <div class="mb-8 border-t-2 pt-8">
-        <h2 class="text-xl font-bold text-gray-900 mb-6">Dados Gerais da Inspeção</h2>
-
-        <div>
-          <label class="block mb-2 font-semibold text-gray-700">Pedido feito por:</label>
-          <input id="pedidoPor" name="pedidoPor" type="text" class="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-400" placeholder="Ex: João Silva" required />
-        </div>
-      </div>
-
       <!-- Seleção de Fieiras -->
       <div class="mb-8 border-t-2 pt-8">
         <h2 class="text-xl font-bold text-gray-900 mb-4">Selecione as Fieiras para Inspeção</h2>

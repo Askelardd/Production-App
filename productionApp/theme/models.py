@@ -224,6 +224,7 @@ class PedidosDiametro(models.Model):
             ('riscos_calibre', 'Raias no Calibre'),
             ('cortes', 'Cortes'),
             ('margem', 'Margem'),
+            ('pedra_curta', 'Pedra Curta'),
             ('outros', 'Outros'),
         ],
         default='buraco_no_cone'

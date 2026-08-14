@@ -1,416 +1,425 @@
-{% extends 'theme/base.html' %}
+{% extends 'theme/base.html' %} 
+{% block title %}Invoices{% endblock %} 
 
-{% block title %}Invoices{% endblock %}
+{% block content %} 
+<h1 class="text-3xl font-bold text-black mb-8">Invoices</h1> 
 
-{% block content %}
-<h1 class="text-3xl font-bold text-black mb-8">Invoices</h1>
+<div class="mb-4 flex justify-between items-center"> 
+  <input type="text" id="searchInput" name="q" form="faturasFilterForm" value="{{ q }}" placeholder="Search all fields..." class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" /> 
+  <div class="flex space-x-2"> 
+    <a href="{% url 'criarFatura' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition"> Add Invoice </a> 
+  </div> 
+</div> 
 
-<div class="mb-4 flex justify-between items-center">
-    <input type="text" id="searchInput" name="q" form="faturasFilterForm" value="{{ q }}" placeholder="Search all fields..."
-        class="w-full md:w-1/2 px-4 py-2 border rounded shadow focus:outline-none focus:ring focus:ring-blue-300" />
+<form method="GET" action="{% url 'listarFaturas' %}" id="faturasFilterForm" class="mb-6"> 
+  <div class="flex flex-wrap gap-4 items-end"> 
+    <div class="flex gap-3"> 
+      <div> 
+        <label class="block text-xs text-gray-500">From</label> 
+        <input type="date" name="de" value="{{ de }}" class="border p-2 rounded"> 
+      </div> 
+      <div> 
+        <label class="block text-xs text-gray-500">To</label> 
+        <input type="date" name="ate" value="{{ ate }}" class="border p-2 rounded"> 
+      </div> 
+    </div> 
 
-  <div class="flex space-x-2">
-    <a href="{% url 'criarFatura' %}" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-900 transition">
-      Add Invoice
-    </a>
-  </div>
-</div>
+    <div> 
+      <label class="block text-xs text-gray-500">Payment Status</label> 
+      <select name="pago" class="border p-2 rounded bg-white"> 
+        <option value="">All Statuses</option> 
+        <option value="sim" {% if filtro_pago == 'sim' %}selected{% endif %}>Paid</option> 
+        <option value="nao" {% if filtro_pago == 'nao' %}selected{% endif %}>Unpaid</option> 
+      </select> 
+    </div> 
 
-<form method="GET" action="{% url 'listarFaturas' %}" id="faturasFilterForm" class="mb-6">
-    <div class="flex flex-wrap gap-4 items-end">
-        <div class="flex gap-3">
-            <div>
-                <label class="block text-xs text-gray-500">From</label>
-                <input type="date" name="de" value="{{ de }}" class="border p-2 rounded">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-500">To</label>
-                <input type="date" name="ate" value="{{ ate }}" class="border p-2 rounded">
-            </div>
-        </div>
+    <div> 
+      <label class="block text-xs text-gray-500">Sort By</label> 
+      <select name="ordenacao" class="border p-2 rounded bg-white"> 
+        <option value="recentes" {% if ordenacao == 'recentes' %}selected{% endif %}>Most Recent</option> 
+        <option value="nao_pagos" {% if ordenacao == 'nao_pagos' %}selected{% endif %}>Unpaid First</option> 
+        <option value="pagos" {% if ordenacao == 'pagos' %}selected{% endif %}>Paid First</option> 
+      </select> 
+    </div> 
 
-        <div>
-            <label class="block text-xs text-gray-500">Payment Status</label>
-            <select name="pago" class="border p-2 rounded bg-white">
-                <option value="">All Statuses</option>
-                <option value="sim" {% if filtro_pago == 'sim' %}selected{% endif %}>Paid</option>
-                <option value="nao" {% if filtro_pago == 'nao' %}selected{% endif %}>Unpaid</option>
-            </select>
-        </div>
+    <div> 
+      <label for="limite_faturas" class="block text-xs text-gray-500">Limit</label> 
+      <select name="limite_faturas" onchange="this.form.submit()" class="border p-2 rounded bg-white"> 
+        <option value="50" {% if limite_faturas == '50' %}selected{% endif %}>50</option> 
+        <option value="70" {% if limite_faturas == '70' %}selected{% endif %}>70</option> 
+        <option value="100" {% if limite_faturas == '100' %}selected{% endif %}>100</option> 
+        <option value="todos" {% if limite_faturas == 'todos' %}selected{% endif %}>Todas</option> 
+      </select> 
+    </div> 
 
-        <div>
-            <label class="block text-xs text-gray-500">Sort By</label>
-            <select name="ordenacao" class="border p-2 rounded bg-white">
-                <option value="recentes" {% if ordenacao == 'recentes' %}selected{% endif %}>Most Recent</option>
-                <option value="nao_pagos" {% if ordenacao == 'nao_pagos' %}selected{% endif %}>Unpaid First</option>
-                <option value="pagos" {% if ordenacao == 'pagos' %}selected{% endif %}>Paid First</option>
-            </select>
-        </div>
+    <div class="flex gap-2"> 
+      <button type="submit" class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button> 
+      <a href="{% url 'listarFaturas' %}?Clear" class="px-4 py-2 border rounded">Clear</a> 
+    </div> 
 
-        <div>
-            <label for="limite_faturas" class="block text-xs text-gray-500">Limit</label>
-            <select name="limite_faturas" onchange="this.form.submit()" class="border p-2 rounded bg-white">
-                <option value="50" {% if limite_faturas == '50' %}selected{% endif %}>50</option>
-                <option value="70" {% if limite_faturas == '70' %}selected{% endif %}>70</option>
-                <option value="100" {% if limite_faturas == '100' %}selected{% endif %}>100</option>
-                <option value="todos" {% if limite_faturas == 'todos' %}selected{% endif %}>Todas</option>
-            </select>
-        </div>
-        
-        <div class="flex gap-2">
-            <button class="bg-gray-800 text-white px-4 py-2 rounded">Filter</button>
-            <a href="{% url 'listarFaturas' %}" class="px-4 py-2 border rounded">Clear</a>
-        </div>
+    <div class="text-sm text-gray-500 whitespace-nowrap ml-auto"> 
+      <span>DD → Direct Debit | PP → Pre Payment</span> 
+    </div> 
+  </div> 
+</form> 
 
-        <div class="text-sm text-gray-500 whitespace-nowrap ml-auto">
-            <span>DD → Direct Debit | PP → Pre Payment</span>
-        </div>
-    </div>
-</form>
+<!-- Contentor da Tabela com ID para captura do Scroll Interno -->
+<div id="tableScrollContainer" class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg"> 
+  <table id="faturasTable" class="min-w-full bg-white border-collapse"> 
+    <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm"> 
+      <tr> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 w-52">Supplier</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice<br>Number</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Sent</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th> 
+        <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th> 
+      </tr> 
+    </thead> 
+    <tbody id="faturasTableBody"> 
+      {% for fatura in invoice_qs %} 
+      <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors {% if fatura.is_urgent %}piscar-urgente{% endif %}"> 
+        <td class="px-4 py-4 border-b border-gray-200 text-sm text-gray-700 w-52 max-w-[13rem] whitespace-normal break-all">{{ fatura.fornecedor.name }}</td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.numero_fatura }}</td> 
+        {% if fatura.fornecedor.debito_direto %} 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 italic text-gray-400"></td> 
+        {% else %} 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_fatura }}</td> 
+        {% endif %} 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_emissao }}</td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 whitespace-nowrap">{{ fatura.valor }} {%if fatura.moeda == 'EUR' %}€{% elif fatura.moeda == 'USD' %}${% elif fatura.moeda == 'GBP' %}£{% endif %}</td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.descricao }}</td> 
+        {% if fatura.fornecedor.debito_direto %} 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-blue-600 font-bold"> DD/PP </td> 
+        {% else %} 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700"> 
+          Paid: <input id="pago_{{ fatura.id }}" type="checkbox" name="pago_{{ fatura.id }}" {% if fatura.pago %}checked{% endif %} class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"> 
+        </td> 
+        {% endif %} 
+        <td data-url="{% url 'api_marcar_enviado' fatura.id %}" onclick="lidarComCliqueFatura(this)" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors"> 
+          {% if fatura.enviado %} 
+          <span class="text-green-600 font-semibold">Yes</span> <br> 
+          <span class="text-gray-500 text-xs">({{ fatura.data_enviado|date:"d/m/Y" }})</span> 
+          {% else %} 
+          <span class="text-red-600 font-semibold">No</span> 
+          {% endif %} 
+        </td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200" id="dropzone-{{ fatura.id }}" ondragover="handleDragOver(event, '{{ fatura.id }}')" ondragleave="handleDragLeave(event, '{{ fatura.id }}')" ondrop="handleDrop(event, '{{ fatura.id }}')"> 
+          <div id="overlay-{{ fatura.id }}" class="absolute inset-0 bg-blue-100 bg-opacity-90 border-2 border-dashed border-blue-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+            <svg class="w-6 h-6 text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg> 
+            <span class="text-blue-700 font-bold text-xs">Drop here</span> 
+          </div> 
+          <div id="list-{{ fatura.id }}" class="space-y-1"> 
+            {% for ficheiro in fatura.ficheiros.all %} 
+            <div class="flex items-center group"> 
+              <svg class="w-3 h-3 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg> 
+              <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}"> {{ ficheiro.file.name|cut:"faturas_files/" }} </a> 
+            </div> 
+            {% empty %} 
+            <span class="text-gray-400 text-xs italic empty-msg">Drag files...</span> 
+            {% endfor %} 
+          </div> 
+        </td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200" id="dropzone-pago-{{ fatura.id }}" ondragover="handleDragOver(event, '{{ fatura.id }}', 'pago')" ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'pago')" ondrop="handleDrop(event, '{{ fatura.id }}', 'pago')"> 
+          <div id="overlay-pago-{{ fatura.id }}" class="absolute inset-0 bg-green-100 bg-opacity-90 border-2 border-dashed border-green-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+            <span class="text-green-700 font-bold text-xs">Add Payment</span> 
+          </div> 
+          <div id="list-pago-{{ fatura.id }}" class="space-y-1"> 
+            {% for ficheiro in fatura.ficheiros_pago.all %} 
+            <div class="flex items-center"> 
+              <svg class="w-3 h-3 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> 
+              <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}"> {{ ficheiro.file.name|cut:"faturas_files_pago/" }} </a> 
+            </div> 
+            {% empty %} 
+            <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500"> Drag proof of pay. </span> 
+            {% endfor %} 
+          </div> 
+        </td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200 {% if fatura.fornecedor.estrangeiro and not fatura.ficheiros_estrangeiro.all %}bg-red-100 border-l-4 border-l-red-500{% endif %}" {% if fatura.fornecedor.estrangeiro %} id="dropzone-estrangeiro-{{ fatura.id }}" ondragover="handleDragOver(event, '{{ fatura.id }}', 'estrangeiro')" ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'estrangeiro')" ondrop="handleDrop(event, '{{ fatura.id }}', 'estrangeiro')"> 
+          <div id="overlay-estrangeiro-{{ fatura.id }}" class="absolute inset-0 bg-yellow-100 bg-opacity-90 border-2 border-dashed border-yellow-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none"> 
+            <span class="text-yellow-700 font-bold text-xs">Foreign Doc.</span> 
+          </div> 
+          <div id="list-estrangeiro-{{ fatura.id }}" class="space-y-1"> 
+            {% for ficheiro in fatura.ficheiros_estrangeiro.all %} 
+            <div class="flex items-center"> 
+              <svg class="w-3 h-3 text-yellow-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path></svg> 
+              <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}"> {{ ficheiro.file.name|cut:"faturas_files_estrangeiro/" }} </a> 
+            </div> 
+            {% empty %} 
+            <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500"> Drag Foreign doc. </span> 
+            {% endfor %} 
+          </div> 
+          {% else %} 
+          <div class="text-gray-400 italic text-sm"></div> 
+          {% endif %} 
+        </td> 
+        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700"> 
+          <a href="{% url 'editarFatura' fatura.id %}" class="text-indigo-600 hover:underline mr-4">Edit</a> 
+        </td> 
+      </tr> 
+      {% empty %} 
+      <tr> 
+        <td colspan="12" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td> 
+      </tr> 
+      {% endfor %} 
+    </tbody> 
+  </table> 
+</div> 
+{% endblock %} 
 
-<div class="overflow-auto max-h-[70vh] border border-gray-200 shadow-sm rounded-lg">
-    <table id="faturasTable" class="min-w-full bg-white border-collapse">
-        <thead class="bg-gray-50 sticky top-0 z-20 shadow-sm">
-            <tr>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700 w-52">Supplier</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoice<br>Number</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Due Date</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Issue Date</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Amount</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Description</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Status</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Sent</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Invoices</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Proof of Payment</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Foreign Invoice - Documents</th>
-                <th scope="col" class="px-6 py-3 border-b-2 border-gray-200 bg-gray-50 text-left text-sm font-semibold text-gray-700">Actions</th>
-            </tr>
-        </thead>
-    <tbody id="faturasTableBody">
-      {% for fatura in invoice_qs %}
-      <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors 
-               {% if fatura.is_urgent %}piscar-urgente{% endif %}">
-
-        <td class="px-4 py-4 border-b border-gray-200 text-sm text-gray-700 w-52 max-w-[13rem] whitespace-normal break-all">{{ fatura.fornecedor.name }}</td>
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.numero_fatura }}</td>
-
-        {% if fatura.fornecedor.debito_direto %}
-            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 italic text-gray-400"></td>
-        {% else %}
-            <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_fatura }}</td>
-        {% endif %}
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.data_emissao }}</td>
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 whitespace-nowrap">{{ fatura.valor }} {%if fatura.moeda == 'EUR' %}€{% elif fatura.moeda == 'USD' %}${% elif fatura.moeda == 'GBP' %}£{% endif %}</td>
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">{{ fatura.descricao }}</td>
-        {% if fatura.fornecedor.debito_direto %}
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-blue-600 font-bold">
-           DD/PP
-        </td>
-        {% else %}
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">
-            Paid:
-            <input id="pago_{{ fatura.id }}" type="checkbox" name="pago_{{ fatura.id }}" 
-                  {% if fatura.pago %}checked{% endif %} 
-                  class="h-4 w-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300">
-        </td>
-        {% endif %}
-        
-        <td data-url="{% url 'api_marcar_enviado' fatura.id %}"
-            onclick="lidarComCliqueFatura(this)" 
-            class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors">
-            
-            {% if fatura.enviado %}
-                <span class="text-green-600 font-semibold">Yes</span>
-                <br>
-                <span class="text-gray-500 text-xs">({{ fatura.data_enviado|date:"d/m/Y" }})</span>
-            {% else %}
-                <span class="text-red-600 font-semibold">No</span>
-            {% endif %}
-
-        </td>
-
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
-            id="dropzone-{{ fatura.id }}"
-            ondragover="handleDragOver(event, '{{ fatura.id }}')"
-            ondragleave="handleDragLeave(event, '{{ fatura.id }}')"
-            ondrop="handleDrop(event, '{{ fatura.id }}')">
-
-            <div id="overlay-{{ fatura.id }}" class="absolute inset-0 bg-blue-100 bg-opacity-90 border-2 border-dashed border-blue-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                <svg class="w-6 h-6 text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                <span class="text-blue-700 font-bold text-xs">Drop here</span>
-            </div>
-
-            <div id="list-{{ fatura.id }}" class="space-y-1">
-                {% for ficheiro in fatura.ficheiros.all %}
-                    <div class="flex items-center group">
-                        <svg class="w-3 h-3 text-gray-400 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
-                            {{ ficheiro.file.name|cut:"faturas_files/" }}
-                        </a>
-                    </div>
-                {% empty %}
-                    <span class="text-gray-400 text-xs italic empty-msg">Drag files...</span>
-                {% endfor %}
-            </div>
-        </td>
-
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200"
-            id="dropzone-pago-{{ fatura.id }}"
-            ondragover="handleDragOver(event, '{{ fatura.id }}', 'pago')"
-            ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'pago')"
-            ondrop="handleDrop(event, '{{ fatura.id }}', 'pago')">
-
-            <div id="overlay-pago-{{ fatura.id }}" class="absolute inset-0 bg-green-100 bg-opacity-90 border-2 border-dashed border-green-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                <span class="text-green-700 font-bold text-xs">Add Payment</span>
-            </div>
-
-            <div id="list-pago-{{ fatura.id }}" class="space-y-1">
-                {% for ficheiro in fatura.ficheiros_pago.all %}
-                    <div class="flex items-center">
-                        <svg class="w-3 h-3 text-green-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
-                            {{ ficheiro.file.name|cut:"faturas_files_pago/" }}
-                        </a>
-                    </div>
-                {% empty %}
-                    <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500">
-                        Drag proof of pay.
-                    </span>
-                {% endfor %}
-            </div>
-        </td>
-
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 relative transition-all duration-200 
-          {% if fatura.fornecedor.estrangeiro and not fatura.ficheiros_estrangeiro.all %}bg-red-100 border-l-4 border-l-red-500{% endif %}"
-            {% if fatura.fornecedor.estrangeiro %}
-                id="dropzone-estrangeiro-{{ fatura.id }}"
-                ondragover="handleDragOver(event, '{{ fatura.id }}', 'estrangeiro')"
-                ondragleave="handleDragLeave(event, '{{ fatura.id }}', 'estrangeiro')"
-                ondrop="handleDrop(event, '{{ fatura.id }}', 'estrangeiro')">
-
-                    <div id="overlay-estrangeiro-{{ fatura.id }}" class="absolute inset-0 bg-yellow-100 bg-opacity-90 border-2 border-dashed border-yellow-500 hidden flex flex-col items-center justify-center z-10 pointer-events-none">
-                        <span class="text-yellow-700 font-bold text-xs">Foreign Doc.</span>
-                    </div>
-
-                    <div id="list-estrangeiro-{{ fatura.id }}" class="space-y-1">
-                        {% for ficheiro in fatura.ficheiros_estrangeiro.all %}
-                            <div class="flex items-center">
-                                <svg class="w-3 h-3 text-yellow-600 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"></path></svg>
-                                <a href="{{ ficheiro.file.url }}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="{{ ficheiro.file.name }}">
-                                    {{ ficheiro.file.name|cut:"faturas_files_estrangeiro/" }}
-                                </a>
-                            </div>
-                        {% empty %}
-                            <span class="text-gray-400 text-xs italic empty-msg cursor-pointer hover:text-blue-500">
-                                Drag Foreign doc.
-                            </span>
-                        {% endfor %}
-                    </div>
-            {% else %}
-                <div class="text-gray-400 italic text-sm"></div>
-            {% endif %}
-
-        </td>
-
-        <td class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700">
-          <a href="{% url 'editarFatura' fatura.id %}" class="text-indigo-600 hover:underline mr-4">Edit</a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <!-- Corrigido para colspan="12" -->
-        <td colspan="12" class="px-6 py-4 border-b border-gray-200 text-sm text-gray-700 text-center">No invoices found.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-{% endblock %}
-
-{% block extra_js %}
-
-<style>
-    @keyframes blink-alert {
-        0% { background-color: #fee2e2; }
-        50% { background-color: #ffffff; }
-        100% { background-color: #fee2e2; }
-    }
-
-    .piscar-urgente {
-        animation: blink-alert 2s infinite;
-        border-left: 4px solid #ef4444 !important;
-    }
-</style>
+{% block extra_js %} 
+<style> 
+  @keyframes blink-alert { 
+    0% { background-color: #fee2e2; } 
+    50% { background-color: #ffffff; } 
+    100% { background-color: #fee2e2; } 
+  } 
+  .piscar-urgente { 
+    animation: blink-alert 2s infinite; 
+    border-left: 4px solid #ef4444 !important; 
+  } 
+</style> 
 
 <script>
-    function lidarComCliqueFatura(elementoClicado) {
-        const url = elementoClicado.getAttribute('data-url');
-        elementoClicado.style.opacity = '0.5';
+  const STORAGE_KEY_FILTERS = 'faturas_filters_query';
+  const STORAGE_KEY_SCROLL_WINDOW = 'faturas_scroll_win';
+  const STORAGE_KEY_SCROLL_TABLE = 'faturas_scroll_tbl';
 
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            elementoClicado.style.opacity = '1';
+  // 1. DESATIVAR RESTAURO AUTOMÁTICO DO BROWSER
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
 
-            if (data.status === 'success') {
-                if (data.enviado) {
-                    elementoClicado.innerHTML = `
-                        <span class="text-green-600 font-semibold">Yes</span>
-                        <br>
-                        <span class="text-gray-500 text-xs">(${data.data_envio})</span>
-                    `;
-                } else {
-                    elementoClicado.innerHTML = `
-                        <span class="text-red-600 font-semibold">No</span>
-                    `;
-                }
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            elementoClicado.style.opacity = '1';
-            console.error("Erro no fetch:", error);
-        });
+  let isRedirecting = false;
+
+  // 2. GESTÃO DOS FILTROS (URL Query Params)
+  (function handleFiltersPersistence() {
+    const currentQuery = window.location.search;
+    const savedQuery = sessionStorage.getItem(STORAGE_KEY_FILTERS);
+    const isClear = currentQuery.toLowerCase().includes('clear') || currentQuery.toLowerCase().includes('reset');
+
+    if (isClear) {
+      sessionStorage.removeItem(STORAGE_KEY_FILTERS);
+      sessionStorage.removeItem(STORAGE_KEY_SCROLL_WINDOW);
+      sessionStorage.removeItem(STORAGE_KEY_SCROLL_TABLE);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
     }
+
+    if (currentQuery && currentQuery !== '?') {
+      sessionStorage.setItem(STORAGE_KEY_FILTERS, currentQuery);
+    } else if (savedQuery) {
+      isRedirecting = true;
+      window.location.replace(window.location.pathname + savedQuery);
+    }
+  })();
+
+  // 3. GUARDAR A POSIÇÃO DO SCROLL (JANELA + CONTENTOR DA TABELA)
+  function saveScrollPosition() {
+    if (isRedirecting) return;
+    sessionStorage.setItem(STORAGE_KEY_SCROLL_WINDOW, window.scrollY);
     
-    function handleDragOver(e, id, tipo = 'geral') {
-        e.preventDefault();
-        e.stopPropagation();
-        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
-        const overlay = document.getElementById(overlayId);
-        if(overlay) overlay.classList.remove('hidden');
+    const tableContainer = document.getElementById('tableScrollContainer');
+    if (tableContainer) {
+      sessionStorage.setItem(STORAGE_KEY_SCROLL_TABLE, tableContainer.scrollTop);
     }
+  }
 
-    function handleDragLeave(e, id, tipo = 'geral') {
-        e.preventDefault();
-        e.stopPropagation();
-        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
-        const overlay = document.getElementById(overlayId);
-        if(overlay) overlay.classList.add('hidden');
-    }
+  window.addEventListener('beforeunload', saveScrollPosition);
+  window.addEventListener('pagehide', saveScrollPosition);
 
-    function handleDrop(e, id, tipo = 'geral') {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`;
-        document.getElementById(overlayId).classList.add('hidden');
+  // 4. RESTAURAR O SCROLL ROBUSTO
+  function restoreScroll() {
+    const savedWinScroll = sessionStorage.getItem(STORAGE_KEY_SCROLL_WINDOW);
+    const savedTblScroll = sessionStorage.getItem(STORAGE_KEY_SCROLL_TABLE);
 
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-            uploadFiles(files, id, tipo);
-        }
-    }
+    let attempts = 0;
+    const applyScroll = () => {
+      const tableContainer = document.getElementById('tableScrollContainer');
+      let ready = true;
 
-    function uploadFiles(files, faturaId, tipo) {
-        const listId = tipo === 'geral' ? `list-${faturaId}` : `list-${tipo}-${faturaId}`;
-        const listDiv = document.getElementById(listId);
-        
-        const emptyMsg = listDiv.querySelector('.empty-msg');
-        if(emptyMsg) emptyMsg.remove();
-
-        Array.from(files).forEach(file => {
-            const formData = new FormData();
-            formData.append('ficheiro', file);
-            formData.append('fatura_id', faturaId);
-            formData.append('tipo', tipo);
-
-            fetch("{% url 'api_upload_fatura' %}", {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-
-                  if (tipo === 'pago') {
-                        const checkboxPago = document.getElementById(`pago_${faturaId}`);
-                        if (checkboxPago) {
-                            checkboxPago.checked = true;
-                            checkboxPago.parentElement.classList.add('text-green-600', 'font-bold');
-                        }
-                    }
-
-                  if (tipo === 'estrangeiro') {
-                    const cell = document.getElementById(`dropzone-estrangeiro-${faturaId}`);
-                    if (cell) {
-                        cell.classList.remove('bg-red-100', 'border-l-4', 'border-l-red-500');
-                        cell.classList.add('bg-green-50');
-                        setTimeout(() => cell.classList.remove('bg-green-50'), 2000);
-                    }
-                }
-                    let iconColor = 'text-blue-500';
-                    if (tipo === 'pago') iconColor = 'text-green-500';
-                    if (tipo === 'estrangeiro') iconColor = 'text-yellow-500';
-
-                    const newLink = `
-                        <div class="flex items-center animate-pulse">
-                            <svg class="w-3 h-3 ${iconColor} mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            <a href="${data.url}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="${data.name}">
-                                ${data.name}
-                            </a>
-                        </div>
-                    `;
-                    listDiv.insertAdjacentHTML('beforeend', newLink);
-                } else {
-                    alert('Erro: ' + data.message);
-                }
-            })
-            .catch(error => console.error('Erro:', error));
+      // Restaura Scroll da Janela
+      if (savedWinScroll !== null) {
+        window.scrollTo({
+          top: parseInt(savedWinScroll, 10),
+          behavior: 'instant'
         });
-    }
+      }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        const searchInput = document.getElementById('searchInput');
-        const table = document.getElementById('faturasTable').getElementsByTagName('tbody')[0];
-        const filterForm = document.getElementById('faturasFilterForm');
-        const limitSelect = filterForm ? filterForm.querySelector('select[name="limite_faturas"]') : null;
-        let searchTimer = null;
-
-        if (searchInput && searchInput.value.trim() && limitSelect) {
-            limitSelect.value = 'todos';
+      // Restaura Scroll interno do contentor da Tabela
+      if (savedTblScroll !== null && tableContainer) {
+        const targetScroll = parseInt(savedTblScroll, 10);
+        if (targetScroll > 0) {
+          if (tableContainer.scrollHeight >= targetScroll || attempts >= 10) {
+            tableContainer.scrollTop = targetScroll;
+          } else {
+            ready = false;
+          }
         }
+      }
 
-        if (searchInput && filterForm && limitSelect) {
-            searchInput.addEventListener('input', function () {
-                clearTimeout(searchTimer);
+      if (!ready && attempts < 10) {
+        attempts++;
+        setTimeout(applyScroll, 30);
+      }
+    };
 
-                searchTimer = setTimeout(function () {
-                    if (searchInput.value.trim()) {
-                        limitSelect.value = 'todos';
-                    }
+    applyScroll();
+  }
 
-                    filterForm.submit();
-                }, 350);
-            });
-        }
+  window.addEventListener('DOMContentLoaded', restoreScroll);
+  window.addEventListener('load', restoreScroll);
 
-        searchInput.addEventListener('keyup', function () {
-            const filter = searchInput.value.toLowerCase();
-            const rows = table.getElementsByTagName('tr');
+  // 5. MARCAR COMO ENVIADO VIA FETCH
+  function lidarComCliqueFatura(elementoClicado) { 
+    const url = elementoClicado.getAttribute('data-url'); 
+    elementoClicado.style.opacity = '0.5'; 
+    fetch(url, { 
+      method: 'POST', 
+      headers: { 
+        'Content-Type': 'application/json', 
+        'X-CSRFToken': '{{ csrf_token }}' 
+      } 
+    }) 
+    .then(response => response.json()) 
+    .then(data => { 
+      elementoClicado.style.opacity = '1'; 
+      if (data.status === 'success') { 
+        if (data.enviado) { 
+          elementoClicado.innerHTML = ` 
+            <span class="text-green-600 font-semibold">Yes</span> <br> 
+            <span class="text-gray-500 text-xs">(${data.data_envio})</span> 
+          `; 
+        } else { 
+          elementoClicado.innerHTML = ` 
+            <span class="text-red-600 font-semibold">No</span> 
+          `; 
+        } 
+      } else { 
+        alert('Error: ' + data.message); 
+      } 
+    }) 
+    .catch(error => { 
+      elementoClicado.style.opacity = '1'; 
+      console.error("Erro no fetch:", error); 
+    }); 
+  } 
 
-            for (let i = 0; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                let found = false;
+  // 6. DRAG & DROP HANDLERS
+  function handleDragOver(e, id, tipo = 'geral') { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`; 
+    const overlay = document.getElementById(overlayId); 
+    if(overlay) overlay.classList.remove('hidden'); 
+  } 
 
-                for (let j = 0; j < cells.length - 1; j++) {
-                    if (cells[j].textContent.toLowerCase().includes(filter)) {
-                        found = true;
-                        break;
-                    }
-                }
-                rows[i].style.display = found ? '' : 'none';
-            }
-        });
-    });
-</script>
+  function handleDragLeave(e, id, tipo = 'geral') { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`; 
+    const overlay = document.getElementById(overlayId); 
+    if(overlay) overlay.classList.add('hidden'); 
+  } 
+
+  function handleDrop(e, id, tipo = 'geral') { 
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    const overlayId = tipo === 'geral' ? `overlay-${id}` : `overlay-${tipo}-${id}`; 
+    const overlay = document.getElementById(overlayId);
+    if (overlay) overlay.classList.add('hidden'); 
+    
+    const files = e.dataTransfer.files; 
+    if (files.length > 0) { 
+      uploadFiles(files, id, tipo); 
+    } 
+  } 
+
+  function uploadFiles(files, faturaId, tipo) { 
+    const listId = tipo === 'geral' ? `list-${faturaId}` : `list-${tipo}-${faturaId}`; 
+    const listDiv = document.getElementById(listId); 
+    const emptyMsg = listDiv ? listDiv.querySelector('.empty-msg') : null; 
+    if(emptyMsg) emptyMsg.remove(); 
+
+    Array.from(files).forEach(file => { 
+      const formData = new FormData(); 
+      formData.append('ficheiro', file); 
+      formData.append('fatura_id', faturaId); 
+      formData.append('tipo', tipo); 
+
+      fetch("{% url 'api_upload_fatura' %}", { 
+        method: 'POST', 
+        headers: { 
+          'X-CSRFToken': '{{ csrf_token }}' 
+        }, 
+        body: formData 
+      }) 
+      .then(response => response.json()) 
+      .then(data => { 
+        if (data.status === 'success') { 
+          if (tipo === 'pago') { 
+            const checkboxPago = document.getElementById(`pago_${faturaId}`); 
+            if (checkboxPago) { 
+              checkboxPago.checked = true; 
+              checkboxPago.parentElement.classList.add('text-green-600', 'font-bold'); 
+            } 
+          } 
+          if (tipo === 'estrangeiro') { 
+            const cell = document.getElementById(`dropzone-estrangeiro-${faturaId}`); 
+            if (cell) { 
+              cell.classList.remove('bg-red-100', 'border-l-4', 'border-l-red-500'); 
+              cell.classList.add('bg-green-50'); 
+              setTimeout(() => cell.classList.remove('bg-green-50'), 2000); 
+            } 
+          } 
+
+          let iconColor = 'text-blue-500'; 
+          if (tipo === 'pago') iconColor = 'text-green-500'; 
+          if (tipo === 'estrangeiro') iconColor = 'text-yellow-500'; 
+
+          const newLink = ` 
+            <div class="flex items-center animate-pulse"> 
+              <svg class="w-3 h-3 ${iconColor} mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
+              <a href="${data.url}" target="_blank" class="text-blue-600 hover:underline truncate w-28 block" title="${data.name}"> ${data.name} </a> 
+            </div> 
+          `; 
+          if (listDiv) listDiv.insertAdjacentHTML('beforeend', newLink); 
+        } else { 
+          alert('Erro: ' + data.message); 
+        } 
+      }) 
+      .catch(error => console.error('Erro:', error)); 
+    }); 
+  } 
+
+  // 7. PESQUISA COM DEBOUNCE (SUBMISSÃO AUTOMÁTICA)
+  document.addEventListener('DOMContentLoaded', function () { 
+    const searchInput = document.getElementById('searchInput'); 
+    const filterForm = document.getElementById('faturasFilterForm'); 
+    const limitSelect = filterForm ? filterForm.querySelector('select[name="limite_faturas"]') : null; 
+    let searchTimer = null; 
+
+    if (searchInput && searchInput.value.trim() && limitSelect) { 
+      limitSelect.value = 'todos'; 
+    } 
+
+    if (searchInput && filterForm && limitSelect) { 
+      searchInput.addEventListener('input', function () { 
+        clearTimeout(searchTimer); 
+        searchTimer = setTimeout(function () { 
+          if (searchInput.value.trim()) { 
+            limitSelect.value = 'todos'; 
+          } 
+          filterForm.submit(); 
+        }, 400); 
+      }); 
+    } 
+  }); 
+</script> 
 {% endblock %}
