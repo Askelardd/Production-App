@@ -85,3 +85,7 @@ productionApp/productionApp/settings.py
 productionApp/theme/middleware/middleware.py
 productionApp/theme/middleware/middleware.py
 productionApp/theme/middleware/middleware.py
+
+settings.txt
+package-lock.json
+package.json
